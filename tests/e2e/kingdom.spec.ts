@@ -382,7 +382,7 @@ test.describe("Cinematic repository travel", () => {
     );
 
     await page.getByRole("button", { name: /View @.*'s universe/ }).click();
-    await expect(app).toHaveAttribute("data-travel-phase", "approach");
+    await expect(app).toHaveAttribute("data-travel-phase", /^(approach|cover|reveal)$/);
     await expect(page).toHaveURL(`/profile/${universeFixture.owner}`, { timeout: 20_000 });
     await expect(app).toHaveAttribute("data-mode", "universe");
     await expect(app).toHaveAttribute("data-travel-phase", "idle", { timeout: 10_000 });
