@@ -1,0 +1,29 @@
+src/components/kingdom/test-fixtures/repository-city-live-world.json
+  s_57e29531c752a5::t_be83da995736a3 1-1129
+src/components/kingdom/planned-scatter.ts
+  s_57e29531c752a5::t_0c10830e8cc164 471-496,498-546
+  s_57e29531c752a5::t_af57dfe5939cc7 610-612,648-652,659,673-710
+  s_57e29531c752a5::t_0e149434222e5d 497,613,641-647
+  s_57e29531c752a5::t_8281df350726cb 711-712
+src/components/kingdom/live-production-repro.test.ts
+  s_57e29531c752a5::t_3c563fd7f29a2f 9,11-19,21-23,25-27,31-33,37-65,67-69
+  s_57e29531c752a5::t_f9b2b3a027c264 28-30
+  s_57e29531c752a5::t_06e3fde41b090d 1-7,10,20,24,66,70
+  s_57e29531c752a5::t_be83da995736a3 8,34-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f26b3bf0ab19ce70a8a0b2b7886ed2fd58fe86eb",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
