@@ -1,0 +1,21 @@
+src/components/kingdom/planned-scatter.test.ts
+  s_57e29531c752a5::t_d1bcdf743a621e 249-282
+src/components/kingdom/planned-scatter.ts
+  s_57e29531c752a5::t_2a95376b76b54c 970
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e162c10d9c12683d52cd7c337be9f7a66f20bd29",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
