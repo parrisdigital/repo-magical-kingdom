@@ -468,6 +468,82 @@ type LandmarkAnchor = Readonly<{
   footprintRadius: number;
 }>;
 
+type BuildingPlacementSpec = Readonly<{
+  originalIndex: number;
+  entityId: string | null;
+  assetRole: PlannedBuilding["assetRole"];
+  scale: number;
+  footprintRadius: number;
+}>;
+
+function deterministicJointBuildingPlacement(
+  plan: WorldPlan,
+  hamletId: string,
+  mask: EllipseRegionMask,
+  specs: ReadonlyArray<BuildingPlacementSpec>,
+  fixedPlacements: ReadonlyArray<Placement>,
+): ReadonlyMap<number, Sample> | null {
+  const cosine = Math.cos(mask.rotation);
+  const sine = Math.sin(mask.rotation);
+  const phase = random(`${plan.topologyKey}:${hamletId}:joint-packing`)() * TAU;
+  const ringOrder = [0.84, 0.9, 0.78, 0.96, 0.72, 0.66, 0.58] as const;
+  const angularSteps = 32;
+  const candidates = specs.map((spec) => {
+    const result: Sample[] = [];
+    const seen = new Set<string>();
+    for (const ring of ringOrder) {
+      for (let offsetIndex = 0; offsetIndex < angularSteps; offsetIndex += 1) {
+        const signedOffset =
+          offsetIndex === 0 ? 0 : Math.ceil(offsetIndex / 2) * (offsetIndex % 2 === 1 ? 1 : -1);
+        const angle =
+          phase +
+          (spec.originalIndex / Math.max(1, specs.length)) * TAU +
+          (signedOffset / angularSteps) * TAU;
+        const localX = Math.cos(angle) * (mask.radiusX - spec.footprintRadius) * ring;
+        const localZ = Math.sin(angle) * (mask.radiusZ - spec.footprintRadius) * ring;
+        const sample = {
+          x: round(mask.center.x + localX * cosine - localZ * sine),
+          z: round(mask.center.z + localX * sine + localZ * cosine),
+        };
+        const key = `${sample.x}:${sample.z}`;
+        if (
+          seen.has(key) ||
+          !ellipseContains(mask, sample, spec.footprintRadius) ||
+          !isBuildableTerrain(sample, plan, 8, spec.footprintRadius)
+        ) {
+          continue;
+        }
+        seen.add(key);
+        result.push(sample);
+      }
+    }
+    return result;
+  });
+  if (candidates.some((samples) => samples.length === 0)) return null;
+
+  const placements = [...fixedPlacements];
+  const selected = new Map<number, Sample>();
+  let visitedNodes = 0;
+  const maximumNodes = 80_000;
+  const search = (specIndex: number): boolean => {
+    if (specIndex === specs.length) return true;
+    if (visitedNodes >= maximumNodes) return false;
+    const spec = specs[specIndex]!;
+    for (const sample of candidates[specIndex]!) {
+      visitedNodes += 1;
+      if (candidateScore(sample, placements, spec.footprintRadius) < 1.5) continue;
+      placements.push({ sample, radius: spec.footprintRadius });
+      selected.set(spec.originalIndex, sample);
+      if (search(specIndex + 1)) return true;
+      selected.delete(spec.originalIndex);
+      placements.pop();
+      if (visitedNodes >= maximumNodes) break;
+    }
+    return false;
+  };
+  return search(0) ? selected : null;
+}
+
 function createLandmarkAnchors(plan: WorldPlan): ReadonlyArray<LandmarkAnchor> {
   const anchors: LandmarkAnchor[] = [];
   for (const [index, landmark] of plan.topology.landmarks.entries()) {
@@ -531,7 +607,10 @@ function createBuildings(
         second.footprintRadius - first.footprintRadius ||
         first.originalIndex - second.originalIndex,
     );
-    return specs.map(({ originalIndex: index, entityId, assetRole, scale, footprintRadius }) => {
+    const greedyBuildings: PlannedBuilding[] = [];
+    let failedSpec: BuildingPlacementSpec | null = null;
+    for (const spec of specs) {
+      const { originalIndex: index, entityId, assetRole, scale, footprintRadius } = spec;
       let sample: Sample;
       if (arrangement === "courtyard") {
         const angle = (index / count) * TAU + (rng() - 0.5) * 0.22;
@@ -559,27 +638,25 @@ function createBuildings(
         candidateScore(sample, placements, footprintRadius) < 1.5 ||
         !isBuildableTerrain(sample, plan, 8, footprintRadius)
       ) {
-        sample = requireCandidate(
-          `${hamlet.id} building ${index}`,
-          placementMask,
-          rng,
-          placements,
-          footprintRadius,
-          {
-            attempts: 420,
-            band: [0.34, 0.98],
-            accepts: (candidate) =>
-              isBuildableTerrain(candidate, plan, 8, footprintRadius) &&
-              candidateScore(candidate, placements, footprintRadius) >= 1.5,
-          },
-        );
+        const candidate = bestCandidate(placementMask, rng, placements, footprintRadius, {
+          attempts: 420,
+          band: [0.34, 0.98],
+          accepts: (candidate) =>
+            isBuildableTerrain(candidate, plan, 8, footprintRadius) &&
+            candidateScore(candidate, placements, footprintRadius) >= 1.5,
+        });
+        if (!candidate) {
+          failedSpec = spec;
+          break;
+        }
+        sample = candidate;
       }
       placements.push({ sample, radius: footprintRadius });
       const rotationY =
         arrangement === "courtyard"
           ? Math.atan2(placementMask.center.x - sample.x, placementMask.center.z - sample.z)
           : (index % 2 === 0 ? 0 : Math.PI) + (rng() - 0.5) * 0.22;
-      return {
+      greedyBuildings.push({
         id: `${hamlet.id}-building-${index}`,
         hamletId: hamlet.id,
         provinceId: hamlet.provinceId,
@@ -591,6 +668,46 @@ function createBuildings(
           position: { x: sample.x, y: 0, z: sample.z },
           rotationY: round(rotationY),
           scale: { x: scale, y: round(scale * (0.92 + rng() * 0.16)), z: scale },
+        },
+        terrain: terrainHint(plan, sample, 8, footprintRadius),
+      });
+    }
+    if (!failedSpec) return greedyBuildings;
+
+    const fixedPlacements = landmarkAnchors
+      .filter((anchor) => anchor.hamletId === hamlet.id)
+      .map((anchor) => ({ sample: anchor.sample, radius: anchor.footprintRadius }));
+    const jointSamples = deterministicJointBuildingPlacement(
+      plan,
+      hamlet.id,
+      placementMask,
+      specs,
+      fixedPlacements,
+    );
+    if (!jointSamples) {
+      throw new Error(
+        `Unable to place ${hamlet.id} building ${failedSpec.originalIndex} on valid planned terrain.`,
+      );
+    }
+    return specs.map(({ originalIndex: index, entityId, assetRole, scale, footprintRadius }) => {
+      const sample = jointSamples.get(index)!;
+      const transformRng = random(`${plan.topologyKey}:${hamlet.id}:joint-transform:${index}`);
+      const rotationY = Math.atan2(
+        placementMask.center.x - sample.x,
+        placementMask.center.z - sample.z,
+      );
+      return {
+        id: `${hamlet.id}-building-${index}`,
+        hamletId: hamlet.id,
+        provinceId: hamlet.provinceId,
+        entityId,
+        assetRole,
+        arrangement: "courtyard",
+        footprintRadius,
+        transform: {
+          position: { x: sample.x, y: 0, z: sample.z },
+          rotationY: round(rotationY),
+          scale: { x: scale, y: round(scale * (0.92 + transformRng() * 0.16)), z: scale },
         },
         terrain: terrainHint(plan, sample, 8, footprintRadius),
       };
