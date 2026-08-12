@@ -50,7 +50,7 @@ describe("Kenney seasonal asset contract", () => {
     }
   });
 
-  it("uses paired green and fall trees plus distinct snowy silhouettes", () => {
+  it("uses six paired green and fall trees plus bounded snowy silhouette reuse", () => {
     expect(getKenneySeasonalPalette("spring").canopy).toEqual(
       getKenneySeasonalPalette("summer").canopy,
     );
@@ -58,11 +58,39 @@ describe("Kenney seasonal asset contract", () => {
       "tree_default_fall",
       "tree_oak_fall",
       "tree_detailed_fall",
+      "tree_blocks_fall",
+      "tree_cone_fall",
+      "tree_fat_fall",
     ]);
     expect(getKenneySeasonalPalette("winter").canopy.map(({ name }) => name)).toEqual([
       "tree-snow-a",
       "tree-snow-b",
       "tree-snow-c",
+      "tree-snow-a",
+      "tree-snow-b",
+      "tree-snow-c",
+    ]);
+  });
+
+  it("provides four season-specific ground-detail slots", () => {
+    expect(KENNEY_SEASONAL_DETAIL_VARIANTS).toHaveLength(4);
+    expect(getKenneySeasonalPalette("summer").groundDetails.map(({ name }) => name)).toEqual([
+      "crop_melon",
+      "crops_wheatStageB",
+      "grass_large",
+      "crop_melon",
+    ]);
+    expect(getKenneySeasonalPalette("autumn").groundDetails.map(({ name }) => name)).toEqual([
+      "crop_pumpkin",
+      "crop_carrot",
+      "mushroom_redGroup",
+      "crops_wheatStageB",
+    ]);
+    expect(getKenneySeasonalPalette("winter").groundDetails.map(({ name }) => name)).toEqual([
+      "snow-pile",
+      "snow-flat-large",
+      "rocks-small",
+      "snow-flat",
     ]);
   });
 });

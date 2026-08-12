@@ -118,7 +118,7 @@ registry as a project policy and a clear account of its visual foundation.
 separately licensed, minimal seasonal vocabulary. Both official pack pages and
 their archived license files declare CC0 1.0 Universal.
 
-The project redistributes eight Nature Kit and five Holiday Kit models. Browser
+The project redistributes nineteen Nature Kit and seven Holiday Kit models. Browser
 delivery flattens, prunes, deduplicates, welds, quantizes, and Meshopt-compresses
 the original geometry without simplification, mesh joining, or palette
 conversion. Holiday Kit's shared external colormap is embedded as a 512-pixel

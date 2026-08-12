@@ -252,7 +252,7 @@ describe("createWorldPlan", () => {
         bytes: 12_000_000_000,
       },
     };
-    const { topology } = createWorldPlan(massive);
+    const { identity, topology } = createWorldPlan(massive);
     const buildingCount = topology.hamlets.reduce(
       (total, hamlet) => total + hamlet.maxBuildings,
       0,
@@ -264,6 +264,7 @@ describe("createWorldPlan", () => {
     expect(buildingCount).toBe(topology.visualBudgets.maxBuildings);
     expect(buildingCount).toBeLessThan(massive.statistics.files / 1_000);
     expect(topology.visualBudgets.maxTrees).toBe(240);
+    expect(identity.scaleTier).toBe("vast");
     expect(wildlifeCount).toBe(topology.visualBudgets.maxWildlifeActors);
     expect(wildlifeCount).toBeGreaterThan(6);
     expect(wildlifeCount).toBeLessThanOrEqual(12);

@@ -35,7 +35,7 @@ const credits = [
     relationship: "Seasonal world art",
     title: "Kenney",
     href: "https://kenney.nl",
-    copy: "The CC0 Nature and Holiday kits supply paired green and autumn trees, snowy silhouettes, and ground treatments through a tiny audited browser bundle.",
+    copy: "The CC0 Nature and Holiday kits supply six paired green and autumn tree families, snowy silhouettes, crops, flowers, and surface treatments through an audited browser bundle.",
   },
   {
     relationship: "Built with",

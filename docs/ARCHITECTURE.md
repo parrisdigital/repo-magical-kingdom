@@ -140,6 +140,14 @@ same immutable repository revision can be forged as spring, summer, autumn, or
 winter; the season changes presentation and build identity without changing
 the repository-derived semantic geography.
 
+`deriveRepositoryWorldIdentity()` separately classifies season-independent
+repository evidence into a Source Forge, Warden Reach, Archive Domain,
+Observatory Frontier, Garden Realm, or Crossroads. The identity exposes bounded
+settlement, woodland, and landmark signals plus compact, established,
+expansive, or vast scale. It explains composition without pretending scenery is
+a file-level metric, and the same commit retains its identity across all four
+seasons.
+
 - The repository root becomes the Crown Nexus at the world's navigational
   heart.
 - Major source provinces become settlements or regions within the same
@@ -176,6 +184,12 @@ Camera state belongs to a world-scoped state machine:
 universe → kingdom-overview → province-focus → landmark-focus
                                          ↘ optional walk mode
 ```
+
+Entering a selected repository adds a bounded cinematic state around that
+machine: planet approach, portal cover, and kingdom reveal. The live canvas is
+preserved while the canonical URL changes. The inverse transition returns to
+the profile atlas. Reduced-motion preference skips the timed travel sequence
+and keeps navigation immediate.
 
 Each world has explicit overview and focus anchors. Reset always targets the
 active world, not historical controls state. The first release prioritizes

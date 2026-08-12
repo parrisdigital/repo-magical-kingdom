@@ -9,7 +9,7 @@ import { GLTF_TRANSFORM_VERSION, KENNEY_SEASONAL_PACKS } from "./kenney-seasonal
 
 const root = resolve(process.argv[2] || "public/assets/world/kenney");
 const maximumBundleBytes = 256 * 1024;
-const maximumTriangles = 5_000;
+const maximumTriangles = 6_000;
 const findings = [];
 
 function readGlbJson(buffer, file) {

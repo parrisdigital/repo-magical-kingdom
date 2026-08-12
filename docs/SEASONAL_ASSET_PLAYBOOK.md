@@ -71,10 +71,10 @@ The current supplemental collection is deliberately small and CC0:
 
 | Season | Stable appearance slots                                                                | Composition intent                                  |
 | ------ | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Spring | Kenney green `default`, `oak`, and `detailed` trees; purple flower accent              | Fresh growth layered with existing blossom groves   |
-| Summer | The same three green tree silhouettes; purple meadow accent                            | Full canopy, deeper shade, restrained ground detail |
-| Autumn | Exact `_fall` variants for all three trees; pumpkin accent                             | Warm paired replacements without moving instances   |
-| Winter | Kenney `tree-snow-a`, `tree-snow-b`, and `tree-snow-c`; snow pile and broad snow patch | Snow silhouette swaps and clustered surface cover   |
+| Spring | Six green tree families; flower and grass accents                                      | Fresh growth layered with existing blossom groves   |
+| Summer | Six green tree families; melon, wheat, and grass accents                               | Full canopy, deeper shade, restrained ground detail |
+| Autumn | Exact `_fall` variants for all six trees; pumpkin, carrot, mushroom, and wheat accents | Warm paired replacements without moving instances   |
+| Winter | Three snow-tree silhouettes; four snow-and-stone ground treatments                     | Snow silhouette swaps and clustered surface cover   |
 
 Official sources:
 
@@ -89,7 +89,7 @@ Official sources:
 
 The typed variant slots in
 [`src/lib/assets/kenney-seasonal.ts`](../src/lib/assets/kenney-seasonal.ts)
-always expose three canopy and two ground-detail roles. A renderer may swap the
+always expose six canopy and four ground-detail roles. A renderer may swap the
 role's model for a season, but it must retain the role's deterministic transform
 and semantic relationship.
 

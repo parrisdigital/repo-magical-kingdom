@@ -342,5 +342,52 @@ test.describe("Repo Magical Kingdom journeys", () => {
     );
     // Browsers clamp a zero-duration transition to a tiny epsilon internally.
     expect(longestTransition).toBeLessThan(0.001);
+    await expect(page.locator("main[data-mode]")).toHaveAttribute("data-travel-phase", "idle");
+  });
+});
+
+test.describe("Cinematic repository travel", () => {
+  test.describe.configure({ mode: "serial", timeout: 120_000 });
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test("flies from a selected profile planet into its compiled kingdom and back", async ({
+    page,
+  }) => {
+    const failures = watchBrowserFailures(page);
+    await mockUniverseApi(page);
+    await page.route(/\/api\/kingdom(?:\?|$)/, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 220));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ world: kingdomFixture }),
+      });
+    });
+
+    await page.goto(`/profile/${universeFixture.owner}`);
+    await expect(page.locator('main[data-mode="universe"]')).toBeVisible();
+    await page.getByRole("button", { name: /Worlds/ }).click();
+    const worlds = page.getByRole("region", { name: "Repository worlds" });
+    await worlds.getByRole("button").filter({ hasText: kingdomFixture.source.repository }).click();
+    await page.getByRole("button", { name: /Enter world/ }).click();
+
+    const app = page.locator("main[data-mode]");
+    await expect(app).toHaveAttribute("data-travel-phase", "approach");
+    await expect(page).toHaveURL(canonicalKingdomPath, { timeout: 20_000 });
+    await expect(app).toHaveAttribute("data-mode", "kingdom");
+    await expect(page.getByRole("heading", { name: kingdomFixture.title })).toBeVisible();
+    await expect(app).toHaveAttribute("data-travel-phase", "idle", { timeout: 10_000 });
+    await expect(page).toHaveTitle(
+      `${kingdomFixture.source.owner}/${kingdomFixture.source.repository} · Autumn · Repo Magical Kingdom`,
+    );
+
+    await page.getByRole("button", { name: /View @.*'s universe/ }).click();
+    await expect(app).toHaveAttribute("data-travel-phase", "approach");
+    await expect(page).toHaveURL(`/profile/${universeFixture.owner}`, { timeout: 20_000 });
+    await expect(app).toHaveAttribute("data-mode", "universe");
+    await expect(app).toHaveAttribute("data-travel-phase", "idle", { timeout: 10_000 });
+    await expect(page).toHaveTitle(`@${universeFixture.owner}'s universe · Repo Magical Kingdom`);
+    expect(failures.pageErrors).toEqual([]);
+    expect(failures.consoleErrors).toEqual([]);
   });
 });

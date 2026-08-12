@@ -2,16 +2,35 @@ export const KENNEY_SEASONAL_ASSET_BASE_URL = "/assets/world/kenney" as const;
 
 export const KENNEY_SEASONAL_ASSET_NAMES = {
   nature: [
+    "crop_carrot",
+    "crop_melon",
     "crop_pumpkin",
+    "crops_wheatStageB",
     "flower_purpleA",
+    "grass_large",
+    "mushroom_redGroup",
+    "tree_blocks",
+    "tree_blocks_fall",
+    "tree_cone",
+    "tree_cone_fall",
     "tree_default",
     "tree_default_fall",
     "tree_detailed",
     "tree_detailed_fall",
+    "tree_fat",
+    "tree_fat_fall",
     "tree_oak",
     "tree_oak_fall",
   ],
-  holiday: ["snow-flat-large", "snow-pile", "tree-snow-a", "tree-snow-b", "tree-snow-c"],
+  holiday: [
+    "rocks-small",
+    "snow-flat",
+    "snow-flat-large",
+    "snow-pile",
+    "tree-snow-a",
+    "tree-snow-b",
+    "tree-snow-c",
+  ],
 } as const;
 
 export type KenneySeasonalAssetCollection = keyof typeof KENNEY_SEASONAL_ASSET_NAMES;
@@ -68,22 +87,57 @@ export const KENNEY_SEASONAL_TREE_VARIANTS = [
     autumn: asset("nature", "tree_detailed_fall"),
     winter: asset("holiday", "tree-snow-c"),
   },
+  {
+    slot: "block-canopy",
+    spring: asset("nature", "tree_blocks"),
+    summer: asset("nature", "tree_blocks"),
+    autumn: asset("nature", "tree_blocks_fall"),
+    winter: asset("holiday", "tree-snow-a"),
+  },
+  {
+    slot: "cone-canopy",
+    spring: asset("nature", "tree_cone"),
+    summer: asset("nature", "tree_cone"),
+    autumn: asset("nature", "tree_cone_fall"),
+    winter: asset("holiday", "tree-snow-b"),
+  },
+  {
+    slot: "fat-canopy",
+    spring: asset("nature", "tree_fat"),
+    summer: asset("nature", "tree_fat"),
+    autumn: asset("nature", "tree_fat_fall"),
+    winter: asset("holiday", "tree-snow-c"),
+  },
 ] as const;
 
 export const KENNEY_SEASONAL_DETAIL_VARIANTS = [
   {
     slot: "small-ground-accent",
     spring: asset("nature", "flower_purpleA"),
-    summer: asset("nature", "flower_purpleA"),
+    summer: asset("nature", "crop_melon"),
     autumn: asset("nature", "crop_pumpkin"),
     winter: asset("holiday", "snow-pile"),
   },
   {
     slot: "broad-ground-accent",
-    spring: asset("nature", "flower_purpleA"),
-    summer: asset("nature", "flower_purpleA"),
-    autumn: asset("nature", "crop_pumpkin"),
+    spring: asset("nature", "grass_large"),
+    summer: asset("nature", "crops_wheatStageB"),
+    autumn: asset("nature", "crop_carrot"),
     winter: asset("holiday", "snow-flat-large"),
+  },
+  {
+    slot: "woodland-ground-accent",
+    spring: asset("nature", "flower_purpleA"),
+    summer: asset("nature", "grass_large"),
+    autumn: asset("nature", "mushroom_redGroup"),
+    winter: asset("holiday", "rocks-small"),
+  },
+  {
+    slot: "surface-ground-accent",
+    spring: asset("nature", "grass_large"),
+    summer: asset("nature", "crop_melon"),
+    autumn: asset("nature", "crops_wheatStageB"),
+    winter: asset("holiday", "snow-flat"),
   },
 ] as const;
 

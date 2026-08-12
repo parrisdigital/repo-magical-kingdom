@@ -1,5 +1,6 @@
 import { stableDigest, stableFraction, stableHash } from "./hash";
 import type { FileCategory, KingdomEntity, KingdomSeason, KingdomWorld, Province } from "./types";
+import { deriveRepositoryWorldIdentity, type RepositoryWorldIdentity } from "./world-identity";
 
 export type WorldPlanPoint = Readonly<{ x: number; z: number }>;
 
@@ -268,6 +269,7 @@ export type WorldPlan = Readonly<{
     name: string;
     commitSha: string;
   }>;
+  identity: RepositoryWorldIdentity;
   topology: WorldPlanTopology;
   appearance: WorldPlanAppearance;
 }>;
@@ -1346,6 +1348,7 @@ function createTopologyKey(world: KingdomWorld, topology: WorldPlanTopology): st
  * `appearance`, so changing seasons cannot move terrain, settlements, or actors.
  */
 export function createWorldPlan(world: KingdomWorld): WorldPlan {
+  const identity = deriveRepositoryWorldIdentity(world);
   const envelope = createEnvelope(world);
   const hamlets = createHamlets(world, envelope);
   const { zones: terrainZones, water } = createTerrainZones(world, envelope, hamlets);
@@ -1395,6 +1398,7 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
       name: world.source.repository,
       commitSha: world.source.commitSha,
     },
+    identity,
     topology,
     appearance: {
       season: world.season,

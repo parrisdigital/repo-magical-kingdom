@@ -11,8 +11,8 @@ the asset bundle supplies the visual vocabulary used to express that world.
 | `medieval`       | [Quaternius Medieval Village MegaKit](https://quaternius.com/packs/medievalvillagemegakit.html) Standard free edition |     22 | Textured modular settlement architecture and props       |
 | `nature`         | [Quaternius Stylized Nature MegaKit](https://quaternius.com/packs/stylizednaturemegakit.html) Standard free edition   |     18 | Textured trees, foliage, flowers, rocks, and path detail |
 | `animals`        | [Quaternius Ultimate Animated Animal Pack](https://quaternius.com/packs/ultimateanimatedanimals.html)                 |      3 | Rigged deer, fox, and stag wildlife                      |
-| `kenney/nature`  | [Kenney Nature Kit](https://kenney.nl/assets/nature-kit) 2.1                                                          |      8 | Paired green/fall trees, flower, and pumpkin variants    |
-| `kenney/holiday` | [Kenney Holiday Kit](https://www.kenney.nl/assets/holiday-kit) 2.0                                                    |      5 | Snowy tree silhouettes and generic snow treatments       |
+| `kenney/nature`  | [Kenney Nature Kit](https://kenney.nl/assets/nature-kit) 2.1                                                          |     19 | Six paired tree families and seasonal ground variants    |
+| `kenney/holiday` | [Kenney Holiday Kit](https://www.kenney.nl/assets/holiday-kit) 2.0                                                    |      7 | Snowy tree silhouettes and snow-and-stone treatments     |
 
 All five source packs declare
 [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/). Exact
@@ -97,7 +97,7 @@ set is preserved. The build selection is explicit in
 so rebuilding a pack cannot silently add every upstream model.
 
 The Kenney pipeline accepts only the two exact reviewed ZIP hashes, extracts
-the explicit 13-model selection, embeds Holiday Kit's upstream shared palette,
+the explicit 26-model selection, embeds Holiday Kit's upstream shared palette,
 and caps it at 512 pixels:
 
 ```bash
@@ -142,10 +142,10 @@ animation track, missing wildlife clips, or a bundle above 12 MiB. The current
 bundle contains 43 GLBs totaling 9.95 MiB, with 86,201 triangles and 89 source
 primitives before runtime reuse.
 
-The supplemental Kenney bundle contains 13 GLBs totaling 94.64 KiB, with 2,960
-triangles and 23 source primitives. Its verifier additionally rejects external
+The supplemental Kenney bundle contains 26 GLBs totaling 169.30 KiB, with 5,330
+triangles and 47 source primitives. Its verifier additionally rejects external
 buffers or textures, non-grounded roots, unexpected scene hierarchies, stale
-license texts, and a bundle above 256 KiB or 5,000 triangles.
+license texts, and a bundle above 256 KiB or 6,000 triangles.
 
 The attribution validator independently checks every redistributed file against
 its SHA-256 hash and rejects any unregistered model or image. The

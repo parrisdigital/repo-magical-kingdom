@@ -76,8 +76,8 @@ verbatim copying and distribution and has not been modified. Source:
 | [Quaternius](https://quaternius.com/) | Medieval Village MegaKit      | CC0-1.0 | Textured modular settlement architecture         |
 | [Quaternius](https://quaternius.com/) | Stylized Nature MegaKit       | CC0-1.0 | Trees, foliage, flowers, rocks, and path details |
 | [Quaternius](https://quaternius.com/) | Ultimate Animated Animal Pack | CC0-1.0 | Rigged deer, fox, and stag with animation clips  |
-| [Kenney](https://kenney.nl/)          | Nature Kit 2.1                | CC0-1.0 | Paired green/fall trees, flower, and pumpkin     |
-| [Kenney](https://kenney.nl/)          | Holiday Kit 2.0               | CC0-1.0 | Snow trees, snow pile, and broad snow patch      |
+| [Kenney](https://kenney.nl/)          | Nature Kit 2.1                | CC0-1.0 | Six paired tree families and seasonal ground art |
+| [Kenney](https://kenney.nl/)          | Holiday Kit 2.0               | CC0-1.0 | Snow trees and snow-and-stone surface treatments |
 
 The project redistributes a curated subset rather than each complete source
 pack. Source glTF files were packaged as self-contained GLBs, pruned,

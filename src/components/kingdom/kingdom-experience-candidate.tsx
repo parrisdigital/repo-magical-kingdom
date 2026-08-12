@@ -526,6 +526,7 @@ export function KingdomExperienceCandidate({
                   onSelect={setSelection}
                   onHover={setHovered}
                   onEnterRepository={enterRepository}
+                  travelingRepositoryId={null}
                   resetToken={resetToken}
                   reducedMotion={reducedMotion}
                   quality={quality}

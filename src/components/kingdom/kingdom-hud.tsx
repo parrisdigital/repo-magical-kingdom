@@ -2,7 +2,12 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 
-import { KINGDOM_SEASONS, KINGDOM_SEASON_LABELS, type KingdomSeason } from "@/lib/kingdom";
+import {
+  deriveRepositoryWorldIdentity,
+  KINGDOM_SEASONS,
+  KINGDOM_SEASON_LABELS,
+  type KingdomSeason,
+} from "@/lib/kingdom";
 import type { KingdomWorld, RepositoryUniverse, Selection } from "@/lib/kingdom/types";
 
 import styles from "./kingdom-experience.module.css";
@@ -598,10 +603,11 @@ export function KingdomHud({
 
   const title =
     mode === "universe" ? (universe?.displayName ?? "Repository Universe") : world.title;
+  const worldIdentity = useMemo(() => deriveRepositoryWorldIdentity(world), [world]);
   const subtitle =
     mode === "universe"
       ? `${universe?.repositoryCount ?? 0} explorable worlds`
-      : `${KINGDOM_SEASON_LABELS[season]} kingdom · ${world.statistics.provinces} settlements · ${world.coverage.representedFiles.toLocaleString()} files represented`;
+      : `${worldIdentity.label} · ${KINGDOM_SEASON_LABELS[season]} · ${worldIdentity.scaleTier} realm · ${world.coverage.representedFiles.toLocaleString()} files represented`;
 
   return (
     <div className={styles.hud}>

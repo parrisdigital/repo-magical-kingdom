@@ -88,7 +88,7 @@
         "url": "https://creativecommons.org/publicdomain/zero/1.0/"
       },
       "authors": ["Kenney"],
-      "usage": "Three paired green/fall tree silhouettes, a purple flower, and a pumpkin provide topology-stable spring, summer, and autumn appearance variants.",
+      "usage": "Six paired green/fall tree silhouettes plus crops, grass, flowers, and mushrooms provide topology-stable spring, summer, and autumn appearance variants.",
       "projectLocations": [
         "public/assets/world/kenney/nature",
         "src/lib/assets/kenney-seasonal.ts",
@@ -107,23 +107,45 @@
         "src/app/credits/page.tsx"
       ],
       "redistributedFiles": [
+        "public/assets/world/kenney/nature/crop_carrot.glb",
+        "public/assets/world/kenney/nature/crop_melon.glb",
         "public/assets/world/kenney/nature/crop_pumpkin.glb",
+        "public/assets/world/kenney/nature/crops_wheatStageB.glb",
         "public/assets/world/kenney/nature/flower_purpleA.glb",
+        "public/assets/world/kenney/nature/grass_large.glb",
+        "public/assets/world/kenney/nature/mushroom_redGroup.glb",
+        "public/assets/world/kenney/nature/tree_blocks.glb",
+        "public/assets/world/kenney/nature/tree_blocks_fall.glb",
+        "public/assets/world/kenney/nature/tree_cone.glb",
+        "public/assets/world/kenney/nature/tree_cone_fall.glb",
         "public/assets/world/kenney/nature/tree_default.glb",
         "public/assets/world/kenney/nature/tree_default_fall.glb",
         "public/assets/world/kenney/nature/tree_detailed.glb",
         "public/assets/world/kenney/nature/tree_detailed_fall.glb",
+        "public/assets/world/kenney/nature/tree_fat.glb",
+        "public/assets/world/kenney/nature/tree_fat_fall.glb",
         "public/assets/world/kenney/nature/tree_oak.glb",
         "public/assets/world/kenney/nature/tree_oak_fall.glb",
         "public/assets/world/kenney/licenses/Nature_Kit_2.1_LICENSE.txt"
       ],
       "contentHashes": {
+        "public/assets/world/kenney/nature/crop_carrot.glb": "sha256:306772be6799f3c84190330aeedd78206e9a4fa18c29d13a84da0e186879400b",
+        "public/assets/world/kenney/nature/crop_melon.glb": "sha256:cfb09d09cefb77e690dcef939e0a39c7c95e40c49b75233d3b4e7a3cb9a83432",
         "public/assets/world/kenney/nature/crop_pumpkin.glb": "sha256:0945f1357c68bc8f7ea9b9d61cb1d6578693ab6ebd1f03044a5d34327df7502c",
+        "public/assets/world/kenney/nature/crops_wheatStageB.glb": "sha256:01e491e901730edd19ce76398c3353955674e3100c8887f622b186d74516b43f",
         "public/assets/world/kenney/nature/flower_purpleA.glb": "sha256:18f31a25696f2de330b142373bcdef2e919180c06548c8ea3931066da0ff72ae",
+        "public/assets/world/kenney/nature/grass_large.glb": "sha256:5269881275246cda662d7cd2c2e05ce2f12d2b0b4c95dd0cd0326047574fb94e",
+        "public/assets/world/kenney/nature/mushroom_redGroup.glb": "sha256:14205a3bd649c70f4aa315eb9936190b051d8ecb36ec6e91d3eb4ff638a6fb6b",
+        "public/assets/world/kenney/nature/tree_blocks.glb": "sha256:c955d18233222eb9f8dd42d4d38836a23e8fd9b48dd1bb3acebe054febe2df16",
+        "public/assets/world/kenney/nature/tree_blocks_fall.glb": "sha256:0f2aab1606db1c6132a4d0ec9c3020769fd807ef07514d944f58808ceb3e41f0",
+        "public/assets/world/kenney/nature/tree_cone.glb": "sha256:2679fac64efe4566306754387f48929caa74b4c6d2a09b1f8e235daed7eaa713",
+        "public/assets/world/kenney/nature/tree_cone_fall.glb": "sha256:589438156d6aa386ec99e05ea8b384b8a0d9dd0c4e7cedeee9e5d1a249cf0658",
         "public/assets/world/kenney/nature/tree_default.glb": "sha256:1f1f34e9a7c34a79e817e88ec3253087ef0e44f3440ddf1ef388598c7b98823d",
         "public/assets/world/kenney/nature/tree_default_fall.glb": "sha256:782072ed5d10d47f2019bbfb88c7e35a0aa30bac9e36a687868a2274a2ebad0d",
         "public/assets/world/kenney/nature/tree_detailed.glb": "sha256:ae3eaa1ea92977c9ca90848379606579e1ba9566e6a9d69c12c88d431d1aa437",
         "public/assets/world/kenney/nature/tree_detailed_fall.glb": "sha256:621dc92699af4feeb1034b919ceae92a975a1364d81cb12dbb2e7d8e937b65f7",
+        "public/assets/world/kenney/nature/tree_fat.glb": "sha256:cb89d108e96a20b3a870f25fbd483c15cb4ebf07d5cb66c0bfb46f1486c3cbb3",
+        "public/assets/world/kenney/nature/tree_fat_fall.glb": "sha256:f136a859f0043032de0376c45d7c14b5af0de395826c4de6d8ced0331eca3573",
         "public/assets/world/kenney/nature/tree_oak.glb": "sha256:1d8b574d789f12fa9762d4983862871b393728994e0069e86ab19855cd242aa0",
         "public/assets/world/kenney/nature/tree_oak_fall.glb": "sha256:71761637ae3554f39dae316c4405bb9f09bf818437ed799f9c1552a220cfec17",
         "public/assets/world/kenney/licenses/Nature_Kit_2.1_LICENSE.txt": "sha256:cb96b75e3560ac78d7a53ce6f083f4cdb5c53faea6141b62d63458dcfe1e4b9d"
@@ -145,7 +167,7 @@
         "url": "https://creativecommons.org/publicdomain/zero/1.0/"
       },
       "authors": ["Kenney"],
-      "usage": "Three snowy tree silhouettes, a snow pile, and a broad snow patch provide winter appearance variants without changing repository-derived placement topology.",
+      "usage": "Three snowy tree silhouettes plus four snow-and-stone ground treatments provide winter appearance variants without changing repository-derived placement topology.",
       "projectLocations": [
         "public/assets/world/kenney/holiday",
         "src/lib/assets/kenney-seasonal.ts",
@@ -164,6 +186,8 @@
         "src/app/credits/page.tsx"
       ],
       "redistributedFiles": [
+        "public/assets/world/kenney/holiday/rocks-small.glb",
+        "public/assets/world/kenney/holiday/snow-flat.glb",
         "public/assets/world/kenney/holiday/snow-flat-large.glb",
         "public/assets/world/kenney/holiday/snow-pile.glb",
         "public/assets/world/kenney/holiday/tree-snow-a.glb",
@@ -172,6 +196,8 @@
         "public/assets/world/kenney/licenses/Holiday_Kit_2.0_LICENSE.txt"
       ],
       "contentHashes": {
+        "public/assets/world/kenney/holiday/rocks-small.glb": "sha256:6e82c09f71f3a6d76a61ec960d0a6a225c5027b0b56e6dcf0fab7b0da001b846",
+        "public/assets/world/kenney/holiday/snow-flat.glb": "sha256:b8722d8420b608874116ce6b6db970870b1295895f54da70f45386f10ce093ec",
         "public/assets/world/kenney/holiday/snow-flat-large.glb": "sha256:c34ca7517b568500503c7333cfcb2f4c17a0a3e1e5538941c2ea50bc2c5356aa",
         "public/assets/world/kenney/holiday/snow-pile.glb": "sha256:2dbab6538525b4e2370a96a8a70eee6d2d6db3edc487297263acd7ae47ee61fe",
         "public/assets/world/kenney/holiday/tree-snow-a.glb": "sha256:4824c85a5ab596ab43d01c5abd8830324791da564eda6d44538d1e67acc25fc1",

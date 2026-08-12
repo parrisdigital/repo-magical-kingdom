@@ -82,12 +82,12 @@ documentation and attribution registry.
 [Kenney](https://kenney.nl/) created the CC0 seasonal assets that supplement the
 world's visual vocabulary:
 
-- [Nature Kit 2.1](https://kenney.nl/assets/nature-kit) supplies three matched
-  green/fall tree pairs, a purple flower, and a pumpkin.
+- [Nature Kit 2.1](https://kenney.nl/assets/nature-kit) supplies six matched
+  green/fall tree pairs plus crops, grass, flowers, and mushrooms.
 - [Holiday Kit 2.0](https://www.kenney.nl/assets/holiday-kit) supplies three
-  snowy tree silhouettes, a snow pile, and a broad snow patch.
+  snowy tree silhouettes plus four snow-and-stone ground treatments.
 
-The project distributes only this 13-model subset, optimized as self-contained
+The project distributes only this 26-model subset, optimized as self-contained
 browser GLBs. Kenney does not require attribution under CC0; explicit
 recognition is retained because the assets materially support the seasonal
 experience. License texts are preserved in

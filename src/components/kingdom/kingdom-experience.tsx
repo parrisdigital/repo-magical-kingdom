@@ -14,7 +14,7 @@ import {
 } from "react";
 import * as THREE from "three";
 
-import { DEFAULT_KINGDOM_SEASON, type KingdomSeason } from "@/lib/kingdom";
+import { DEFAULT_KINGDOM_SEASON, KINGDOM_SEASON_LABELS, type KingdomSeason } from "@/lib/kingdom";
 import { createDemoKingdom, createDemoUniverse } from "@/lib/kingdom/demo-world";
 import { kingdomWorldSchema, repositoryUniverseSchema } from "@/lib/kingdom/schemas";
 import type {
@@ -34,6 +34,33 @@ const DEMO_WORLD = createDemoKingdom();
 const DEMO_UNIVERSE = createDemoUniverse();
 
 type NavigateOptions = Readonly<{ replace?: boolean }>;
+
+type WorldTravelState = Readonly<{
+  direction: "enter" | "exit";
+  phase: "approach" | "cover" | "reveal";
+  label: string;
+  repositoryId: number | null;
+}> | null;
+
+type KingdomTravelOptions = Readonly<{
+  repositoryId: number;
+  label: string;
+}>;
+
+function waitForTravel(milliseconds: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted || milliseconds <= 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener("abort", abort);
+      resolve();
+    }, milliseconds);
+    const abort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Travel aborted.", "AbortError"));
+    };
+    signal.addEventListener("abort", abort, { once: true });
+  });
+}
 
 export type KingdomExperienceProps = Readonly<{
   initialOwner?: string;
@@ -262,6 +289,7 @@ export function KingdomExperience({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [travel, setTravel] = useState<WorldTravelState>(null);
   const requestRef = useRef<AbortController | null>(null);
   useProceduralAmbience(soundEnabled);
 
@@ -276,6 +304,18 @@ export function KingdomExperience({
       }
     },
     [onNavigate, router],
+  );
+
+  const preserveSceneLocation = useCallback(
+    (href: string, options: NavigateOptions = {}) => {
+      if (onNavigate) {
+        onNavigate(href, options);
+        return;
+      }
+      if (options.replace) window.history.replaceState(null, "", href);
+      else window.history.pushState(null, "", href);
+    },
+    [onNavigate],
   );
 
   const setSelection = useCallback(
@@ -293,13 +333,23 @@ export function KingdomExperience({
       requestedSeason: KingdomSeason,
       revision?: string,
       history: "push" | "replace" | "none" = "push",
+      travelOptions?: KingdomTravelOptions,
     ) => {
       requestRef.current?.abort();
       const controller = new AbortController();
       requestRef.current = controller;
       setLoadingMessage(`Reading ${owner}/${repository}…`);
       setErrorMessage(null);
-      setSelection(null);
+      if (!travelOptions) setSelection(null);
+      const travelStartedAt = performance.now();
+      if (travelOptions) {
+        setTravel({
+          direction: "enter",
+          phase: "approach",
+          label: travelOptions.label,
+          repositoryId: travelOptions.repositoryId,
+        });
+      }
 
       try {
         const params = new URLSearchParams({
@@ -324,6 +374,20 @@ export function KingdomExperience({
         if (controller.signal.aborted) return;
 
         const nextWorld = parsedWorld.data;
+        if (travelOptions) {
+          await waitForTravel(
+            Math.max(0, 620 - (performance.now() - travelStartedAt)),
+            controller.signal,
+          );
+          setTravel({
+            direction: "enter",
+            phase: "cover",
+            label: travelOptions.label,
+            repositoryId: travelOptions.repositoryId,
+          });
+          await waitForTravel(360, controller.signal);
+        }
+        setSelection(null);
         setWorld(nextWorld);
         setSeason(nextWorld.season);
         setUniverse(null);
@@ -332,9 +396,30 @@ export function KingdomExperience({
         setResetToken((token) => token + 1);
         onWorldLoaded?.(nextWorld);
         const canonicalPath = `/kingdom/${encodeURIComponent(nextWorld.source.owner)}/${encodeURIComponent(nextWorld.source.repository)}/${nextWorld.source.commitSha}?season=${nextWorld.season}`;
-        if (history !== "none") navigate(canonicalPath, { replace: history === "replace" });
+        if (history !== "none") {
+          const navigationOptions = { replace: history === "replace" };
+          if (travelOptions) {
+            preserveSceneLocation(canonicalPath, navigationOptions);
+            document.title = `${nextWorld.source.owner}/${nextWorld.source.repository} · ${KINGDOM_SEASON_LABELS[nextWorld.season]} · Repo Magical Kingdom`;
+          } else navigate(canonicalPath, navigationOptions);
+        }
+        if (travelOptions) {
+          setLoadingMessage(null);
+          setTravel({
+            direction: "enter",
+            phase: "reveal",
+            label: travelOptions.label,
+            repositoryId: null,
+          });
+          await waitForTravel(620, controller.signal);
+          setTravel(null);
+        }
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError") {
+          if (requestRef.current === controller) setTravel(null);
+          return;
+        }
+        setTravel(null);
         setErrorMessage(
           error instanceof Error ? error.message : "The gateway could not forge that repository.",
         );
@@ -345,17 +430,26 @@ export function KingdomExperience({
         }
       }
     },
-    [kingdomEndpoint, navigate, onWorldLoaded, setSelection],
+    [kingdomEndpoint, navigate, onWorldLoaded, preserveSceneLocation, setSelection],
   );
 
   const loadUniverse = useCallback(
-    async (owner: string, history: "push" | "replace" | "none" = "push") => {
+    async (owner: string, history: "push" | "replace" | "none" = "push", cinematic = false) => {
       requestRef.current?.abort();
       const controller = new AbortController();
       requestRef.current = controller;
       setLoadingMessage(`Charting @${owner}'s universe…`);
       setErrorMessage(null);
       setSelection(null);
+      const travelStartedAt = performance.now();
+      if (cinematic) {
+        setTravel({
+          direction: "exit",
+          phase: "approach",
+          label: `@${owner}'s universe`,
+          repositoryId: null,
+        });
+      }
 
       try {
         const params = new URLSearchParams({ owner });
@@ -376,17 +470,49 @@ export function KingdomExperience({
         if (controller.signal.aborted) return;
 
         const nextUniverse = parsedUniverse.data;
+        if (cinematic) {
+          await waitForTravel(
+            Math.max(0, 420 - (performance.now() - travelStartedAt)),
+            controller.signal,
+          );
+          setTravel({
+            direction: "exit",
+            phase: "cover",
+            label: `@${owner}'s universe`,
+            repositoryId: null,
+          });
+          await waitForTravel(320, controller.signal);
+        }
         setUniverse(nextUniverse);
         setMode("universe");
         setRepositoryInput(nextUniverse.owner);
         setResetToken((token) => token + 1);
         onUniverseLoaded?.(nextUniverse);
-        if (history !== "none")
-          navigate(`/profile/${encodeURIComponent(nextUniverse.owner)}`, {
-            replace: history === "replace",
+        if (history !== "none") {
+          const href = `/profile/${encodeURIComponent(nextUniverse.owner)}`;
+          const navigationOptions = { replace: history === "replace" };
+          if (cinematic) {
+            preserveSceneLocation(href, navigationOptions);
+            document.title = `@${nextUniverse.owner}'s universe · Repo Magical Kingdom`;
+          } else navigate(href, navigationOptions);
+        }
+        if (cinematic) {
+          setLoadingMessage(null);
+          setTravel({
+            direction: "exit",
+            phase: "reveal",
+            label: `@${owner}'s universe`,
+            repositoryId: null,
           });
+          await waitForTravel(560, controller.signal);
+          setTravel(null);
+        }
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError") {
+          if (requestRef.current === controller) setTravel(null);
+          return;
+        }
+        setTravel(null);
         setErrorMessage(
           error instanceof Error ? error.message : "The atlas could not chart that profile.",
         );
@@ -397,7 +523,7 @@ export function KingdomExperience({
         }
       }
     },
-    [navigate, onUniverseLoaded, setSelection, universeEndpoint],
+    [navigate, onUniverseLoaded, preserveSceneLocation, setSelection, universeEndpoint],
   );
 
   useEffect(() => {
@@ -448,11 +574,26 @@ export function KingdomExperience({
 
   const enterRepository = useCallback(
     (repository: UniverseRepository | RepositoryPortal) => {
-      const repositorySeason = "season" in repository ? repository.season : season;
+      const universeRepository = "season" in repository ? repository : null;
+      const repositorySeason = universeRepository?.season ?? season;
       setSeason(repositorySeason);
-      void loadKingdom(repository.owner, repository.repository, repositorySeason);
+      const travelOptions =
+        mode === "universe" && !reducedMotion && universeRepository
+          ? {
+              repositoryId: universeRepository.id,
+              label: `${repository.owner}/${repository.repository}`,
+            }
+          : undefined;
+      void loadKingdom(
+        repository.owner,
+        repository.repository,
+        repositorySeason,
+        undefined,
+        "push",
+        travelOptions,
+      );
     },
-    [loadKingdom, season],
+    [loadKingdom, mode, reducedMotion, season],
   );
 
   const isDemo = world.buildKey === DEMO_WORLD.buildKey;
@@ -495,7 +636,12 @@ export function KingdomExperience({
   const rootClassName = className ? `${styles.experience} ${className}` : styles.experience;
 
   return (
-    <main className={rootClassName} data-mode={mode}>
+    <main
+      className={rootClassName}
+      data-mode={mode}
+      data-travel-phase={travel?.phase ?? "idle"}
+      aria-busy={travel !== null}
+    >
       {webglSupported && contextFailureCount < 2 ? (
         <SceneBoundary onError={() => setContextFailureCount(2)}>
           <div className={styles.canvasWrap} aria-hidden="true">
@@ -531,6 +677,7 @@ export function KingdomExperience({
                   onSelect={setSelection}
                   onHover={setHovered}
                   onEnterRepository={enterRepository}
+                  travelingRepositoryId={travel?.repositoryId ?? null}
                   resetToken={resetToken}
                   reducedMotion={reducedMotion}
                   quality={quality}
@@ -563,6 +710,21 @@ export function KingdomExperience({
         </div>
       ) : null}
       <div className={styles.vignette} aria-hidden="true" />
+      {travel ? (
+        <div
+          className={styles.worldTransition}
+          data-direction={travel.direction}
+          data-phase={travel.phase}
+          aria-hidden="true"
+        >
+          <div className={styles.worldTransitionPortal}>
+            <i />
+            <i />
+            <span>{travel.direction === "enter" ? "Entering world" : "Returning to atlas"}</span>
+            <strong>{travel.label}</strong>
+          </div>
+        </div>
+      ) : null}
       <KingdomHud
         mode={mode}
         world={world}
@@ -585,12 +747,13 @@ export function KingdomExperience({
         }}
         onShowLanding={() => {
           requestRef.current?.abort();
+          setTravel(null);
           setMode("landing");
           setSelection(null);
           setErrorMessage(null);
           navigate("/");
         }}
-        onShowUniverse={() => void loadUniverse(world.source.owner)}
+        onShowUniverse={() => void loadUniverse(world.source.owner, "push", !reducedMotion)}
         onToggleSound={() => setSoundEnabled((enabled) => !enabled)}
         onSeasonChange={changeSeason}
       />

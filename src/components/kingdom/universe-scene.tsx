@@ -29,6 +29,7 @@ type RepositoryUniverseSceneProps = Readonly<{
   onSelect: (selection: Selection) => void;
   onHover: (selection: Selection) => void;
   onEnterRepository: (repository: UniverseRepository) => void;
+  travelingRepositoryId: number | null;
   resetToken: number;
   reducedMotion: boolean;
   quality: "low" | "high";
@@ -582,6 +583,7 @@ function RepositoryWorld({
   onSelect,
   onHover,
   onEnter,
+  traveling,
 }: Readonly<{
   repository: UniverseRepository;
   selected: boolean;
@@ -590,6 +592,7 @@ function RepositoryWorld({
   onSelect: () => void;
   onHover: (hovered: boolean) => void;
   onEnter: () => void;
+  traveling: boolean;
 }>) {
   const group = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -639,7 +642,7 @@ function RepositoryWorld({
         document.body.style.cursor = "default";
       }}
     >
-      <group scale={selected ? 1.1 : hovered ? 1.04 : 1}>
+      <group scale={traveling ? 1.24 : selected ? 1.1 : hovered ? 1.04 : 1}>
         <mesh geometry={geometry} castShadow receiveShadow>
           <meshStandardMaterial
             vertexColors
@@ -822,11 +825,13 @@ function UniverseCamera({
   selection,
   resetToken,
   reducedMotion,
+  travelingRepositoryId,
 }: Readonly<{
   universe: RepositoryUniverse;
   selection: Selection;
   resetToken: number;
   reducedMotion: boolean;
+  travelingRepositoryId: number | null;
 }>) {
   const { size } = useThree();
   const camera = useRef<THREE.PerspectiveCamera>(null);
@@ -866,8 +871,10 @@ function UniverseCamera({
     const fovDegrees = portrait ? 48 : 39;
     const fov = THREE.MathUtils.degToRad(fovDegrees);
     const fitHeight = Math.max(dimensions.y + dimensions.z * 0.5, dimensions.x / aspect);
+    const landscapeMargin = size.height < 800 ? 1.12 : 1.1;
     const distance =
-      Math.max(radius * 1.48, fitHeight / (2 * Math.tan(fov / 2))) * (portrait ? 0.9 : 1.07);
+      Math.max(radius * 1.48, fitHeight / (2 * Math.tan(fov / 2))) *
+      (portrait ? 0.9 : landscapeMargin);
     const direction = portrait
       ? new THREE.Vector3(0.36, 0.98, 1.34).normalize()
       : new THREE.Vector3(0.58, 0.92, 1.16).normalize();
@@ -882,11 +889,15 @@ function UniverseCamera({
   useEffect(() => {
     if (selection?.kind === "repository") {
       const { position, radius } = selection.repository;
+      const traveling = travelingRepositoryId === selection.repository.id;
       goalTarget.current.set(position.x, position.y, position.z);
       goalPosition.current.set(
-        position.x + radius * (size.width < 700 ? 4.1 : 3.2),
-        position.y + radius * (size.width < 700 ? 3.65 : 2.35),
-        position.z + radius * (size.width < 700 ? 5.5 : 4.2),
+        position.x +
+          radius * (traveling ? (size.width < 700 ? 3.05 : 2.65) : size.width < 700 ? 4.1 : 3.2),
+        position.y +
+          radius * (traveling ? (size.width < 700 ? 2.7 : 1.9) : size.width < 700 ? 3.65 : 2.35),
+        position.z +
+          radius * (traveling ? (size.width < 700 ? 4.2 : 3.45) : size.width < 700 ? 5.5 : 4.2),
       );
     } else {
       goalTarget.current.copy(overview.center);
@@ -899,11 +910,11 @@ function UniverseCamera({
       controls.current?.update();
       animating.current = false;
     }
-  }, [overview, reducedMotion, resetToken, selection, size.width]);
+  }, [overview, reducedMotion, resetToken, selection, size.width, travelingRepositoryId]);
 
   useFrame((_, delta) => {
     if (!animating.current || !controls.current || !camera.current) return;
-    const alpha = 1 - Math.exp(-delta * 3.4);
+    const alpha = 1 - Math.exp(-delta * (travelingRepositoryId === null ? 3.4 : 5.8));
     camera.current.position.lerp(goalPosition.current, alpha);
     controls.current.target.lerp(goalTarget.current, alpha);
     controls.current.update();
@@ -927,6 +938,7 @@ function UniverseCamera({
         dampingFactor={0.06}
         minDistance={3.5}
         maxDistance={overview.distance * 2.8}
+        enabled={travelingRepositoryId === null}
         onStart={() => {
           animating.current = false;
         }}
@@ -941,6 +953,7 @@ export function RepositoryUniverseScene({
   onSelect,
   onHover,
   onEnterRepository,
+  travelingRepositoryId,
   resetToken,
   reducedMotion,
   quality,
@@ -1008,6 +1021,7 @@ export function RepositoryUniverseScene({
           selected={selectedId === repository.id}
           detail={detailLevels.get(repository.id) ?? "low"}
           reducedMotion={reducedMotion}
+          traveling={travelingRepositoryId === repository.id}
           onSelect={() => onSelect({ kind: "repository", repository })}
           onHover={(hovered) => onHover(hovered ? { kind: "repository", repository } : null)}
           onEnter={() => onEnterRepository(repository)}
@@ -1018,6 +1032,7 @@ export function RepositoryUniverseScene({
         selection={selection}
         resetToken={resetToken}
         reducedMotion={reducedMotion}
+        travelingRepositoryId={travelingRepositoryId}
       />
     </>
   );

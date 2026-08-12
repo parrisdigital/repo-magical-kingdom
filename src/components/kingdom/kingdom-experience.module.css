@@ -39,6 +39,102 @@
     radial-gradient(ellipse at 3% 78%, rgba(255, 254, 245, 0.26), transparent 28%);
 }
 
+.worldTransition {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at center, rgba(114, 205, 225, 0.1), rgba(5, 10, 22, 0.94) 43%), #050916;
+  transition: opacity 340ms ease;
+}
+
+.worldTransition[data-phase="cover"] {
+  opacity: 1;
+}
+
+.worldTransition[data-phase="reveal"] {
+  opacity: 0;
+  transition-duration: 580ms;
+}
+
+.experience[data-travel-phase="approach"] .selectionCard {
+  animation: none;
+  opacity: 0;
+  transform: translateY(0.65rem) scale(0.98);
+  transition:
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+
+.worldTransitionPortal {
+  display: grid;
+  place-items: center;
+  width: min(21rem, 72vw);
+  aspect-ratio: 1;
+  color: #f8f1d8;
+  text-align: center;
+}
+
+.worldTransitionPortal::before,
+.worldTransitionPortal i {
+  position: absolute;
+  width: min(19rem, 64vw);
+  aspect-ratio: 1;
+  content: "";
+  border: 1px solid rgba(187, 225, 235, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 0 4rem rgba(78, 190, 220, 0.2);
+  animation: portal-orbit 2.2s linear infinite;
+}
+
+.worldTransitionPortal i:first-child {
+  width: min(14rem, 48vw);
+  border-color: rgba(241, 205, 125, 0.62);
+  animation-direction: reverse;
+  animation-duration: 1.7s;
+}
+
+.worldTransitionPortal i:nth-child(2) {
+  width: min(9rem, 34vw);
+  border-style: dashed;
+  animation-duration: 1.15s;
+}
+
+.worldTransitionPortal span,
+.worldTransitionPortal strong {
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1;
+}
+
+.worldTransitionPortal span {
+  margin-top: -1.8rem;
+  color: rgba(248, 241, 216, 0.66);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.worldTransitionPortal strong {
+  max-width: 13rem;
+  margin-top: 1.5rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 500;
+}
+
+@keyframes portal-orbit {
+  to {
+    transform: rotate(360deg) scale(1.03);
+  }
+}
+
 .hud {
   position: absolute;
   z-index: 3;
@@ -1345,6 +1441,13 @@
   .toolButton,
   .secondaryButton,
   .modeSwitch button {
+    transition: none;
+  }
+
+  .worldTransition,
+  .worldTransitionPortal::before,
+  .worldTransitionPortal i {
+    animation: none;
     transition: none;
   }
 }

@@ -4,6 +4,7 @@ export { createDemoKingdom, createDemoUniverse } from "./demo-world";
 export { KINGDOM_ERROR_CODES, KingdomError, toKingdomError } from "./errors";
 export { isKingdomSeason, kingdomSeasonOrDefault, KINGDOM_SEASON_LABELS } from "./season";
 export { compileUniverse } from "./universe";
+export * from "./world-identity";
 export * from "./world-plan";
 export { kingdomWorldSchema, repositoryUniverseSchema } from "./schemas";
 export {
