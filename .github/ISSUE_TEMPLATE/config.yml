@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and world-design discussion
+    url: https://github.com/parrisdigital/repo-magical-kingdom/discussions
+    about: Ask for help or discuss ideas without filing a bug.
+  - name: Private security report
+    url: https://github.com/parrisdigital/repo-magical-kingdom/security/advisories/new
+    about: Report vulnerabilities privately; do not disclose them in an issue.
+  - name: Support guide
+    url: https://github.com/parrisdigital/repo-magical-kingdom/blob/main/SUPPORT.md
+    about: Learn which information helps maintainers investigate a problem.

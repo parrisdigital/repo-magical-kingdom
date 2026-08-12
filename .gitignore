@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# testing
+coverage/
+playwright-report/
+test-results/
+
+# local configuration and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel/
+
+# editors and operating systems
+.DS_Store
+*.swp
+*.tsbuildinfo
+
+# generated artifacts
+public/generated/
+/artifacts/visual-review/

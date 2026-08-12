@@ -1,0 +1,42 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:00"
+      timezone: America/Toronto
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      react-three:
+        patterns:
+          - three
+          - "@types/three"
+          - "@react-three/*"
+      testing:
+        dependency-type: development
+        patterns:
+          - "@playwright/*"
+          - vitest
+      lint-and-types:
+        dependency-type: development
+        patterns:
+          - eslint
+          - "eslint-*"
+          - prettier
+          - typescript
+          - "@types/*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:30"
+      timezone: America/Toronto
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions

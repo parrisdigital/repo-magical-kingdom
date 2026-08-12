@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Repo Magical Kingdom">
+  <defs>
+    <radialGradient id="night" cx="50%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#202d52" />
+      <stop offset="1" stop-color="#090d18" />
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#night)" />
+  <path d="M32 11A21 21 0 0 0 11 32h21Z" fill="#ef8fb5" />
+  <path d="M32 11a21 21 0 0 1 21 21H32Z" fill="#77c987" />
+  <path d="M53 32a21 21 0 0 1-21 21V32Z" fill="#d9824f" />
+  <path d="M32 53a21 21 0 0 1-21-21h21Z" fill="#94c8e5" />
+  <circle cx="32" cy="32" r="8.5" fill="#111827" stroke="#f5c86b" stroke-width="2" />
+  <path d="M25.5 38V28l3-3v4l3.5-4 3.5 4v-4l3 3v10Z" fill="#f5c86b" />
+  <path d="M30 38v-5a2 2 0 0 1 4 0v5Z" fill="#111827" />
+</svg>

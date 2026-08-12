@@ -1,0 +1,65 @@
+name: Asset contribution
+description: Propose a 3D model, texture, image, audio file, font, or generated asset.
+title: "[Asset]: "
+labels:
+  - assets
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read `docs/ASSET_POLICY.md` first. Assets with missing, noncommercial, no-derivatives, or redistribution-prohibited licenses cannot be accepted.
+  - type: input
+    id: asset
+    attributes:
+      label: Asset name and type
+    validations:
+      required: true
+  - type: input
+    id: creator
+    attributes:
+      label: Creator or organization
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Canonical source URL
+    validations:
+      required: true
+  - type: input
+    id: license
+    attributes:
+      label: License and version
+      placeholder: CC0-1.0, CC-BY-4.0, or another reviewed license
+    validations:
+      required: true
+  - type: textarea
+    id: rights
+    attributes:
+      label: Rights confirmation
+      description: Explain why you can contribute and redistribute this asset, including modifications.
+    validations:
+      required: true
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical profile
+      description: File formats, bytes, dimensions, polygons, materials, textures, animations, and expected draw-call impact.
+    validations:
+      required: true
+  - type: textarea
+    id: generated
+    attributes:
+      label: Generation provenance
+      description: If generated, provide tool/model, date, prompt, references, and human edits. Otherwise write “not generated.”
+    validations:
+      required: true
+  - type: checkboxes
+    id: exclusions
+    attributes:
+      label: Confirmation
+      options:
+        - label: This is not extracted from WorldClaw, a game, a demo, a screenshot, or another protected experience.
+          required: true
+        - label: I will add complete attribution-registry metadata with the asset.
+          required: true

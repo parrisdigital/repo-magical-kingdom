@@ -1,0 +1,86 @@
+.review,
+.canvas {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.review {
+  background: #dce9e1;
+}
+
+.controls {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  display: grid;
+  gap: 0.75rem;
+  width: min(25rem, calc(100vw - 2rem));
+  padding: 0.9rem;
+  color: #24342d;
+  background: rgb(255 253 242 / 92%);
+  border: 1px solid rgb(38 61 49 / 16%);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgb(45 68 55 / 14%);
+  backdrop-filter: blur(1rem);
+}
+
+.controls > div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.controls span,
+.controls legend {
+  color: #607167;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.controls strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+}
+
+.controls fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+}
+
+.controls legend {
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.controls label,
+.controls button {
+  min-height: 2rem;
+  padding: 0.45rem 0.65rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  background: #f4f2e7;
+  border: 1px solid rgb(38 61 49 / 14%);
+  border-radius: 999px;
+}
+
+.controls label[data-active="true"] {
+  background: #dcebbd;
+  border-color: #789052;
+}
+
+.controls input {
+  position: absolute;
+  opacity: 0;
+}
+
+.controls button {
+  justify-self: start;
+  cursor: pointer;
+}

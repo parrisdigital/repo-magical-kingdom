@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: >-
+  If Repo Magical Kingdom supports your work, please cite the project using
+  this metadata and preserve the upstream acknowledgements.
+title: Repo Magical Kingdom
+type: software
+authors:
+  - family-names: Parris
+    given-names: Matthew
+    affiliation: Parris Digital
+repository-code: https://github.com/parrisdigital/repo-magical-kingdom
+url: https://github.com/parrisdigital/repo-magical-kingdom
+abstract: >-
+  An open-source application that turns public GitHub repositories into
+  deterministic, explorable four-season 3D kingdoms.
+keywords:
+  - repository visualization
+  - three.js
+  - react three fiber
+  - procedural generation
+  - software architecture
+license: MIT
+version: 0.1.0
+references:
+  - type: software
+    title: Repository City
+    authors:
+      - name: Parris Digital
+    repository-code: https://github.com/parrisdigital/repository-city
+    commit: 0e61374af12387266c6fb13c273bee845b5f0864
+  - type: article
+    title: "WorldClaw: Agentic 3D Open-World Generation at Scale"
+    authors:
+      - family-names: Guo
+        given-names: Chunchao
+      - family-names: Li
+        given-names: Jinpeng
+      - family-names: Li
+        given-names: Yang
+      - family-names: Huang
+        given-names: Zilong
+    year: 2026
+    doi: 10.48550/arXiv.2608.05248
+    url: https://arxiv.org/abs/2608.05248

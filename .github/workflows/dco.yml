@@ -1,0 +1,30 @@
+name: DCO sign-off
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dco-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  signoff:
+    name: Verify commit sign-offs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source and pull request history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify DCO trailers
+        run: |
+          node .github/scripts/check-dco.mjs --self-test
+          node .github/scripts/check-dco.mjs

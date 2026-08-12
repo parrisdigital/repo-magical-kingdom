@@ -1,0 +1,51 @@
+name: Performance report
+description: Report reproducible frame-time, loading, memory, or bundle regressions.
+title: "[Performance]: "
+labels:
+  - performance
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I tested without unrelated browser extensions when practical.
+          required: true
+        - label: I am not including private repository data or credentials.
+          required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Application revision or deployment URL
+    validations:
+      required: true
+  - type: input
+    id: fixture
+    attributes:
+      label: Public repository or fixture
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Device and browser
+      description: Include OS, browser/version, CPU/GPU, RAM, viewport, device pixel ratio, and quality tier.
+    validations:
+      required: true
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Measurements
+      description: Include frame time/FPS, draw calls, memory, network bytes, and capture method when available.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Profile, trace, screenshot, or recording

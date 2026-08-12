@@ -1,0 +1,205 @@
+:root {
+  color-scheme: dark;
+  --ink: #f4f0df;
+  --muted: #a7b1c4;
+  --night: #090d18;
+  --panel: rgba(10, 15, 26, 0.78);
+  --line: rgba(255, 255, 255, 0.14);
+  --gold: #f5c86b;
+  --spring: #ef8fb5;
+  --summer: #77c987;
+  --autumn: #d9824f;
+  --winter: #94c8e5;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-ui: Avenir, "Avenir Next", Futura, "Trebuchet MS", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--ink);
+  background: var(--night);
+  font-family: var(--font-ui);
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+}
+
+.text-link {
+  justify-self: center;
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.text-link:hover {
+  border-color: rgba(245, 200, 107, 0.55);
+}
+
+.loading-shell {
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(110, 138, 219, 0.22), transparent 35rem), #090d18;
+}
+
+.loading-shell h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 8vw, 6rem);
+  font-weight: 500;
+}
+
+.loading-shell p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.loading-shell .eyebrow {
+  color: var(--gold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.credits-page {
+  min-height: 100svh;
+  padding: clamp(1.25rem, 5vw, 5rem);
+  background:
+    radial-gradient(circle at 15% 10%, rgba(239, 143, 181, 0.12), transparent 32rem),
+    radial-gradient(circle at 85% 22%, rgba(148, 200, 229, 0.12), transparent 34rem), var(--night);
+}
+
+.credits-page__inner {
+  width: min(70rem, 100%);
+  margin: 0 auto;
+}
+
+.credits-page__back {
+  display: inline-block;
+  margin-bottom: clamp(3rem, 8vw, 7rem);
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.credits-page .eyebrow {
+  margin: 0 0 0.8rem;
+  color: var(--gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.credits-page h1 {
+  max-width: 13ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 500;
+  line-height: 0.95;
+}
+
+.credits-page__lede {
+  max-width: 48rem;
+  margin: 2rem 0 4rem;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.7;
+}
+
+.credits-page__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.credits-page__card,
+.credits-page__policy {
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.credits-page__card > p:first-child {
+  margin: 0 0 1rem;
+  color: var(--gold);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.credits-page__card h2,
+.credits-page__policy h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 500;
+}
+
+.credits-page__card h2 a {
+  text-decoration-color: rgba(245, 200, 107, 0.45);
+  text-underline-offset: 0.25rem;
+}
+
+.credits-page__card p,
+.credits-page__policy p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.credits-page__policy {
+  margin-top: 1rem;
+}
+
+.credits-page__policy p + p {
+  margin-top: 1rem;
+}
+
+@media (max-width: 720px) {
+  .credits-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

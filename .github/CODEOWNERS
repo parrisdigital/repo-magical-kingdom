@@ -1,0 +1,12 @@
+# Default ownership
+* @parrisdigital
+
+# High-trust surfaces
+/.github/ @parrisdigital
+/SECURITY.md @parrisdigital
+/GOVERNANCE.md @parrisdigital
+/LICENSE @parrisdigital
+/NOTICE @parrisdigital
+/attribution/ @parrisdigital
+/docs/ASSET_POLICY.md @parrisdigital
+/docs/SOURCE_LINEAGE.md @parrisdigital

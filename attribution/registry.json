@@ -1,0 +1,566 @@
+{
+  "$schema": "./registry.schema.json",
+  "schemaVersion": 1,
+  "project": {
+    "name": "Repo Magical Kingdom",
+    "repository": "https://github.com/parrisdigital/repo-magical-kingdom",
+    "license": "MIT"
+  },
+  "entries": [
+    {
+      "id": "repository-city",
+      "name": "Repository City",
+      "kind": "project-predecessor",
+      "relationship": "Product and architectural predecessor; independently evolved into a four-season world model.",
+      "canonicalUrl": "https://github.com/parrisdigital/repository-city",
+      "distribution": "not-distributed",
+      "commit": "0e61374af12387266c6fb13c273bee845b5f0864",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/parrisdigital/repository-city/blob/0e61374af12387266c6fb13c273bee845b5f0864/LICENSE"
+      },
+      "authors": ["Parris Digital", "Repository City contributors"],
+      "usage": "Conceptual lineage, deterministic repository visualization precedent, and architecture reference.",
+      "projectLocations": [
+        "README.md",
+        "ACKNOWLEDGEMENTS.md",
+        "docs/SOURCE_LINEAGE.md",
+        "docs/RESEARCH_REFERENCES.md"
+      ],
+      "redistributedFiles": [],
+      "modifications": "No upstream source file is currently copied or adapted."
+    },
+    {
+      "id": "shieldcn",
+      "name": "ShieldCN",
+      "kind": "external-service",
+      "relationship": "External service rendering live, light/dark-aware README badges.",
+      "canonicalUrl": "https://github.com/jal-co/shieldcn",
+      "distribution": "external-response",
+      "commit": "af169e6c6030d289142546df7300acfe0eba7468",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/jal-co/shieldcn/blob/af169e6c6030d289142546df7300acfe0eba7468/LICENSE"
+      },
+      "authors": ["ShieldCN contributors"],
+      "usage": "Hosted SVG status and repository-stat badges in README.md; not used by the application runtime.",
+      "projectLocations": ["README.md", "ACKNOWLEDGEMENTS.md"],
+      "redistributedFiles": [],
+      "modifications": "No ShieldCN source or rendered badge is vendored."
+    },
+    {
+      "id": "worldclaw",
+      "name": "WorldClaw: Agentic 3D Open-World Generation at Scale",
+      "kind": "research-reference",
+      "relationship": "Research inspiration for structured, coarse-to-fine world planning only.",
+      "canonicalUrl": "https://arxiv.org/abs/2608.05248",
+      "distribution": "research-citation",
+      "commit": "d9901019f561c32921e38d0f0f5cabc8f9f2ce48",
+      "license": {
+        "spdx": null,
+        "status": "not-declared",
+        "url": null
+      },
+      "authors": ["Chunchao Guo", "Jinpeng Li", "Yang Li", "Zilong Huang"],
+      "usage": "Cited research concepts; no code, figures, imagery, meshes, website assets, or generated output used.",
+      "projectLocations": [
+        "README.md",
+        "ACKNOWLEDGEMENTS.md",
+        "docs/SOURCE_LINEAGE.md",
+        "docs/RESEARCH_REFERENCES.md"
+      ],
+      "redistributedFiles": [],
+      "notes": "The reviewed repository default branch did not declare a software license."
+    },
+    {
+      "id": "quaternius-medieval-village-megakit-standard",
+      "name": "Quaternius Medieval Village MegaKit (Standard free edition)",
+      "kind": "asset",
+      "relationship": "CC0 source of the textured modular architecture used to compose kingdom settlements.",
+      "canonicalUrl": "https://quaternius.com/packs/medievalvillagemegakit.html",
+      "version": "Standard free edition, retrieved 2026-08-12",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "authors": ["Quaternius"],
+      "usage": "Twenty-two modular walls, roofs, doors, windows, stairs, vines, fences, and village props for browser-rendered settlements.",
+      "projectLocations": [
+        "public/assets/world/quaternius/medieval",
+        "src/lib/assets/quaternius.ts",
+        "scripts/assets/build-quaternius-assets.mjs",
+        "scripts/assets/verify-quaternius-assets.mjs",
+        "README.md",
+        "NOTICE",
+        "ACKNOWLEDGEMENTS.md",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/SOURCE_LINEAGE.md",
+        "src/app/credits/page.tsx"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/quaternius/medieval/Balcony_Cross_Straight.glb",
+        "public/assets/world/quaternius/medieval/Corner_Exterior_Brick.glb",
+        "public/assets/world/quaternius/medieval/Corner_Exterior_Wood.glb",
+        "public/assets/world/quaternius/medieval/DoorFrame_Round_Brick.glb",
+        "public/assets/world/quaternius/medieval/Door_1_Round.glb",
+        "public/assets/world/quaternius/medieval/Prop_Chimney.glb",
+        "public/assets/world/quaternius/medieval/Prop_Vine1.glb",
+        "public/assets/world/quaternius/medieval/Prop_Wagon.glb",
+        "public/assets/world/quaternius/medieval/Prop_WoodenFence_Single.glb",
+        "public/assets/world/quaternius/medieval/Roof_RoundTiles_4x4.glb",
+        "public/assets/world/quaternius/medieval/Roof_RoundTiles_6x8.glb",
+        "public/assets/world/quaternius/medieval/Roof_RoundTiles_8x8.glb",
+        "public/assets/world/quaternius/medieval/Roof_Tower_RoundTiles.glb",
+        "public/assets/world/quaternius/medieval/Stairs_Exterior_Straight.glb",
+        "public/assets/world/quaternius/medieval/Wall_Plaster_Door_Round.glb",
+        "public/assets/world/quaternius/medieval/Wall_Plaster_Straight.glb",
+        "public/assets/world/quaternius/medieval/Wall_Plaster_Window_Wide_Round.glb",
+        "public/assets/world/quaternius/medieval/Wall_UnevenBrick_Door_Round.glb",
+        "public/assets/world/quaternius/medieval/Wall_UnevenBrick_Straight.glb",
+        "public/assets/world/quaternius/medieval/Wall_UnevenBrick_Window_Wide_Round.glb",
+        "public/assets/world/quaternius/medieval/WindowShutters_Wide_Round_Open.glb",
+        "public/assets/world/quaternius/medieval/Window_Wide_Round1.glb",
+        "public/assets/world/quaternius/licenses/Medieval_Village_MegaKit_Standard_LICENSE.txt"
+      ],
+      "contentHashes": {
+        "public/assets/world/quaternius/medieval/Balcony_Cross_Straight.glb": "sha256:42a742a1af3e52eaddc07d31be39f58c5094610c56e2a1e23bb07551705a8c67",
+        "public/assets/world/quaternius/medieval/Corner_Exterior_Brick.glb": "sha256:de4523194c6b790429e513678b84f04c8eb70c559130eaccceb10718a4d7f6b3",
+        "public/assets/world/quaternius/medieval/Corner_Exterior_Wood.glb": "sha256:2e203f6ea8a09da0cd52f49b63d87de4651479b9789152a975ef035ca5b03b21",
+        "public/assets/world/quaternius/medieval/DoorFrame_Round_Brick.glb": "sha256:4b4ddd5304805bae87d67c73ff0ac14163a70190c681e7e375b891a86c1cbc4b",
+        "public/assets/world/quaternius/medieval/Door_1_Round.glb": "sha256:b0009555c25660dbc1bf7686d6fd90571592df87ce4eb518da42429df8d792ae",
+        "public/assets/world/quaternius/medieval/Prop_Chimney.glb": "sha256:79d5c2c40867f3734d538322398c83f488a8391929000bdb9429f5f2d62a30d6",
+        "public/assets/world/quaternius/medieval/Prop_Vine1.glb": "sha256:805f2c22db5525cfc6614a5c663dc3d759c2d15241f639b6614c7ced92410ffb",
+        "public/assets/world/quaternius/medieval/Prop_Wagon.glb": "sha256:e7b34f9e40a403c8046f6b3041048e537635a7536bcb22f0245d9ae13bf4dbdb",
+        "public/assets/world/quaternius/medieval/Prop_WoodenFence_Single.glb": "sha256:e5f9f7435d0515a2d288480b21c23e64db385976916f2becf255eac4f3f7c48d",
+        "public/assets/world/quaternius/medieval/Roof_RoundTiles_4x4.glb": "sha256:fb25241ec3dcd5ff6015592e7284af343783c94f533b07f0f576d3a98a938a3b",
+        "public/assets/world/quaternius/medieval/Roof_RoundTiles_6x8.glb": "sha256:14369b4b28e0faa34bb3cd96e3907d16f874dc3e8c972bf65330b722a85f447f",
+        "public/assets/world/quaternius/medieval/Roof_RoundTiles_8x8.glb": "sha256:ee463cc6923e6d07206ebe92b12d47d0ae4ff8e15c31c84269e0f607a0873bef",
+        "public/assets/world/quaternius/medieval/Roof_Tower_RoundTiles.glb": "sha256:651511d7bf821f9392e212a6c804def71bb074dca6c9be41eb5afa12c4c4b9ed",
+        "public/assets/world/quaternius/medieval/Stairs_Exterior_Straight.glb": "sha256:7da4b8e309e4d4ae3872864f74cdbbfa083a7d344e531484b4cd09d5702bfe30",
+        "public/assets/world/quaternius/medieval/Wall_Plaster_Door_Round.glb": "sha256:992339ed44c5a137e223642c1e050a3e22470cff6bee152360757d15d4bab5b8",
+        "public/assets/world/quaternius/medieval/Wall_Plaster_Straight.glb": "sha256:e651e01a5d204f1feb7d9b0324b76fa295ebeb2ea93f7f6b8b12977091e1bfa5",
+        "public/assets/world/quaternius/medieval/Wall_Plaster_Window_Wide_Round.glb": "sha256:fb7b2be7c74093deed912567c72e792b962d3b228885215cc60285045ccddddb",
+        "public/assets/world/quaternius/medieval/Wall_UnevenBrick_Door_Round.glb": "sha256:bdf60301acb9292a698a8d77736a357453fffb1bf64d23d15b856a2b9404ad58",
+        "public/assets/world/quaternius/medieval/Wall_UnevenBrick_Straight.glb": "sha256:ff2d18e9a08f2c6dd829d94d2ace38a1bbf6144e8269ccff40670f59a055d9ab",
+        "public/assets/world/quaternius/medieval/Wall_UnevenBrick_Window_Wide_Round.glb": "sha256:4d2f4b1876d93da74161d423449cc93bb7fa65fb3e1189b2399982fdef89c6ce",
+        "public/assets/world/quaternius/medieval/WindowShutters_Wide_Round_Open.glb": "sha256:cd8c254a633b9217f9ad174ade3c963b03bf868942559fb5a0eba899372df8ab",
+        "public/assets/world/quaternius/medieval/Window_Wide_Round1.glb": "sha256:f64991e91088ee832e44af2553cbbafc38f010acbe4098e5030c0ede8ca3b39c",
+        "public/assets/world/quaternius/licenses/Medieval_Village_MegaKit_Standard_LICENSE.txt": "sha256:ec6fd5004514cb0515a7dc1065f474644d31698861597b32e1745945ffec71de"
+      },
+      "modifications": "Curated from the Standard free glTF edition; packaged as self-contained GLB, pruned and deduplicated, quantized, Meshopt-compressed, and converted to WebP textures capped at 1024 pixels with glTF Transform 4.4.2. Geometry simplification, mesh joining, and palette conversion were disabled.",
+      "notes": "Attribution is not required by CC0; recognition is retained as project policy. Models by @Quaternius. Reviewed source archive Medieval Village MegaKit[Standard].zip SHA-256: e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4."
+    },
+    {
+      "id": "quaternius-stylized-nature-megakit-standard",
+      "name": "Quaternius Stylized Nature MegaKit (Standard free edition)",
+      "kind": "asset",
+      "relationship": "CC0 source of the textured trees, plants, flowers, rocks, and ground details used in living kingdoms.",
+      "canonicalUrl": "https://quaternius.com/packs/stylizednaturemegakit.html",
+      "version": "Standard free edition, retrieved 2026-08-12",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "authors": ["Quaternius"],
+      "usage": "Eighteen textured trees, bushes, flowers, grass, mushrooms, rocks, and path details for seasonal environment composition.",
+      "projectLocations": [
+        "public/assets/world/quaternius/nature",
+        "src/lib/assets/quaternius.ts",
+        "scripts/assets/build-quaternius-assets.mjs",
+        "scripts/assets/verify-quaternius-assets.mjs",
+        "README.md",
+        "NOTICE",
+        "ACKNOWLEDGEMENTS.md",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/SOURCE_LINEAGE.md",
+        "src/app/credits/page.tsx"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/quaternius/nature/Bush_Common.glb",
+        "public/assets/world/quaternius/nature/Bush_Common_Flowers.glb",
+        "public/assets/world/quaternius/nature/CommonTree_1.glb",
+        "public/assets/world/quaternius/nature/CommonTree_2.glb",
+        "public/assets/world/quaternius/nature/CommonTree_3.glb",
+        "public/assets/world/quaternius/nature/DeadTree_1.glb",
+        "public/assets/world/quaternius/nature/Fern_1.glb",
+        "public/assets/world/quaternius/nature/Flower_3_Group.glb",
+        "public/assets/world/quaternius/nature/Flower_4_Group.glb",
+        "public/assets/world/quaternius/nature/Grass_Common_Short.glb",
+        "public/assets/world/quaternius/nature/Mushroom_Common.glb",
+        "public/assets/world/quaternius/nature/Pine_1.glb",
+        "public/assets/world/quaternius/nature/Pine_2.glb",
+        "public/assets/world/quaternius/nature/RockPath_Round_Small_1.glb",
+        "public/assets/world/quaternius/nature/Rock_Medium_1.glb",
+        "public/assets/world/quaternius/nature/Rock_Medium_2.glb",
+        "public/assets/world/quaternius/nature/TwistedTree_1.glb",
+        "public/assets/world/quaternius/nature/TwistedTree_2.glb",
+        "public/assets/world/quaternius/licenses/Stylized_Nature_MegaKit_Standard_LICENSE.txt"
+      ],
+      "contentHashes": {
+        "public/assets/world/quaternius/nature/Bush_Common.glb": "sha256:e1d920c6aca215003ad8efe777c60a4530ed7ad80de7fc6ef0ff8df87db012f5",
+        "public/assets/world/quaternius/nature/Bush_Common_Flowers.glb": "sha256:dc894c06ce3d0c8fc3a5600e7a95f72843642640a9f0645726a3fceb3e44a210",
+        "public/assets/world/quaternius/nature/CommonTree_1.glb": "sha256:a567e3095af4ff8329218e4c29d76a6752bcac3b42337ce5dca34f1b625f18eb",
+        "public/assets/world/quaternius/nature/CommonTree_2.glb": "sha256:e9aec4c0ca2f662630f91d8d666b3aed57d1f15c7ce4e786b9e2b8f648337511",
+        "public/assets/world/quaternius/nature/CommonTree_3.glb": "sha256:01f3cefe0138fa86834565b0a9f4b752e4496fc638ab8407d9276fa77bcfa160",
+        "public/assets/world/quaternius/nature/DeadTree_1.glb": "sha256:7d12bc87caaa5bda05632282b93c32a976f5584ea3aa11fd119c039289f170d3",
+        "public/assets/world/quaternius/nature/Fern_1.glb": "sha256:f6b4956a8380da67c6719d94de3fa09bdaf438a205018da648543f9dbb70bfdb",
+        "public/assets/world/quaternius/nature/Flower_3_Group.glb": "sha256:f827a03fc2166e62710ea4cd32af64a908b46197e551e88b9d8a2bab901219d5",
+        "public/assets/world/quaternius/nature/Flower_4_Group.glb": "sha256:21f2adb709a043236b04123fc59bd08920bd063ec2fed75f2174893c3026d4ad",
+        "public/assets/world/quaternius/nature/Grass_Common_Short.glb": "sha256:f1bd30e3f3f7922cc001c423779f2c7efe1ea80810056a20521f090f548cef38",
+        "public/assets/world/quaternius/nature/Mushroom_Common.glb": "sha256:ee46d4224c234e19801abb9ac10c6277fbcb050785d4689a716e5eebeefd5ad3",
+        "public/assets/world/quaternius/nature/Pine_1.glb": "sha256:429b5a3aefff6028cb87cb6c3df60c425008154adc9d36aefd5ecc4dd7f46312",
+        "public/assets/world/quaternius/nature/Pine_2.glb": "sha256:62a388e3500739505ef5c0cf0d2a56ad97b95f2c83613bdae1485ccfa52bb867",
+        "public/assets/world/quaternius/nature/RockPath_Round_Small_1.glb": "sha256:1b4aa22e48ded8ec59debcf17681f91b6eb9e6c4bc9129ec1bffb2b2df896668",
+        "public/assets/world/quaternius/nature/Rock_Medium_1.glb": "sha256:cd98da63753e4d868eb03f05046e7be7eea4ef8ba25253ec8b09cb59ffe97e0d",
+        "public/assets/world/quaternius/nature/Rock_Medium_2.glb": "sha256:754cd2944accefd42f4b24e719c3740a5961e8103e9be8a0ab15162db7417dcb",
+        "public/assets/world/quaternius/nature/TwistedTree_1.glb": "sha256:537a736c17b821eb38adcc5ac22f0f88e1d740eb6dd600997fa7c76cb6781c8d",
+        "public/assets/world/quaternius/nature/TwistedTree_2.glb": "sha256:8d682ea816db7ce08305194c1d188853bc3649b68306a753419d3a31aa3ff25d",
+        "public/assets/world/quaternius/licenses/Stylized_Nature_MegaKit_Standard_LICENSE.txt": "sha256:120710e542c3ebaf83856c4eb55b4a1e680593b39302eba7fdc5d942dfe78c58"
+      },
+      "modifications": "Curated from the Standard free glTF edition; packaged as self-contained GLB, pruned and deduplicated, quantized, Meshopt-compressed, and converted to WebP textures capped at 1024 pixels with glTF Transform 4.4.2. Geometry simplification, mesh joining, and palette conversion were disabled.",
+      "notes": "Attribution is not required by CC0; recognition is retained as project policy. Models by @Quaternius. Reviewed source archive Stylized Nature MegaKit[Standard].zip SHA-256: 298f6732b872e4cf7b30e6e7abf9641c7f6dc6b326df37ac089533ed7e3d58c9."
+    },
+    {
+      "id": "quaternius-ultimate-animated-animal-pack",
+      "name": "Quaternius Ultimate Animated Animal Pack",
+      "kind": "asset",
+      "relationship": "CC0 source of rigged wildlife that makes generated kingdoms feel alive.",
+      "canonicalUrl": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+      "version": "July 2021 edition, retrieved 2026-08-12",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "authors": ["Quaternius"],
+      "usage": "Deer, fox, and stag wildlife with their original idle, eating, walking, galloping, jumping, reaction, and attack animation clips.",
+      "projectLocations": [
+        "public/assets/world/quaternius/animals",
+        "src/lib/assets/quaternius.ts",
+        "scripts/assets/build-quaternius-assets.mjs",
+        "scripts/assets/verify-quaternius-assets.mjs",
+        "README.md",
+        "NOTICE",
+        "ACKNOWLEDGEMENTS.md",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/SOURCE_LINEAGE.md",
+        "src/app/credits/page.tsx"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/quaternius/animals/Deer.glb",
+        "public/assets/world/quaternius/animals/Fox.glb",
+        "public/assets/world/quaternius/animals/Stag.glb",
+        "public/assets/world/quaternius/licenses/Ultimate_Animated_Animal_Pack_LICENSE.txt"
+      ],
+      "contentHashes": {
+        "public/assets/world/quaternius/animals/Deer.glb": "sha256:08756cf847d296df714c5d3f49bfd9ba95912d4f8d0294b6ba8fadf4817bc1e6",
+        "public/assets/world/quaternius/animals/Fox.glb": "sha256:a807f59d861ece8f2100f51956fde224fcf5d2d099ae0d4be55e8abccc8c74a5",
+        "public/assets/world/quaternius/animals/Stag.glb": "sha256:bb10ed690093f14788320264b19f1fcd378b82e0c97619248c0fc33e8b18ad18",
+        "public/assets/world/quaternius/licenses/Ultimate_Animated_Animal_Pack_LICENSE.txt": "sha256:83d8959f9fc56353ed571fbe2dc52e4bcd64508e2399501cd45ac2ce3df0bf8c"
+      },
+      "modifications": "Selected Deer, Fox, and Stag; packaged the self-contained source glTFs as GLB and ran the glTF Transform 4.4.2 default optimize sequence, including deduplication, instancing, flattening, joining, welding, geometry simplification, animation resampling, pruning, sparse accessors, quantization, Meshopt compression, and WebP texture conversion where applicable. The original named animation clip set was preserved.",
+      "notes": "Attribution is not required by CC0; recognition is retained as project policy. Models by @Quaternius. Reviewed self-contained source glTF SHA-256 values: Deer b8afd0647e7a74332ce802c8326dfefe1a2b76da67ab925a631aaddb5ae9bdd4; Fox 2f36e3c9c75ecddda85c5f9944e98ee1e88e7c679a546534aff1cea8ecde64c7; Stag 170b964909d16d1ab4d428b1d714f25016913d32481acd9c3d62923192583be6."
+    },
+    {
+      "id": "repo-magical-kingdom-app-icon",
+      "name": "Repo Magical Kingdom application icon",
+      "kind": "asset",
+      "relationship": "Original first-party four-season Crown Nexus mark.",
+      "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/src/app/icon.svg",
+      "version": "1.0.0",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/LICENSE"
+      },
+      "authors": ["Parris Digital"],
+      "usage": "Application icon and browser metadata artwork.",
+      "projectLocations": ["src/app/icon.svg"],
+      "redistributedFiles": ["src/app/icon.svg"],
+      "contentHashes": {
+        "src/app/icon.svg": "sha256:b2c8c4bfa298e51e986323a576e0b5da3220136a9e576dc0d5fc3d305e278db9"
+      },
+      "modifications": "Original SVG authored for this project."
+    },
+    {
+      "id": "contributor-covenant",
+      "name": "Contributor Covenant",
+      "kind": "adapted-source",
+      "relationship": "Community code of conduct adapted for project-specific enforcement details.",
+      "canonicalUrl": "https://www.contributor-covenant.org/version/2/1/code_of_conduct/",
+      "version": "2.1",
+      "distribution": "standalone-files",
+      "license": {
+        "spdx": "CC-BY-4.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "authors": ["Coraline Ada Ehmke", "Contributor Covenant contributors"],
+      "usage": "Community participation and enforcement policy.",
+      "projectLocations": ["CODE_OF_CONDUCT.md", "THIRD_PARTY_NOTICES.md"],
+      "redistributedFiles": ["CODE_OF_CONDUCT.md"],
+      "contentHashes": {
+        "CODE_OF_CONDUCT.md": "sha256:9e0e81fb57894559c9932f3bc21d6fce39d8c73ff3eb0f29909f32830d3f55be"
+      },
+      "modifications": "Project name, private reporting path, and concise presentation adapted for Repo Magical Kingdom."
+    },
+    {
+      "id": "developer-certificate-of-origin",
+      "name": "Developer Certificate of Origin",
+      "kind": "adapted-source",
+      "relationship": "Verbatim contributor certification text.",
+      "canonicalUrl": "https://developercertificate.org/",
+      "version": "1.1",
+      "distribution": "standalone-files",
+      "license": {
+        "spdx": "DCO-1.1",
+        "status": "declared",
+        "url": "https://developercertificate.org/"
+      },
+      "authors": ["The Linux Foundation", "Developer Certificate of Origin contributors"],
+      "usage": "Contribution sign-off terms.",
+      "projectLocations": ["DCO", "CONTRIBUTING.md", "THIRD_PARTY_NOTICES.md"],
+      "redistributedFiles": ["DCO"],
+      "contentHashes": {
+        "DCO": "sha256:3b5dcb57d79d0a3e75bcae32e8a0f127fc8480aaee7a3d35f0925dd97cf23bd9"
+      },
+      "modifications": "None; distributed verbatim."
+    },
+    {
+      "id": "nextjs",
+      "name": "Next.js",
+      "kind": "runtime-dependency",
+      "relationship": "Web application framework.",
+      "canonicalUrl": "https://github.com/vercel/next.js",
+      "distribution": "bundled-runtime",
+      "version": "16.3.0",
+      "packageName": "next",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/vercel/next.js/blob/v16.3.0/license.md"
+      },
+      "authors": ["Vercel, Inc.", "Next.js contributors"],
+      "usage": "Server and browser application framework.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "react",
+      "name": "React",
+      "kind": "runtime-dependency",
+      "relationship": "Application user-interface library.",
+      "canonicalUrl": "https://github.com/react/react",
+      "distribution": "bundled-runtime",
+      "version": "19.2.8",
+      "packageName": "react",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/react/react/blob/v19.2.8/LICENSE"
+      },
+      "authors": ["Meta Platforms, Inc.", "React contributors"],
+      "usage": "Application interface and component model.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "react-dom",
+      "name": "React DOM",
+      "kind": "runtime-dependency",
+      "relationship": "React browser rendering package.",
+      "canonicalUrl": "https://github.com/react/react",
+      "distribution": "bundled-runtime",
+      "version": "19.2.8",
+      "packageName": "react-dom",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/react/react/blob/v19.2.8/LICENSE"
+      },
+      "authors": ["Meta Platforms, Inc.", "React contributors"],
+      "usage": "React browser rendering.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "threejs",
+      "name": "Three.js",
+      "kind": "runtime-dependency",
+      "relationship": "WebGL and 3D engine foundation.",
+      "canonicalUrl": "https://github.com/mrdoob/three.js",
+      "distribution": "bundled-runtime",
+      "version": "0.185.1",
+      "packageName": "three",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/mrdoob/three.js/blob/r185/LICENSE"
+      },
+      "authors": ["Three.js authors", "Three.js contributors"],
+      "usage": "3D math, scene graph, WebGL rendering, materials, and geometry.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "react-three-fiber",
+      "name": "React Three Fiber",
+      "kind": "runtime-dependency",
+      "relationship": "React renderer for Three.js.",
+      "canonicalUrl": "https://github.com/pmndrs/react-three-fiber",
+      "distribution": "bundled-runtime",
+      "version": "9.7.0",
+      "packageName": "@react-three/fiber",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/pmndrs/react-three-fiber/blob/v9.7.0/LICENSE"
+      },
+      "authors": ["Poimandres contributors"],
+      "usage": "Declarative Three.js scene integration for React.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "drei",
+      "name": "Drei",
+      "kind": "runtime-dependency",
+      "relationship": "Helpers for the React Three Fiber runtime.",
+      "canonicalUrl": "https://github.com/pmndrs/drei",
+      "distribution": "bundled-runtime",
+      "version": "10.7.8",
+      "packageName": "@react-three/drei",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/pmndrs/drei/blob/v10.7.8/LICENSE"
+      },
+      "authors": ["Poimandres contributors"],
+      "usage": "Camera controls and reusable scene helpers.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "zod",
+      "name": "Zod",
+      "kind": "runtime-dependency",
+      "relationship": "Runtime schema validation.",
+      "canonicalUrl": "https://github.com/colinhacks/zod",
+      "distribution": "bundled-runtime",
+      "version": "4.4.3",
+      "packageName": "zod",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/colinhacks/zod/blob/v4.4.3/LICENSE"
+      },
+      "authors": ["Colin McDonnell", "Zod contributors"],
+      "usage": "Validation of untrusted source responses and serialized world packages.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "zustand",
+      "name": "Zustand",
+      "kind": "runtime-dependency",
+      "relationship": "Application state-management library.",
+      "canonicalUrl": "https://github.com/pmndrs/zustand",
+      "distribution": "bundled-runtime",
+      "version": "5.0.14",
+      "packageName": "zustand",
+      "license": {
+        "spdx": "MIT",
+        "status": "declared",
+        "url": "https://github.com/pmndrs/zustand/blob/v5.0.14/LICENSE"
+      },
+      "authors": ["Poimandres contributors"],
+      "usage": "World-scoped application and interaction state.",
+      "projectLocations": ["package.json", "pnpm-lock.yaml"],
+      "redistributedFiles": []
+    },
+    {
+      "id": "repo-magical-kingdom-release-artwork",
+      "name": "Repo Magical Kingdom README hero and social preview",
+      "kind": "generated-media",
+      "relationship": "Original release artwork derived exclusively from a final application capture.",
+      "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/readme-hero.png",
+      "version": "1.0, generated 2026-08-12",
+      "distribution": "standalone-files",
+      "license": {
+        "spdx": "CC-BY-4.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "authors": ["Parris Digital", "OpenAI image generation tool"],
+      "usage": "README hero artwork and Open Graph/Twitter social preview for the open-source project.",
+      "projectLocations": [
+        "README.md",
+        "public/readme-hero.png",
+        "public/social-preview.png",
+        "src/app/layout.tsx",
+        "docs/assets/README.md"
+      ],
+      "redistributedFiles": ["public/readme-hero.png", "public/social-preview.png"],
+      "contentHashes": {
+        "public/readme-hero.png": "sha256:439d30f534a46337b52116959d2e05d1ee71a7c7ead5e38fb4abadaee87f598f",
+        "public/social-preview.png": "sha256:f1965e2b35cbd915e2b584e7e216ac9150b9462fe1ff32491d3ce882b4078bb1"
+      },
+      "modifications": "The approved generated PNG was copied unchanged as the README hero. A centered crop was resized to 1280 × 640 for social metadata with macOS sips.",
+      "generatedMediaProvenance": {
+        "generator": {
+          "tool": "OpenAI image_gen built-in tool",
+          "model": "OpenAI image generation model",
+          "version": "Built-in service accessed 2026-08-12",
+          "canonicalUrl": "https://openai.com/"
+        },
+        "generatedAt": "2026-08-12T19:49:29Z",
+        "prompt": "Use case: stylized-concept\nAsset type: wide GitHub README hero banner for the open-source project Repo Magical Kingdom\nInput image: the supplied final application capture is the sole design reference; preserve its original project's pale Spring palette, modular medieval architecture, continuous valley, sandstone escarpment, river, lake, and mixed pink/pale-green woodland, but create a newly composed polished hero illustration rather than a pixel copy.\nPrimary request: show one living public-code repository transformed into a clean, magical 3D kingdom.\nScene/backdrop: a cohesive elongated isometric floating valley on a soft warm ivory-to-pale-sage atmospheric backdrop; a dramatic continuous pale sandstone rear escarpment with vertical mineral streaks; a branching blue stream descends through the valley into a broad foreground lake; three distinct inhabited hamlets connected by winding paths; scattered blossom groves, pale green trees, rocks, flowers, tiny deer, chimney smoke, and restrained magical motes.\nSemantic motif: repository structure should read through one central crown settlement, three subordinate settlement clusters, branching paths like a source tree, and one subtle crystalline gateway at the far edge. Keep this metaphor visual only.\nStyle/medium: premium clean stylized 3D game-world render, modern soft PBR, handcrafted modular detail, high-key, elegant, coherent, open-source friendly.\nComposition/framing: panoramic 2.4:1 banner composition, terrain fills about 78% of frame, rear cliff in upper third, lake in lower foreground, clear silhouette, safe crop margin on every edge, no UI chrome.\nLighting/mood: fresh luminous Spring daylight, warm soft shadows, airy and alive, readable at README width.\nColor palette: ivory, pale sage, fresh spring green, blush pink, warm peach sandstone, clear powder-blue water, tiny restrained violet crystal accent.\nConstraints: no words, no letters, no code text, no logos, no badges, no watermark, no black background, no city skyline, no modern skyscrapers, no square district pads, no grid layout, no copied third-party artwork, no Tencent or WorldClaw imagery, no recognizable franchise elements.",
+        "negativeConstraints": [
+          "No words, letters, code text, logos, badges, or watermarks",
+          "No black background, city skyline, modern skyscrapers, square district pads, or grid layout",
+          "No copied third-party artwork, Tencent or WorldClaw imagery, or recognizable franchise elements"
+        ],
+        "referenceAssets": [
+          {
+            "description": "Fresh 1440 × 900 Spring overview captured from this repository's deterministic /visual-review route; ephemeral source capture SHA-256 4971561fb91f00e99fa087468424efa1ed6a65867d573ac1514e5a114943346f.",
+            "rights": "Original Repo Magical Kingdom application output by Parris Digital; no WorldClaw or Tencent image was supplied to the generator."
+          }
+        ],
+        "humanEdits": [
+          "Selected the generated output after composition, text, logo, and rights review; no pixel-level edits were made to the README hero.",
+          "Created the social preview as a centered crop of the approved hero without generative alteration."
+        ],
+        "conversionSteps": [
+          "Copied the built-in PNG output unchanged to public/readme-hero.png.",
+          "Centered-cropped and resized the approved hero to 1280 × 640 with macOS sips for public/social-preview.png."
+        ],
+        "sourceContentHashes": {
+          "built-in-generated-source": "sha256:439d30f534a46337b52116959d2e05d1ee71a7c7ead5e38fb4abadaee87f598f",
+          "application-reference-capture": "sha256:4971561fb91f00e99fa087468424efa1ed6a65867d573ac1514e5a114943346f"
+        },
+        "attributionText": "README hero and social preview generated with OpenAI image generation from an original Repo Magical Kingdom application capture; reviewed for project release by Parris Digital's Codex workflow.",
+        "review": {
+          "reviewer": "OpenAI Codex project release review",
+          "reviewedAt": "2026-08-12T19:50:15Z",
+          "confirmsNoProtectedProjectImitation": true,
+          "confirmsNoThirdPartyLogosOrCharacters": true,
+          "notes": "The only image supplied to the generator was a capture produced by this repository. The output contains no readable text, logos, characters, or copied WorldClaw/Tencent media."
+        }
+      }
+    }
+  ]
+}

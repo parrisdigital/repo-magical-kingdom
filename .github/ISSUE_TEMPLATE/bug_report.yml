@@ -1,0 +1,69 @@
+name: Bug report
+description: Report a reproducible application or kingdom-generation defect.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Repo Magical Kingdom. Never include tokens, private source, or personal data.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and discussions.
+          required: true
+        - label: This report does not contain a credential or private repository content.
+          required: true
+        - label: This is not a security vulnerability; I will use private reporting for security issues.
+          required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Application revision or deployment URL
+      placeholder: Commit SHA or Vercel URL
+    validations:
+      required: true
+  - type: input
+    id: repository
+    attributes:
+      label: Public repository input
+      description: Provide the public URL when relevant, or write “not repository-specific.”
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open …
+        2. Enter …
+        3. Select …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, browser/version, viewport, GPU, Node/pnpm for local builds, and quality tier.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or visual evidence
+      description: Remove secrets and personal information before attaching anything.

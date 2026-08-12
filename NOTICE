@@ -1,0 +1,22 @@
+Repo Magical Kingdom
+Copyright (c) 2026 Parris Digital
+
+Repo Magical Kingdom is distributed under the MIT License. See LICENSE.
+
+This project is inspired by Repository City, uses ShieldCN to render live
+README badges, and draws research inspiration from the WorldClaw paper. Those
+relationships do not transfer ownership of, or imply endorsement by, any
+upstream project.
+
+Curated environment and animated wildlife models by Quaternius are distributed
+under the CC0 1.0 Universal public-domain dedication. They are materially
+modified for browser delivery. See THIRD_PARTY_NOTICES.md and the exact license
+texts in public/assets/world/quaternius/licenses/.
+
+No WorldClaw source code, figures, imagery, 3D assets, or generated results are
+distributed with this project. WorldClaw's default branch did not declare a
+software license at the reviewed revision, so it is cited as research only.
+
+Third-party software and assets retain their respective copyrights and
+licenses. See ACKNOWLEDGEMENTS.md, THIRD_PARTY_NOTICES.md, docs/CREDITS.md, and
+attribution/registry.json for details and exact revisions.
