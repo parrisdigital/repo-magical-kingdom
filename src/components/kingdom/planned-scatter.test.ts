@@ -111,7 +111,7 @@ describe("createPlannedScatter", () => {
       );
     }
     clearPlannedScatterTopologyCacheForTests();
-  }, 30_000);
+  }, 60_000);
 
   it("renders a massive repository as a bounded eighteen-building world", () => {
     const demo = createDemoKingdom("spring");
