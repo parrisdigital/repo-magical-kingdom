@@ -13,6 +13,11 @@ under the CC0 1.0 Universal public-domain dedication. They are materially
 modified for browser delivery. See THIRD_PARTY_NOTICES.md and the exact license
 texts in public/assets/world/quaternius/licenses/.
 
+Curated seasonal tree and ground-treatment models by Kenney are distributed
+under the CC0 1.0 Universal public-domain dedication and modified for browser
+delivery. Exact upstream license texts are preserved in
+public/assets/world/kenney/licenses/.
+
 No WorldClaw source code, figures, imagery, 3D assets, or generated results are
 distributed with this project. WorldClaw's default branch did not declare a
 software license at the reviewed revision, so it is cited as research only.

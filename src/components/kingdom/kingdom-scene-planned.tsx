@@ -12,6 +12,10 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
+import {
+  getKenneySeasonalPalette,
+  kenneySeasonalAssetReferenceUrl,
+} from "@/lib/assets/kenney-seasonal";
 import { QUATERNIUS_ANIMAL_CLIPS, quaterniusAssetUrl } from "@/lib/assets/quaternius";
 import { stableFraction } from "@/lib/kingdom/hash";
 import { createWorldPlan, type KingdomSeason, type WorldPlan } from "@/lib/kingdom";
@@ -147,12 +151,24 @@ const ANIMAL_TARGET_HEIGHT: Readonly<Record<keyof typeof ANIMAL_URLS, number>> =
   stag: 2.65,
 };
 
+const KENNEY_SEASONAL_URLS = [
+  ...new Set(
+    (["spring", "summer", "autumn", "winter"] as const).flatMap((season) => {
+      const palette = getKenneySeasonalPalette(season);
+      return [...palette.canopy, ...palette.groundDetails].map((reference) =>
+        kenneySeasonalAssetReferenceUrl(reference),
+      );
+    }),
+  ),
+];
+
 for (const url of [
   ...Object.values(MODULE_URLS),
   ...Object.values(TREE_URLS),
   ...Object.values(GROUND_URLS),
   ...Object.values(AMBIENT_URLS),
   ...Object.values(ANIMAL_URLS),
+  ...KENNEY_SEASONAL_URLS,
 ]) {
   useGLTF.preload(url);
 }
@@ -205,6 +221,7 @@ function InstancePrimitive({
   matrices,
   plan,
   foliagePalette,
+  seasonalCanopy,
   surfaceStyle,
   castShadow,
 }: Readonly<{
@@ -212,6 +229,7 @@ function InstancePrimitive({
   matrices: ReadonlyArray<THREE.Matrix4>;
   plan: WorldPlan;
   foliagePalette?: FoliagePalette;
+  seasonalCanopy: boolean;
   surfaceStyle: SurfaceStyle;
   castShadow: boolean;
 }>) {
@@ -220,6 +238,17 @@ function InstancePrimitive({
     const sources = Array.isArray(primitive.material) ? primitive.material : [primitive.material];
     return sources.map((source, materialIndex) => {
       const material = source.clone();
+      if (
+        seasonalCanopy &&
+        material instanceof THREE.MeshStandardMaterial &&
+        plan.appearance.season === "spring"
+      ) {
+        material.color.lerp(new THREE.Color("#b7d79a"), 0.38);
+        material.emissiveMap = material.map;
+        material.emissive.set("#708c5d");
+        material.emissiveIntensity = 0.2;
+        material.roughness = Math.max(0.82, material.roughness);
+      }
       if (
         foliagePalette &&
         material instanceof THREE.MeshStandardMaterial &&
@@ -292,7 +321,7 @@ function InstancePrimitive({
       }
       return material;
     });
-  }, [foliagePalette, plan, primitive.material, surfaceStyle]);
+  }, [foliagePalette, plan, primitive.material, seasonalCanopy, surfaceStyle]);
 
   useLayoutEffect(() => {
     if (!instance.current) return;
@@ -369,6 +398,7 @@ function AssetInstances({
           matrices={normalizedMatrices}
           plan={plan}
           foliagePalette={foliagePalette}
+          seasonalCanopy={url.includes("/kenney/") && (targetHeight ?? 0) > 4}
           surfaceStyle={surfaceStyle}
           castShadow={castShadow}
         />
@@ -881,23 +911,42 @@ function createTreeGroups(
   enrichment: PlannedVisualEnrichment,
 ): Map<string, THREE.Matrix4[]> {
   const groups = new Map<string, THREE.Matrix4[]>();
+  const seasonalCanopy = getKenneySeasonalPalette(plan.appearance.season).canopy;
   for (const tree of scatter.trees) {
     const x = tree.transform.position.x;
     const z = tree.transform.position.z;
     const y = samplePlannedTerrainHeight(plan, x, z);
     const base = tree.transform.scale.y;
     const visualScale = base * 0.96;
+    const seasonalSlot = Math.floor(stableFraction(`${tree.id}:seasonal-slot`) * 3);
+    const useSeasonalModel =
+      tree.assetRole !== "dead-tree" &&
+      (plan.appearance.season === "winter" ||
+        plan.appearance.season === "autumn" ||
+        tree.paletteRole !== "flowering");
+    const treeUrl = useSeasonalModel
+      ? kenneySeasonalAssetReferenceUrl(seasonalCanopy[seasonalSlot % seasonalCanopy.length]!)
+      : TREE_URLS[tree.assetRole];
     addInstance(
       groups,
-      TREE_URLS[tree.assetRole],
+      treeUrl,
       matrixAt(x, y, z, tree.transform.rotationY, [visualScale, visualScale, visualScale]),
     );
   }
   for (const tree of enrichment.supplementalTrees) {
     const y = samplePlannedTerrainHeight(plan, tree.position.x, tree.position.z);
+    const seasonalSlot = Math.floor(stableFraction(`${tree.id}:seasonal-slot`) * 3);
+    const useSeasonalModel =
+      tree.assetRole !== "dead-tree" &&
+      (plan.appearance.season === "winter" ||
+        plan.appearance.season === "autumn" ||
+        !tree.assetRole.includes("twisted"));
+    const treeUrl = useSeasonalModel
+      ? kenneySeasonalAssetReferenceUrl(seasonalCanopy[seasonalSlot % seasonalCanopy.length]!)
+      : TREE_URLS[tree.assetRole];
     addInstance(
       groups,
-      TREE_URLS[tree.assetRole],
+      treeUrl,
       matrixAt(tree.position.x, y, tree.position.z, tree.rotationY, [
         tree.scale.x,
         tree.scale.y,
@@ -913,16 +962,26 @@ function createGroundGroups(
   plan: WorldPlan,
 ): Map<string, THREE.Matrix4[]> {
   const groups = new Map<string, THREE.Matrix4[]>();
+  const seasonalDetails = getKenneySeasonalPalette(plan.appearance.season).groundDetails;
   for (const cluster of scatter.groundCoverClusters) {
     for (const member of cluster.members) {
       const x = cluster.center.x + member.offset.x;
       const z = cluster.center.z + member.offset.z;
       const y = samplePlannedTerrainHeight(plan, x, z) + 0.02;
-      addInstance(
-        groups,
-        GROUND_URLS[member.assetRole],
-        matrixAt(x, y, z, member.rotationY, member.scale * 0.92),
+      const seasonalProbability = stableFraction(
+        `${cluster.id}:${member.offset.x}:${member.offset.z}:seasonal-detail`,
       );
+      const seasonalRole = member.assetRole === "flower-group" || member.assetRole === "mushroom";
+      const useSeasonalDetail =
+        seasonalRole ||
+        (plan.appearance.season === "winter" && seasonalProbability < 0.18) ||
+        (plan.appearance.season === "autumn" && seasonalProbability < 0.12);
+      const detailUrl = useSeasonalDetail
+        ? kenneySeasonalAssetReferenceUrl(
+            seasonalDetails[Math.floor(seasonalProbability * seasonalDetails.length)]!,
+          )
+        : GROUND_URLS[member.assetRole];
+      addInstance(groups, detailUrl, matrixAt(x, y, z, member.rotationY, member.scale * 0.92));
     }
   }
   return groups;
@@ -1044,11 +1103,13 @@ function VegetationLayer({
           plan={plan}
           targetHeight={8.6}
           foliagePalette={
-            url.includes("CommonTree_2") || url.includes("TwistedTree_1")
-              ? "flowering"
-              : url.includes("Pine")
-                ? "pine"
-                : "broadleaf"
+            url.includes("/kenney/")
+              ? undefined
+              : url.includes("CommonTree_2") || url.includes("TwistedTree_1")
+                ? "flowering"
+                : url.includes("Pine")
+                  ? "pine"
+                  : "broadleaf"
           }
           castShadow
         />

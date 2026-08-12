@@ -14,6 +14,8 @@ contributors understand which obligations follow each file.
 | [Quaternius Medieval Village MegaKit](https://quaternius.com/packs/medievalvillagemegakit.html)       | Standard free edition, 2026-08-12          | CC0 runtime asset source              | Yes, modified subset          |
 | [Quaternius Stylized Nature MegaKit](https://quaternius.com/packs/stylizednaturemegakit.html)         | Standard free edition, 2026-08-12          | CC0 runtime asset source              | Yes, modified subset          |
 | [Quaternius Ultimate Animated Animal Pack](https://quaternius.com/packs/ultimateanimatedanimals.html) | July 2021 edition, 2026-08-12              | CC0 runtime asset source              | Yes, modified subset          |
+| [Kenney Nature Kit](https://kenney.nl/assets/nature-kit)                                              | 2.1, 2026-08-12                            | CC0 seasonal asset source             | Yes, modified subset          |
+| [Kenney Holiday Kit](https://www.kenney.nl/assets/holiday-kit)                                        | 2.0, 2026-08-12                            | CC0 seasonal asset source             | Yes, modified subset          |
 
 No application source file is declared as a copy or adaptation of upstream
 source code. The Quaternius rows explicitly identify modified, redistributed
@@ -108,6 +110,26 @@ attribution registry.
 CC0 does not require attribution. Repo Magical Kingdom nevertheless names
 Quaternius in the application, README, acknowledgements, credits, notices, and
 registry as a project policy and a clear account of its visual foundation.
+
+## Kenney seasonal variants
+
+[Kenney Nature Kit 2.1](https://kenney.nl/assets/nature-kit) and
+[Kenney Holiday Kit 2.0](https://www.kenney.nl/assets/holiday-kit) provide a
+separately licensed, minimal seasonal vocabulary. Both official pack pages and
+their archived license files declare CC0 1.0 Universal.
+
+The project redistributes eight Nature Kit and five Holiday Kit models. Browser
+delivery flattens, prunes, deduplicates, welds, quantizes, and Meshopt-compresses
+the original geometry without simplification, mesh joining, or palette
+conversion. Holiday Kit's shared external colormap is embedded as a 512-pixel
+WebP image. Exact archive and output hashes, preserved licenses, selected names,
+and build commands are recorded in the attribution registry and
+[`docs/ASSET_PIPELINE.md`](ASSET_PIPELINE.md).
+
+The variant interface preserves a fixed number of canopy and ground-detail
+slots. Seasons may swap their appearance but never move repository-derived
+geography, relationships, or semantic hit regions. See the
+[seasonal asset playbook](SEASONAL_ASSET_PLAYBOOK.md).
 
 ## Updating lineage
 

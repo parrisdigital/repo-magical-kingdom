@@ -240,6 +240,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
     await page.getByRole("button", { name: /Worlds/ }).click();
     const worlds = page.getByRole("region", { name: "Repository worlds" });
     await expect(worlds).toBeVisible();
+    await expect(worlds).toContainText(/Spring|Summer|Autumn|Winter/);
     await worlds.getByRole("button").filter({ hasText: kingdomFixture.source.repository }).click();
 
     await expect(
@@ -248,6 +249,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
       }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: /Enter world/ })).toBeVisible();
+    await expect(page.getByText("Season", { exact: true })).toBeVisible();
   });
 
   test("accepts orbit and zoom camera input without client errors", async ({ page }) => {

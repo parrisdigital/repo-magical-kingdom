@@ -113,12 +113,41 @@ describe("createPlannedScatter", () => {
     clearPlannedScatterTopologyCacheForTests();
   }, 30_000);
 
-  it("places 12–20 buildings in two to four compact, nonoverlapping hamlets", () => {
+  it("renders a massive repository as a bounded eighteen-building world", () => {
+    const demo = createDemoKingdom("spring");
+    const massive = {
+      ...demo,
+      coverage: {
+        ...demo.coverage,
+        discoveredFiles: 100_000,
+        eligibleFiles: 96_000,
+        representedFiles: 96_000,
+      },
+      statistics: {
+        ...demo.statistics,
+        files: 96_000,
+        bytes: 12_000_000_000,
+      },
+    };
+    clearPlannedScatterTopologyCacheForTests();
+    const plan = createWorldPlan(massive);
+    const scatter = createPlannedScatter(massive, plan);
+
+    expect(plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)).toEqual([6, 6, 6]);
+    expect(scatter.buildings).toHaveLength(18);
+    expect(scatter.wildlife.length).toBeLessThanOrEqual(12);
+    expect(scatter.trees.length).toBeLessThanOrEqual(240);
+    expect(scatter.semanticHitZones.flatMap((zone) => zone.entityIds).sort()).toEqual(
+      massive.entities.map((entity) => entity.id).sort(),
+    );
+  }, 30_000);
+
+  it("places 12–24 buildings in two to four compact, nonoverlapping hamlets", () => {
     const { plan, scatter } = fixture();
     expect(plan.topology.hamlets.length).toBeGreaterThanOrEqual(2);
     expect(plan.topology.hamlets.length).toBeLessThanOrEqual(4);
     expect(scatter.buildings.length).toBeGreaterThanOrEqual(12);
-    expect(scatter.buildings.length).toBeLessThanOrEqual(20);
+    expect(scatter.buildings.length).toBeLessThanOrEqual(24);
 
     for (const hamlet of plan.topology.hamlets) {
       const buildings = scatter.buildings.filter((building) => building.hamletId === hamlet.id);

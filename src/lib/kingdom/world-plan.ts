@@ -455,11 +455,17 @@ function createHamlets(
   }
   const repeatedProvinceIndex = new Map<string, number>();
 
+  const largeRepositoryBuildingBonus =
+    world.statistics.files < 128
+      ? 0
+      : Math.min(6, Math.floor(Math.log2(world.statistics.files / 128 + 1) * 2));
   const targetBuildingCount = Math.round(
     clamp(
-      12 + Math.floor(Math.log2(Math.max(1, world.statistics.files)) / 2),
+      12 +
+        Math.floor(Math.log2(Math.max(1, world.statistics.files)) / 2) +
+        largeRepositoryBuildingBonus,
       candidates.length * 3,
-      Math.min(20, candidates.length * 6),
+      Math.min(24, candidates.length * 6),
     ),
   );
   let remainingBuildings = targetBuildingCount;
@@ -920,8 +926,11 @@ function createWildlifeZones(
   maxActors: number,
 ): ReadonlyArray<WildlifeZone> {
   const desiredCount = Math.min(3, groves.length);
-  const actorCounts = Array.from({ length: desiredCount }, (_, index) =>
-    index < maxActors - desiredCount ? 2 : 1,
+  const baseActorCount = desiredCount === 0 ? 0 : Math.floor(maxActors / desiredCount);
+  const extraActors = desiredCount === 0 ? 0 : maxActors % desiredCount;
+  const actorCounts = Array.from(
+    { length: desiredCount },
+    (_, index) => baseActorCount + (index < extraActors ? 1 : 0),
   );
   const roles: ReadonlyArray<WildlifeRole> = ["deer", "fox", "stag"];
   const behaviors: ReadonlyArray<WildlifeZone["behavior"]> = ["graze", "wander", "rest"];
@@ -950,6 +959,10 @@ function createVisualBudgets(
   hamlets: ReadonlyArray<HamletRegion>,
 ): WorldVisualBudgets {
   const complexity = Math.sqrt(Math.max(1, world.statistics.files));
+  const largeRepositoryActorBonus =
+    world.statistics.files < 128
+      ? 0
+      : Math.min(4, Math.floor(Math.log2(world.statistics.files / 128 + 1) * 1.5));
   return {
     maxTerrainZones: 10,
     maxHamlets: 4,
@@ -957,7 +970,9 @@ function createVisualBudgets(
     maxGroves: 7,
     maxTrees: Math.round(clamp(90 + world.provinces.length * 10 + complexity * 5, 120, 240)),
     maxLandmarks: 6,
-    maxWildlifeActors: Math.round(clamp(4 + world.provinces.length / 4, 4, 8)),
+    maxWildlifeActors: Math.round(
+      clamp(4 + world.provinces.length / 4 + largeRepositoryActorBonus, 4, 12),
+    ),
     maxSurfaceScatter: Math.round(clamp(210 + complexity * 7, 240, 360)),
     maxDrawCalls: 150,
     maxVisibleTriangles: 750_000,
@@ -1358,7 +1373,9 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
       rationale:
         "Repository structure chooses spatial roles, while scenery expresses most code areas without turning every file or folder into a house.",
       buildingRule:
-        "Only two to four strongest top-level directory provinces become hamlets; each is aggregated into three to six buildings, with twelve to twenty buildings total.",
+        world.statistics.files >= 128
+          ? "Only two to four strongest top-level directory provinces become hamlets; each is aggregated into three to six buildings, with twelve to twenty-four buildings total depending on repository scale."
+          : "Only two to four strongest top-level directory provinces become hamlets; each is aggregated into three to six buildings, with twelve to twenty buildings total.",
       traceabilityRule:
         "Every province has a semantic hit zone containing all of its entity IDs, including provinces represented only by nature, landform, or invisible selection coverage.",
     },

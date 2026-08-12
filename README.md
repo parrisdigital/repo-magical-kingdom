@@ -10,22 +10,42 @@
   width="1942"
 />
 
-<a href="https://github.com/parrisdigital/repo-magical-kingdom/actions/workflows/ci.yml">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/ci/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=outline&amp;theme=violet&amp;statusDot=true&amp;animate=glow&amp;mode=dark" />
-    <img alt="Continuous integration status" src="https://shieldcn.dev/github/ci/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=outline&amp;theme=violet&amp;statusDot=true&amp;animate=glow&amp;mode=light" />
-  </picture>
-</a>
-
-<a href="https://github.com/parrisdigital/repo-magical-kingdom">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/group/github/parrisdigital/repo-magical-kingdom/stars+github/parrisdigital/repo-magical-kingdom/license+github/parrisdigital/repo-magical-kingdom/contributors+github/parrisdigital/repo-magical-kingdom/last-commit.svg?variant=secondary&amp;size=xs&amp;theme=violet&amp;mode=dark" />
-    <img alt="Repository stars, license, contributors, and last commit" src="https://shieldcn.dev/group/github/parrisdigital/repo-magical-kingdom/stars+github/parrisdigital/repo-magical-kingdom/license+github/parrisdigital/repo-magical-kingdom/contributors+github/parrisdigital/repo-magical-kingdom/last-commit.svg?variant=secondary&amp;size=xs&amp;theme=violet&amp;mode=light" />
-  </picture>
-</a>
+<p align="center">
+  <a href="https://github.com/parrisdigital/repo-magical-kingdom/actions/workflows/ci.yml">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/ci/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=secondary&amp;size=xs&amp;theme=emerald&amp;font=geist&amp;statusDot=true&amp;animate=none&amp;mode=dark" />
+      <img alt="CI status" src="https://shieldcn.dev/github/ci/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=secondary&amp;size=xs&amp;theme=emerald&amp;font=geist&amp;statusDot=true&amp;animate=none&amp;mode=light" />
+    </picture>
+  </a>
+  <a href="https://github.com/parrisdigital/repo-magical-kingdom/stargazers">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/stars.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=dark" />
+      <img alt="GitHub stars" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/stars.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=light" />
+    </picture>
+  </a>
+  <a href="https://github.com/parrisdigital/repo-magical-kingdom/blob/main/LICENSE">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/license.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=dark" />
+      <img alt="MIT license" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/license.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=light" />
+    </picture>
+  </a>
+  <a href="https://github.com/parrisdigital/repo-magical-kingdom/graphs/contributors">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/contributors.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=dark" />
+      <img alt="GitHub contributors" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/contributors.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=light" />
+    </picture>
+  </a>
+  <a href="https://github.com/parrisdigital/repo-magical-kingdom/commits/main">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/last-commit.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=dark" />
+      <img alt="Last GitHub commit" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/last-commit.svg?variant=secondary&amp;size=xs&amp;theme=slate&amp;font=geist&amp;mode=light" />
+    </picture>
+  </a>
+</p>
 
 [Architecture](docs/ARCHITECTURE.md) ·
 [Contributing](CONTRIBUTING.md) ·
+[Seasonal assets](docs/SEASONAL_ASSET_PLAYBOOK.md) ·
 [Credits](docs/CREDITS.md) ·
 [Security](SECURITY.md)
 
@@ -148,7 +168,9 @@ The compiler and renderer have intentionally different responsibilities:
   ambient living systems.
 
 Read the complete [architecture specification](docs/ARCHITECTURE.md) and
-[source-lineage policy](docs/SOURCE_LINEAGE.md).
+[source-lineage policy](docs/SOURCE_LINEAGE.md). The
+[seasonal asset playbook](docs/SEASONAL_ASSET_PLAYBOOK.md) documents the legal
+sourcing, generation, and topology-preserving appearance workflow.
 
 ## Open-source trust model
 
@@ -183,6 +205,10 @@ informed by remarkable work:
   architecture, stylized nature, and animated wildlife models that form the
   world's authored visual foundation. The shipped subset is optimized for the
   browser, fully registered, and distributed with its source license texts.
+- **[Kenney](https://kenney.nl/)** created the CC0 Nature and Holiday kits used
+  for paired green/autumn trees, snowy silhouettes, and seasonal ground
+  treatments. The tiny curated subset is independently licensed, reproducible,
+  and does not contain WorldClaw media.
 - **[Three.js](https://threejs.org/),
   [React Three Fiber](https://r3f.docs.pmnd.rs/), and
   [Drei](https://github.com/pmndrs/drei)** form the open-source browser 3D

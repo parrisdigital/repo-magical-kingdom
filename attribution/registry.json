@@ -75,6 +75,114 @@
       "notes": "The reviewed repository default branch did not declare a software license."
     },
     {
+      "id": "kenney-nature-kit-2-1",
+      "name": "Kenney Nature Kit",
+      "kind": "asset",
+      "relationship": "CC0 source of compact green and autumn tree variants plus seasonal ground accents.",
+      "canonicalUrl": "https://kenney.nl/assets/nature-kit",
+      "version": "2.1, retrieved 2026-08-12",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "authors": ["Kenney"],
+      "usage": "Three paired green/fall tree silhouettes, a purple flower, and a pumpkin provide topology-stable spring, summer, and autumn appearance variants.",
+      "projectLocations": [
+        "public/assets/world/kenney/nature",
+        "src/lib/assets/kenney-seasonal.ts",
+        "scripts/assets/kenney-seasonal-manifest.mjs",
+        "scripts/assets/build-world-assets.mjs",
+        "scripts/assets/build-kenney-seasonal-assets.mjs",
+        "scripts/assets/verify-kenney-seasonal-assets.mjs",
+        "README.md",
+        "NOTICE",
+        "ACKNOWLEDGEMENTS.md",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/SEASONAL_ASSET_PLAYBOOK.md",
+        "docs/SOURCE_LINEAGE.md",
+        "src/app/credits/page.tsx"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/kenney/nature/crop_pumpkin.glb",
+        "public/assets/world/kenney/nature/flower_purpleA.glb",
+        "public/assets/world/kenney/nature/tree_default.glb",
+        "public/assets/world/kenney/nature/tree_default_fall.glb",
+        "public/assets/world/kenney/nature/tree_detailed.glb",
+        "public/assets/world/kenney/nature/tree_detailed_fall.glb",
+        "public/assets/world/kenney/nature/tree_oak.glb",
+        "public/assets/world/kenney/nature/tree_oak_fall.glb",
+        "public/assets/world/kenney/licenses/Nature_Kit_2.1_LICENSE.txt"
+      ],
+      "contentHashes": {
+        "public/assets/world/kenney/nature/crop_pumpkin.glb": "sha256:0945f1357c68bc8f7ea9b9d61cb1d6578693ab6ebd1f03044a5d34327df7502c",
+        "public/assets/world/kenney/nature/flower_purpleA.glb": "sha256:18f31a25696f2de330b142373bcdef2e919180c06548c8ea3931066da0ff72ae",
+        "public/assets/world/kenney/nature/tree_default.glb": "sha256:1f1f34e9a7c34a79e817e88ec3253087ef0e44f3440ddf1ef388598c7b98823d",
+        "public/assets/world/kenney/nature/tree_default_fall.glb": "sha256:782072ed5d10d47f2019bbfb88c7e35a0aa30bac9e36a687868a2274a2ebad0d",
+        "public/assets/world/kenney/nature/tree_detailed.glb": "sha256:ae3eaa1ea92977c9ca90848379606579e1ba9566e6a9d69c12c88d431d1aa437",
+        "public/assets/world/kenney/nature/tree_detailed_fall.glb": "sha256:621dc92699af4feeb1034b919ceae92a975a1364d81cb12dbb2e7d8e937b65f7",
+        "public/assets/world/kenney/nature/tree_oak.glb": "sha256:1d8b574d789f12fa9762d4983862871b393728994e0069e86ab19855cd242aa0",
+        "public/assets/world/kenney/nature/tree_oak_fall.glb": "sha256:71761637ae3554f39dae316c4405bb9f09bf818437ed799f9c1552a220cfec17",
+        "public/assets/world/kenney/licenses/Nature_Kit_2.1_LICENSE.txt": "sha256:cb96b75e3560ac78d7a53ce6f083f4cdb5c53faea6141b62d63458dcfe1e4b9d"
+      },
+      "modifications": "Curated from the upstream GLB collection; flattened, pruned, deduplicated, welded, quantized, and Meshopt-compressed with glTF Transform 4.4.2. Geometry simplification, mesh joining, and palette conversion were disabled.",
+      "notes": "Attribution is not required by CC0; recognition is retained as project policy. Reviewed source archive nature.zip SHA-256: fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d."
+    },
+    {
+      "id": "kenney-holiday-kit-2-0",
+      "name": "Kenney Holiday Kit",
+      "kind": "asset",
+      "relationship": "CC0 source of snow-covered tree silhouettes and generic winter ground treatments.",
+      "canonicalUrl": "https://kenney.nl/assets/holiday-kit",
+      "version": "2.0, retrieved 2026-08-12",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "authors": ["Kenney"],
+      "usage": "Three snowy tree silhouettes, a snow pile, and a broad snow patch provide winter appearance variants without changing repository-derived placement topology.",
+      "projectLocations": [
+        "public/assets/world/kenney/holiday",
+        "src/lib/assets/kenney-seasonal.ts",
+        "scripts/assets/kenney-seasonal-manifest.mjs",
+        "scripts/assets/build-world-assets.mjs",
+        "scripts/assets/build-kenney-seasonal-assets.mjs",
+        "scripts/assets/verify-kenney-seasonal-assets.mjs",
+        "README.md",
+        "NOTICE",
+        "ACKNOWLEDGEMENTS.md",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/SEASONAL_ASSET_PLAYBOOK.md",
+        "docs/SOURCE_LINEAGE.md",
+        "src/app/credits/page.tsx"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/kenney/holiday/snow-flat-large.glb",
+        "public/assets/world/kenney/holiday/snow-pile.glb",
+        "public/assets/world/kenney/holiday/tree-snow-a.glb",
+        "public/assets/world/kenney/holiday/tree-snow-b.glb",
+        "public/assets/world/kenney/holiday/tree-snow-c.glb",
+        "public/assets/world/kenney/licenses/Holiday_Kit_2.0_LICENSE.txt"
+      ],
+      "contentHashes": {
+        "public/assets/world/kenney/holiday/snow-flat-large.glb": "sha256:c34ca7517b568500503c7333cfcb2f4c17a0a3e1e5538941c2ea50bc2c5356aa",
+        "public/assets/world/kenney/holiday/snow-pile.glb": "sha256:2dbab6538525b4e2370a96a8a70eee6d2d6db3edc487297263acd7ae47ee61fe",
+        "public/assets/world/kenney/holiday/tree-snow-a.glb": "sha256:4824c85a5ab596ab43d01c5abd8830324791da564eda6d44538d1e67acc25fc1",
+        "public/assets/world/kenney/holiday/tree-snow-b.glb": "sha256:82e5e8d1309df9a36cd87b3ce6a34ef59810228827acf1ca1900fce6f0c5751d",
+        "public/assets/world/kenney/holiday/tree-snow-c.glb": "sha256:eec692284eb8604efd61340ec344923b1f78f258f518de66ba5f828f648d496a",
+        "public/assets/world/kenney/licenses/Holiday_Kit_2.0_LICENSE.txt": "sha256:6010f677d95f3ab7935faf873d8f4eb96ad1e5f02fd0e4659c9d92852b768d6a"
+      },
+      "modifications": "Curated from the upstream GLB collection; the shared external palette texture was embedded as WebP at 512 pixels, and models were flattened, pruned, deduplicated, welded, quantized, and Meshopt-compressed with glTF Transform 4.4.2. Geometry simplification, mesh joining, and palette conversion were disabled.",
+      "notes": "Attribution is not required by CC0; recognition is retained as project policy. Reviewed source archive holiday.zip SHA-256: fde4d514d7297388d98058e8933ff614e071886f7ce57f9aea4b00d7698dd769."
+    },
+    {
       "id": "quaternius-medieval-village-megakit-standard",
       "name": "Quaternius Medieval Village MegaKit (Standard free edition)",
       "kind": "asset",

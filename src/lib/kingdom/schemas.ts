@@ -156,6 +156,7 @@ export const repositoryUniverseSchema = z.object({
       position: vec3Schema,
       radius: z.number().positive(),
       hue: z.number().min(0).max(359),
+      season: seasonSchema.default("spring"),
     }),
   ),
 });

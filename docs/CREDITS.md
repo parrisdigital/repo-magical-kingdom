@@ -24,10 +24,16 @@ open-source community.
   — textured trees, plants, flowers, rocks, and path details, CC0-1.0.
 - [Quaternius Ultimate Animated Animal Pack](https://quaternius.com/packs/ultimateanimatedanimals.html)
   — animated deer, fox, and stag wildlife, CC0-1.0.
+- [Kenney Nature Kit 2.1](https://kenney.nl/assets/nature-kit) — paired green
+  and autumn trees plus seasonal ground accents, CC0-1.0.
+- [Kenney Holiday Kit 2.0](https://www.kenney.nl/assets/holiday-kit) — snowy
+  tree silhouettes and generic snow treatments, CC0-1.0.
 
 The selected models are transformed into optimized runtime GLBs. Exact files,
 hashes, modifications, and preserved license texts are recorded in the
-[asset-pipeline documentation](ASSET_PIPELINE.md) and machine-readable registry.
+[asset-pipeline documentation](ASSET_PIPELINE.md),
+[seasonal asset playbook](SEASONAL_ASSET_PLAYBOOK.md), and machine-readable
+registry.
 
 ## Runtime foundation
 

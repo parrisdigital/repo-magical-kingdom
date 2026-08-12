@@ -184,6 +184,7 @@ export type UniverseRepository = Readonly<{
   position: Vec3;
   radius: number;
   hue: number;
+  season: KingdomSeason;
 }>;
 
 export type RepositoryUniverse = Readonly<{

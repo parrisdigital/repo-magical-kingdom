@@ -447,7 +447,7 @@ function buildingFootprintRadius(role: PlannedBuilding["assetRole"], scale: numb
     workshop: 4.4,
     manor: 4.6,
   };
-  return round(baseRadius[role] * Math.max(0.94, scale));
+  return round(Math.max(3.2, baseRadius[role] * Math.max(0.94, scale)));
 }
 
 function hamletPlacementMask(

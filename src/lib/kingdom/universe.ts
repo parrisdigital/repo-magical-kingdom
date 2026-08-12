@@ -3,7 +3,7 @@ import type { ProfileSnapshot } from "@/lib/github";
 import { KingdomError } from "./errors";
 import { stableFraction, stableHash } from "./hash";
 import { repositoryUniverseSchema } from "./schemas";
-import type { RepositoryUniverse } from "./types";
+import { KINGDOM_SEASONS, type RepositoryUniverse } from "./types";
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
@@ -12,7 +12,11 @@ export function compileUniverse(snapshot: ProfileSnapshot): RepositoryUniverse {
     .sort((a, b) => b.stars - a.stars || a.repository.localeCompare(b.repository))
     .map((repository, index) => {
       const angle = index * GOLDEN_ANGLE + stableFraction(`${repository.id}:angle`);
-      const distance = index === 0 ? 0 : 12 + Math.sqrt(index) * 13;
+      // Reserve the origin for the profile star and use a bounded sunflower
+      // spiral so even the first repository reads as its own enterable world.
+      const distance = 13 + Math.sqrt(index + 1) * 11;
+      const season =
+        KINGDOM_SEASONS[stableHash(`${repository.id}:season`) % KINGDOM_SEASONS.length]!;
       return {
         id: repository.id,
         owner: repository.owner,
@@ -31,6 +35,7 @@ export function compileUniverse(snapshot: ProfileSnapshot): RepositoryUniverse {
         },
         radius: Math.min(8, 2.8 + Math.log2(repository.stars + repository.forks + 2) * 0.7),
         hue: stableHash(repository.language ?? repository.repository) % 360,
+        season,
       };
     });
   const generatedAt =

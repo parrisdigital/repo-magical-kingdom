@@ -32,6 +32,12 @@ const credits = [
     copy: "The CC0 Medieval Village, Stylized Nature, and Ultimate Animated Animal packs supply the textured architecture, environment art, and living wildlife used throughout the kingdoms.",
   },
   {
+    relationship: "Seasonal world art",
+    title: "Kenney",
+    href: "https://kenney.nl",
+    copy: "The CC0 Nature and Holiday kits supply paired green and autumn trees, snowy silhouettes, and ground treatments through a tiny audited browser bundle.",
+  },
+  {
     relationship: "Built with",
     title: "Three.js · React Three Fiber · Drei",
     href: "https://threejs.org",

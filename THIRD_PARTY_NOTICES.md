@@ -76,6 +76,8 @@ verbatim copying and distribution and has not been modified. Source:
 | [Quaternius](https://quaternius.com/) | Medieval Village MegaKit      | CC0-1.0 | Textured modular settlement architecture         |
 | [Quaternius](https://quaternius.com/) | Stylized Nature MegaKit       | CC0-1.0 | Trees, foliage, flowers, rocks, and path details |
 | [Quaternius](https://quaternius.com/) | Ultimate Animated Animal Pack | CC0-1.0 | Rigged deer, fox, and stag with animation clips  |
+| [Kenney](https://kenney.nl/)          | Nature Kit 2.1                | CC0-1.0 | Paired green/fall trees, flower, and pumpkin     |
+| [Kenney](https://kenney.nl/)          | Holiday Kit 2.0               | CC0-1.0 | Snow trees, snow pile, and broad snow patch      |
 
 The project redistributes a curated subset rather than each complete source
 pack. Source glTF files were packaged as self-contained GLBs, pruned,
@@ -84,13 +86,18 @@ where applicable with glTF Transform 4.4.2. Geometry simplification was
 disabled for the modular architecture and nature collections; wildlife uses
 the default optimize sequence, including simplification and animation
 resampling, while preserving its named clip set. Exact license texts are
-preserved in `public/assets/world/quaternius/licenses/`; exact output hashes and
-file lists are in `attribution/registry.json`.
+preserved in `public/assets/world/quaternius/licenses/` and
+`public/assets/world/kenney/licenses/`; exact output hashes and file lists are
+in `attribution/registry.json`.
 
 The original works are dedicated under
 [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
-Attribution is not legally required, but recognition of Quaternius is retained
-throughout the project because the assets materially shape the experience.
+Attribution is not legally required, but recognition of Quaternius and Kenney
+is retained throughout the project because the assets materially shape the
+experience. Kenney's Holiday Kit palette is embedded as a 512-pixel WebP image;
+its selected models and the Nature Kit variants are flattened, pruned,
+deduplicated, welded, quantized, and Meshopt-compressed without geometry
+simplification.
 
 See [the asset policy](docs/ASSET_POLICY.md) and
 [the production asset pipeline](docs/ASSET_PIPELINE.md) before adding or

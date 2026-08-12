@@ -106,9 +106,12 @@ secrets.
 ### Repository universe
 
 The `repo-universe/v1` contract contains lightweight repository summaries and
-stable overview placement for a profile or organization. It deliberately does
-not contain every repository tree. A selected kingdom is fetched or compiled
-only when the visitor focuses or enters it.
+stable overview placement for a profile or organization. Every summary also
+has a deterministic seasonal identity used to render a small spherical world
+with terrain, a road, vegetation, and a settlement silhouette. It deliberately
+does not contain every repository tree. Full miniature detail is rendered only
+for a bounded nearest or selected set, and a kingdom is fetched or compiled
+only when the visitor enters it.
 
 ## Determinism and compatibility
 
@@ -215,6 +218,15 @@ The compiler never reports aggregate totals for data it silently discarded.
 Large worlds use hierarchy: universe summaries, kingdom provinces, settlement
 clusters, and close-range landmarks. Repeated geometry is instanced and direct
 interactive entities are budgeted by quality tier.
+
+The world planner scales repository richness logarithmically. A large fixture
+may grow to four hamlets, twenty-four aggregated buildings, 240 canopy
+instances, twelve wildlife actors, 360 surface details, 150 draw calls, and
+750,000 visible triangles, but never one mesh per file. Semantic hit zones keep
+all eligible entities traceable even when most files share visual aggregates.
+The universe applies the same rule: every returned repository stays selectable,
+while only a bounded six low-quality or twelve high-quality planets receive the
+full miniature asset layer at once.
 
 Initial performance targets are engineering gates, not marketing promises:
 

@@ -427,10 +427,11 @@ function UniverseDrawer({
                     setOpen(false);
                   }}
                 >
-                  <i style={{ backgroundColor: `hsl(${repository.hue} 64% 59%)` }} />
+                  <i style={{ backgroundColor: BIOME_COLORS[repository.season] }} />
                   <span>
                     <strong>{repository.repository}</strong>
                     <small>
+                      {KINGDOM_SEASON_LABELS[repository.season]} ·{" "}
                       {repository.language ?? "Repository"} · ★ {repository.stars.toLocaleString()}
                     </small>
                   </span>
@@ -499,10 +500,11 @@ function SelectionCard({
     canEnter = true;
   } else {
     const { repository } = selection;
-    kicker = "Repository world";
+    kicker = `${KINGDOM_SEASON_LABELS[repository.season]} repository world`;
     title = `${repository.owner}/${repository.repository}`;
     description = repository.description ?? "An explorable repository world.";
     facts.push(
+      ["Season", KINGDOM_SEASON_LABELS[repository.season]],
       ["Language", repository.language ?? "Unknown"],
       ["Stars", repository.stars.toLocaleString()],
     );

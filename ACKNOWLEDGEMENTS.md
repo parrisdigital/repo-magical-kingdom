@@ -77,6 +77,23 @@ self-contained GLBs, Meshopt-compressed, and use WebP textures where applicable;
 the complete transformation and file hashes are recorded in the asset-pipeline
 documentation and attribution registry.
 
+### Kenney
+
+[Kenney](https://kenney.nl/) created the CC0 seasonal assets that supplement the
+world's visual vocabulary:
+
+- [Nature Kit 2.1](https://kenney.nl/assets/nature-kit) supplies three matched
+  green/fall tree pairs, a purple flower, and a pumpkin.
+- [Holiday Kit 2.0](https://www.kenney.nl/assets/holiday-kit) supplies three
+  snowy tree silhouettes, a snow pile, and a broad snow patch.
+
+The project distributes only this 13-model subset, optimized as self-contained
+browser GLBs. Kenney does not require attribution under CC0; explicit
+recognition is retained because the assets materially support the seasonal
+experience. License texts are preserved in
+`public/assets/world/kenney/licenses/`, and the full strategy is documented in
+the [seasonal asset playbook](docs/SEASONAL_ASSET_PLAYBOOK.md).
+
 ## Open-source engine and application stack
 
 The browser experience is built with

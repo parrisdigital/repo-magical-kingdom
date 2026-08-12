@@ -17,6 +17,10 @@ import {
 
 export type PlannedTerrainQuality = "low" | "high";
 
+// Planned water indices wind toward -Y. BackSide makes that authored surface
+// visible to the above-terrain camera without paying DoubleSide's fragment cost.
+export const PLANNED_WATER_MATERIAL_SIDE = THREE.BackSide;
+
 export type PlannedTerrainProps = Readonly<{
   plan: WorldPlan;
   quality?: PlannedTerrainQuality;
@@ -161,6 +165,54 @@ function toBufferGeometry(
   return geometry;
 }
 
+export type PlannedWaterSurfaceAttributes = Readonly<{
+  edge: Float32Array;
+  region: Float32Array;
+  progress: Float32Array;
+  firstLakeIndex: number;
+}>;
+
+export function createPlannedWaterSurfaceAttributes(
+  data: PlannedGeometryData & Readonly<{ ranges: { courseTriangles: number } }>,
+  crossSegments: number,
+): PlannedWaterSurfaceAttributes {
+  const edge = new Float32Array(data.vertexCount);
+  const region = new Float32Array(data.vertexCount);
+  const progress = new Float32Array(data.vertexCount);
+  const firstLakeIndex = data.indices[data.ranges.courseTriangles * 3] ?? data.vertexCount;
+  const courseRowWidth = crossSegments + 1;
+  const courseRows = Math.max(1, Math.round(firstLakeIndex / courseRowWidth));
+
+  for (let index = 0; index < firstLakeIndex; index += 1) {
+    const column = index % courseRowWidth;
+    const row = Math.floor(index / courseRowWidth);
+    edge[index] = Math.abs(-1 + (column / crossSegments) * 2);
+    progress[index] = courseRows <= 1 ? 0 : row / (courseRows - 1);
+  }
+  for (let index = firstLakeIndex; index < data.vertexCount; index += 1) {
+    region[index] = 1;
+    edge[index] = index === firstLakeIndex ? 0 : 1;
+    progress[index] =
+      index === firstLakeIndex
+        ? 0
+        : (index - firstLakeIndex - 1) / Math.max(1, data.vertexCount - firstLakeIndex - 2);
+  }
+
+  return { edge, region, progress, firstLakeIndex };
+}
+
+function addWaterSurfaceAttributes(
+  geometry: THREE.BufferGeometry,
+  data: PlannedGeometryData & Readonly<{ ranges: { courseTriangles: number } }>,
+  crossSegments: number,
+) {
+  const attributes = createPlannedWaterSurfaceAttributes(data, crossSegments);
+
+  geometry.setAttribute("kingdomWaterEdge", new THREE.BufferAttribute(attributes.edge, 1));
+  geometry.setAttribute("kingdomWaterRegion", new THREE.BufferAttribute(attributes.region, 1));
+  geometry.setAttribute("kingdomWaterProgress", new THREE.BufferAttribute(attributes.progress, 1));
+}
+
 function applyTerrainDetailShader(
   shader: THREE.WebGLProgramParametersWithUniforms,
   sideStrength: number,
@@ -227,25 +279,74 @@ diffuseColor.rgb *= mix(
     );
 }
 
-function applyWaterDetailShader(
+export type WaterShaderUniforms = Readonly<{
+  time: { value: number };
+  deepColor: { value: THREE.Color };
+  shallowColor: { value: THREE.Color };
+  foamColor: { value: THREE.Color };
+  skyColor: { value: THREE.Color };
+}>;
+
+export function resolvePlannedWaterAnimationTime(
+  elapsedTime: number,
+  reducedMotion: boolean,
+): number {
+  return reducedMotion || !Number.isFinite(elapsedTime) ? 0 : Math.max(0, elapsedTime);
+}
+
+export function applyWaterDetailShader(
   shader: THREE.WebGLProgramParametersWithUniforms,
-  timeUniform: Readonly<{ value: number }>,
+  uniforms: WaterShaderUniforms,
 ) {
-  shader.uniforms.uKingdomWaterTime = timeUniform;
+  shader.uniforms.uKingdomWaterTime = uniforms.time;
+  shader.uniforms.uKingdomWaterDeepColor = uniforms.deepColor;
+  shader.uniforms.uKingdomWaterShallowColor = uniforms.shallowColor;
+  shader.uniforms.uKingdomWaterFoamColor = uniforms.foamColor;
+  shader.uniforms.uKingdomWaterSkyColor = uniforms.skyColor;
   shader.vertexShader = shader.vertexShader
     .replace(
       "#include <common>",
       `#include <common>
 uniform float uKingdomWaterTime;
-varying vec3 vKingdomWaterWorldPosition;`,
+attribute float kingdomWaterEdge;
+attribute float kingdomWaterRegion;
+attribute float kingdomWaterProgress;
+varying vec3 vKingdomWaterWorldPosition;
+varying vec3 vKingdomWaterNormalView;
+varying float vKingdomWaterEdge;
+varying float vKingdomWaterRegion;
+varying float vKingdomWaterProgress;`,
     )
     .replace(
       "#include <begin_vertex>",
       `#include <begin_vertex>
-float kingdomWaterWave =
-  sin(position.x * 0.2 + uKingdomWaterTime * 0.72) * 0.035 +
-  sin(position.z * 0.31 - uKingdomWaterTime * 0.48) * 0.022;
-transformed.y += kingdomWaterWave;`,
+float kingdomRiverWeight = 1.0 - kingdomWaterRegion;
+float kingdomShoreDamping = 1.0 - smoothstep(0.72, 1.0, kingdomWaterEdge) * 0.76;
+float kingdomWaveAmplitude = mix(0.032, 0.058, kingdomWaterRegion) * kingdomShoreDamping;
+float kingdomPhaseA = position.x * 0.24 + position.z * 0.075 + uKingdomWaterTime * 0.58;
+float kingdomPhaseB = position.z * 0.36 - position.x * 0.095 - uKingdomWaterTime * 0.41;
+float kingdomPhaseC = (position.x + position.z) * 0.64 + uKingdomWaterTime * 0.77;
+float kingdomCurrent = sin(kingdomWaterProgress * 74.0 - uKingdomWaterTime * 1.65) * kingdomRiverWeight;
+float kingdomWaterWave = (
+  sin(kingdomPhaseA) * 0.52 +
+  sin(kingdomPhaseB) * 0.3 +
+  sin(kingdomPhaseC) * 0.18
+) * kingdomWaveAmplitude + kingdomCurrent * 0.01;
+float kingdomDerivativeX = (
+  cos(kingdomPhaseA) * 0.24 * 0.52 +
+  cos(kingdomPhaseB) * -0.095 * 0.3 +
+  cos(kingdomPhaseC) * 0.64 * 0.18
+) * kingdomWaveAmplitude;
+float kingdomDerivativeZ = (
+  cos(kingdomPhaseA) * 0.075 * 0.52 +
+  cos(kingdomPhaseB) * 0.36 * 0.3 +
+  cos(kingdomPhaseC) * 0.64 * 0.18
+) * kingdomWaveAmplitude;
+transformed.y += kingdomWaterWave;
+vKingdomWaterNormalView = normalize(normalMatrix * vec3(-kingdomDerivativeX, 1.0, -kingdomDerivativeZ));
+vKingdomWaterEdge = kingdomWaterEdge;
+vKingdomWaterRegion = kingdomWaterRegion;
+vKingdomWaterProgress = kingdomWaterProgress;`,
     )
     .replace(
       "#include <worldpos_vertex>",
@@ -258,28 +359,136 @@ vKingdomWaterWorldPosition = kingdomWaterWorldPosition.xyz;`,
       "#include <common>",
       `#include <common>
 uniform float uKingdomWaterTime;
-varying vec3 vKingdomWaterWorldPosition;`,
+uniform vec3 uKingdomWaterDeepColor;
+uniform vec3 uKingdomWaterShallowColor;
+uniform vec3 uKingdomWaterFoamColor;
+uniform vec3 uKingdomWaterSkyColor;
+varying vec3 vKingdomWaterWorldPosition;
+varying vec3 vKingdomWaterNormalView;
+varying float vKingdomWaterEdge;
+varying float vKingdomWaterRegion;
+varying float vKingdomWaterProgress;
+float kingdomWaterNoise(vec2 point) {
+  return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453);
+}
+vec2 kingdomWaterRippleSlope(vec2 point, float region, float edge, float time) {
+  float phaseA = point.x * 0.72 + point.y * 0.24 + time * 0.72;
+  float phaseB = point.y * 0.96 - point.x * 0.31 - time * 0.48;
+  float phaseC = (point.x + point.y) * 1.36 + time * 0.93;
+  float damping = 1.0 - smoothstep(0.82, 1.0, edge) * 0.52;
+  float strength = mix(0.038, 0.054, region) * damping;
+  return vec2(
+    cos(phaseA) * 0.72 * 0.48 + cos(phaseB) * -0.31 * 0.32 + cos(phaseC) * 1.36 * 0.2,
+    cos(phaseA) * 0.24 * 0.48 + cos(phaseB) * 0.96 * 0.32 + cos(phaseC) * 1.36 * 0.2
+  ) * strength;
+}`,
+    )
+    .replace(
+      "#include <normal_fragment_maps>",
+      `#include <normal_fragment_maps>
+vec2 kingdomWaterSlope = kingdomWaterRippleSlope(
+  vKingdomWaterWorldPosition.xz,
+  vKingdomWaterRegion,
+  vKingdomWaterEdge,
+  uKingdomWaterTime
+);
+vec3 kingdomWaterDetailNormalView = normalize(
+  mat3(viewMatrix) * vec3(-kingdomWaterSlope.x, 1.0, -kingdomWaterSlope.y)
+);
+normal = normalize(mix(vKingdomWaterNormalView, kingdomWaterDetailNormalView, 0.88));`,
     )
     .replace(
       "#include <color_fragment>",
       `#include <color_fragment>
-float kingdomWaterFlow = 0.5 + 0.5 * sin(
-  vKingdomWaterWorldPosition.z * 0.23 - uKingdomWaterTime * 0.62 +
-  sin(vKingdomWaterWorldPosition.x * 0.17) * 1.25
+float kingdomWaterDepth = pow(clamp(1.0 - vKingdomWaterEdge, 0.0, 1.0), 0.68);
+kingdomWaterDepth *= mix(0.78, 0.94, vKingdomWaterRegion);
+float kingdomColorDepth = kingdomWaterDepth * 0.98;
+vec3 kingdomWaterBase = mix(
+  uKingdomWaterShallowColor,
+  uKingdomWaterDeepColor,
+  kingdomColorDepth
 );
-float kingdomWaterCross = 0.5 + 0.5 * sin(
-  vKingdomWaterWorldPosition.x * 0.31 + uKingdomWaterTime * 0.29
+float kingdomRiverCurrent = 0.5 + 0.5 * sin(
+  vKingdomWaterProgress * 92.0 - uKingdomWaterTime * 2.25 +
+  vKingdomWaterEdge * 5.2 + sin(vKingdomWaterWorldPosition.x * 0.24) * 1.35
 );
-float kingdomWaterHighlight = smoothstep(
+float kingdomRiverThread = 0.5 + 0.5 * sin(
+  vKingdomWaterProgress * 137.0 - uKingdomWaterTime * 2.82 -
+  vKingdomWaterEdge * 8.4
+);
+float kingdomLakeRippleA = 0.5 + 0.5 * sin(
+  vKingdomWaterWorldPosition.x * 0.78 +
+  vKingdomWaterWorldPosition.z * 0.26 +
+  uKingdomWaterTime * 0.63
+);
+float kingdomLakeRippleB = 0.5 + 0.5 * sin(
+  vKingdomWaterWorldPosition.z * 1.04 -
+  vKingdomWaterWorldPosition.x * 0.34 -
+  uKingdomWaterTime * 0.49
+);
+float kingdomLakeRippleC = 0.5 + 0.5 * sin(
+  (vKingdomWaterWorldPosition.x + vKingdomWaterWorldPosition.z) * 1.42 +
+  uKingdomWaterTime * 0.82
+);
+float kingdomLakeHighlight = smoothstep(
+  0.74,
+  0.96,
+  kingdomLakeRippleA * 0.68 + kingdomLakeRippleB * 0.22 + kingdomLakeRippleC * 0.1
+) * vKingdomWaterRegion;
+float kingdomCurrentHighlight = smoothstep(
+  0.66,
+  0.94,
+  kingdomRiverCurrent * 0.66 + kingdomRiverThread * 0.34
+) * (1.0 - vKingdomWaterRegion);
+vec2 kingdomWaterFresnelSlope = kingdomWaterRippleSlope(
+  vKingdomWaterWorldPosition.xz,
+  vKingdomWaterRegion,
+  vKingdomWaterEdge,
+  uKingdomWaterTime
+);
+vec3 kingdomWaterFresnelNormalView = normalize(
+  mat3(viewMatrix) * vec3(-kingdomWaterFresnelSlope.x, 1.0, -kingdomWaterFresnelSlope.y)
+);
+float kingdomFresnel = pow(
+  1.0 - clamp(dot(normalize(vViewPosition), kingdomWaterFresnelNormalView), 0.0, 1.0),
+  1.9
+);
+float kingdomShoreNoise = kingdomWaterNoise(floor(vKingdomWaterWorldPosition.xz * 1.18));
+float kingdomShorePulse = 0.5 + 0.5 * sin(
+  vKingdomWaterProgress * 88.0 +
+  vKingdomWaterWorldPosition.x * 0.42 -
+  vKingdomWaterWorldPosition.z * 0.31 +
+  uKingdomWaterTime * 0.31
+);
+float kingdomFoamThreshold = 0.96 + (kingdomShoreNoise - 0.5) * 0.014;
+float kingdomFoamBand = smoothstep(kingdomFoamThreshold, kingdomFoamThreshold + 0.025, vKingdomWaterEdge);
+float kingdomFoamBreakup = smoothstep(
+  0.3,
   0.72,
-  0.98,
-  kingdomWaterFlow * 0.7 + kingdomWaterCross * 0.3
+  kingdomShoreNoise * 0.48 + kingdomShorePulse * 0.52
 );
-diffuseColor.rgb = mix(
-  diffuseColor.rgb,
-  vec3(0.66, 0.88, 0.9),
-  kingdomWaterHighlight * 0.18
-);`,
+float kingdomFoam = kingdomFoamBand * mix(0.16, 0.74, kingdomFoamBreakup);
+kingdomWaterBase = mix(kingdomWaterBase, uKingdomWaterSkyColor, kingdomFresnel * 0.4);
+kingdomWaterBase = mix(
+  kingdomWaterBase,
+  uKingdomWaterShallowColor,
+  kingdomLakeHighlight * 0.2 + kingdomCurrentHighlight * 0.28
+);
+kingdomWaterBase = mix(kingdomWaterBase, uKingdomWaterFoamColor, kingdomFoam * 0.76);
+diffuseColor.rgb = kingdomWaterBase;
+diffuseColor.a = 1.0;`,
+    )
+    .replace(
+      "#include <emissivemap_fragment>",
+      `#include <emissivemap_fragment>
+totalEmissiveRadiance += kingdomWaterBase * 0.07;
+totalEmissiveRadiance += uKingdomWaterFoamColor * kingdomFoam * 0.22;`,
+    )
+    .replace(
+      "#include <opaque_fragment>",
+      `outgoingLight = mix(outgoingLight, kingdomWaterBase, 0.52);
+outgoingLight += uKingdomWaterFoamColor * kingdomFoam * 0.06;
+#include <opaque_fragment>`,
     );
 }
 
@@ -359,53 +568,86 @@ export function PlannedWatershed({
   quality = "high",
   reducedMotion = false,
 }: PlannedWatershedProps) {
-  const materialRef = useRef<THREE.MeshPhysicalMaterial>(null);
-  const timeUniform = useRef({ value: 0 });
-  const waterColor = useMemo(
-    () =>
-      new THREE.Color(plan.appearance.terrain.water).lerp(
-        new THREE.Color(plan.appearance.season === "spring" ? "#9bd8e5" : "#77b5c2"),
-        plan.appearance.season === "spring" ? 0.54 : 0.18,
-      ),
-    [plan],
-  );
   const water = useMemo(
     () => buildPlannedWaterGeometry(plan, QUALITY_OPTIONS[quality]),
     [plan, quality],
   );
-  const geometry = useMemo(() => toBufferGeometry(water, null), [water]);
+  const geometry = useMemo(() => {
+    const nextGeometry = toBufferGeometry(water, null);
+    addWaterSurfaceAttributes(
+      nextGeometry,
+      water,
+      QUALITY_OPTIONS[quality].courseCrossSegments ?? 4,
+    );
+    return nextGeometry;
+  }, [quality, water]);
+
+  const waterColors = useMemo(() => {
+    const source = new THREE.Color(plan.appearance.terrain.water);
+    const spring = plan.appearance.season === "spring";
+    return {
+      deep: source
+        .clone()
+        .lerp(new THREE.Color(spring ? "#357f99" : "#477f8e"), spring ? 0.8 : 0.34),
+      shallow: source
+        .clone()
+        .lerp(new THREE.Color(spring ? "#8ccad2" : "#84c4cc"), spring ? 0.82 : 0.68),
+      foam: new THREE.Color(plan.appearance.atmosphere.horizon).lerp(
+        new THREE.Color("#f5fbef"),
+        0.68,
+      ),
+      sky: new THREE.Color(plan.appearance.atmosphere.sky).lerp(
+        new THREE.Color(plan.appearance.atmosphere.horizon),
+        0.42,
+      ),
+    };
+  }, [plan]);
+  const uniforms = useRef<WaterShaderUniforms>({
+    time: { value: 0 },
+    deepColor: { value: waterColors.deep.clone() },
+    shallowColor: { value: waterColors.shallow.clone() },
+    foamColor: { value: waterColors.foam.clone() },
+    skyColor: { value: waterColors.sky.clone() },
+  });
 
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => {
+    uniforms.current.deepColor.value.copy(waterColors.deep);
+    uniforms.current.shallowColor.value.copy(waterColors.shallow);
+    uniforms.current.foamColor.value.copy(waterColors.foam);
+    uniforms.current.skyColor.value.copy(waterColors.sky);
+    uniforms.current.time.value = resolvePlannedWaterAnimationTime(
+      uniforms.current.time.value,
+      reducedMotion,
+    );
+  }, [reducedMotion, waterColors]);
   useFrame(({ clock }) => {
-    if (reducedMotion || !materialRef.current) return;
-    timeUniform.current.value = clock.elapsedTime;
-    const breath = Math.sin(clock.elapsedTime * 0.72) * 0.018;
-    materialRef.current.opacity = 0.82 + breath;
-    materialRef.current.clearcoatRoughness = 0.17 + breath * 0.9;
+    uniforms.current.time.value = resolvePlannedWaterAnimationTime(
+      clock.elapsedTime,
+      reducedMotion,
+    );
   });
 
   return (
     <mesh name="planned-watershed" geometry={geometry} receiveShadow={false} renderOrder={4}>
       <meshPhysicalMaterial
-        ref={materialRef}
-        color={waterColor}
-        emissive={waterColor}
-        emissiveIntensity={0.08}
-        roughness={0.25}
-        metalness={0.03}
-        clearcoat={0.88}
+        color="#ffffff"
+        roughness={0.24}
+        metalness={0.02}
+        clearcoat={1}
         clearcoatRoughness={0.12}
-        sheen={0.22}
-        sheenColor={plan.appearance.atmosphere.horizon}
-        iridescence={0.06}
-        transmission={0.08}
-        thickness={0.55}
-        transparent
-        opacity={0.82}
-        depthWrite={false}
-        onBeforeCompile={(shader) => applyWaterDetailShader(shader, timeUniform.current)}
-        customProgramCacheKey={() => "planned-watershed-flow-v1"}
-        side={THREE.DoubleSide}
+        sheen={0.12}
+        sheenColor={waterColors.sky}
+        ior={1.333}
+        reflectivity={0.62}
+        specularIntensity={0.74}
+        specularColor={waterColors.foam}
+        transparent={false}
+        depthWrite
+        dithering
+        onBeforeCompile={(shader) => applyWaterDetailShader(shader, uniforms.current)}
+        customProgramCacheKey={() => "planned-watershed-depth-flow-foam-v3"}
+        side={PLANNED_WATER_MATERIAL_SIDE}
       />
     </mesh>
   );

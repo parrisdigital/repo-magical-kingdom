@@ -224,7 +224,7 @@ describe("createWorldPlan", () => {
     expect(topology.terrainZones.length).toBeLessThanOrEqual(budgets.maxTerrainZones);
     expect(topology.hamlets.length).toBeLessThanOrEqual(budgets.maxHamlets);
     expect(buildingCount).toBeGreaterThanOrEqual(12);
-    expect(buildingCount).toBeLessThanOrEqual(20);
+    expect(buildingCount).toBeLessThanOrEqual(24);
     expect(buildingCount).toBe(budgets.maxBuildings);
     expect(topology.groves.length).toBeLessThanOrEqual(budgets.maxGroves);
     expect(treeCount).toBeLessThanOrEqual(budgets.maxTrees);
@@ -234,6 +234,41 @@ describe("createWorldPlan", () => {
     expect(wildlifeCount).toBeLessThanOrEqual(budgets.maxWildlifeActors);
     expect(canopyCount).toBeLessThanOrEqual(budgets.maxTrees);
     expect(surfaceScatterCount).toBeLessThanOrEqual(budgets.maxSurfaceScatter);
+  });
+
+  it("scales massive repositories through bounded aggregation instead of one mesh per file", () => {
+    const demo = createDemoKingdom();
+    const massive = {
+      ...demo,
+      coverage: {
+        ...demo.coverage,
+        discoveredFiles: 100_000,
+        eligibleFiles: 96_000,
+        representedFiles: 96_000,
+      },
+      statistics: {
+        ...demo.statistics,
+        files: 96_000,
+        bytes: 12_000_000_000,
+      },
+    };
+    const { topology } = createWorldPlan(massive);
+    const buildingCount = topology.hamlets.reduce(
+      (total, hamlet) => total + hamlet.maxBuildings,
+      0,
+    );
+    const wildlifeCount = topology.wildlifeZones.reduce((total, zone) => total + zone.maxActors, 0);
+
+    expect(topology.hamlets).toHaveLength(3);
+    expect(buildingCount).toBe(18);
+    expect(buildingCount).toBe(topology.visualBudgets.maxBuildings);
+    expect(buildingCount).toBeLessThan(massive.statistics.files / 1_000);
+    expect(topology.visualBudgets.maxTrees).toBe(240);
+    expect(wildlifeCount).toBe(topology.visualBudgets.maxWildlifeActors);
+    expect(wildlifeCount).toBeGreaterThan(6);
+    expect(wildlifeCount).toBeLessThanOrEqual(12);
+    expect(topology.visualBudgets.maxVisibleTriangles).toBe(750_000);
+    expect(topology.visualBudgets.maxDrawCalls).toBe(150);
   });
 
   it("keeps every repository entity traceable without creating a building for each file", () => {

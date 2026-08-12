@@ -448,7 +448,9 @@ export function KingdomExperience({
 
   const enterRepository = useCallback(
     (repository: UniverseRepository | RepositoryPortal) => {
-      void loadKingdom(repository.owner, repository.repository, season);
+      const repositorySeason = "season" in repository ? repository.season : season;
+      setSeason(repositorySeason);
+      void loadKingdom(repository.owner, repository.repository, repositorySeason);
     },
     [loadKingdom, season],
   );
