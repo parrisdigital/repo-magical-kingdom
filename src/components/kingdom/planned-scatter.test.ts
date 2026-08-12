@@ -246,6 +246,40 @@ describe("createPlannedScatter", () => {
     }
   });
 
+  it("cycles valid asset roles when large worlds need more edge trees than role variants", () => {
+    const { world, plan } = fixture();
+    const sourceGrove = plan.topology.groves[0]!;
+    const scaledPlan: WorldPlan = {
+      ...plan,
+      topology: {
+        ...plan.topology,
+        groves: [
+          ...plan.topology.groves,
+          {
+            ...sourceGrove,
+            id: `${sourceGrove.id}-scale-regression`,
+            mask: {
+              ...sourceGrove.mask,
+              center: {
+                x: plan.topology.envelope.maxX - plan.topology.envelope.safeMargin * 2,
+                z: plan.topology.envelope.center.z,
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    clearPlannedScatterTopologyCacheForTests();
+    const scatter = createPlannedScatter(world, scaledPlan);
+    const edgeTrees = scatter.trees.filter((tree) => tree.placementRole === "edge-tree");
+
+    expect(edgeTrees).toHaveLength(7);
+    expect(edgeTrees.every((tree) => typeof tree.assetRole === "string")).toBe(true);
+    expect(edgeTrees[6]?.assetRole).toBe(edgeTrees[0]?.assetRole);
+    clearPlannedScatterTopologyCacheForTests();
+  });
+
   it("excludes ecological instances from the actual widened terrain water and shore", () => {
     const { plan, scatter } = fixture();
     const terrainLake = getPlannedTerrainDefinition(plan).water.lake;

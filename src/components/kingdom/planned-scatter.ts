@@ -967,7 +967,7 @@ function createTrees(plan: WorldPlan): ReadonlyArray<PlannedTree> {
     trees.push({
       id: `${grove.id}-edge-${index}`,
       groveId: grove.id,
-      assetRole: edgeRoles[index]!,
+      assetRole: edgeRoles[index % edgeRoles.length]!,
       paletteRole: grove.palette,
       placementRole: "edge-tree",
       footprintRadius,
