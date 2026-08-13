@@ -1,0 +1,30 @@
+src/lib/kingdom/physical-water-contract.ts
+  s_57e29531c752a5::t_1d4a5126167870 308-368,371,375-383,385-389,391-407,409-418
+  s_57e29531c752a5::t_e16e1d36c4df2b 390
+  s_57e29531c752a5::t_fa1baf801a3dc4 480-482,496,498-508
+  s_57e29531c752a5::t_b683de8aa308f8 490-495
+  s_57e29531c752a5::t_829bee0a55e7e1 408,469
+src/components/kingdom/planned-terrain-model.test.ts
+  s_57e29531c752a5::t_c5b6ef6534b44b 4-7,468-476,480-488
+vitest.config.ts
+  s_57e29531c752a5::t_45ef08edc3769e 7-11
+src/components/kingdom/planned-terrain-model.ts
+  s_57e29531c752a5::t_dd573dc3f28dad 3,170-185,1068,1163
+  s_57e29531c752a5::t_829bee0a55e7e1 1070
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8e9339e2174953b0b2fa3914d5716a4b19e92864",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
