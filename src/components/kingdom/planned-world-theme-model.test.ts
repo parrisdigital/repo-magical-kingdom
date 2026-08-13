@@ -35,7 +35,7 @@ describe("createPlannedWorldThemeLayer", () => {
     expect(layer.mushrooms).toEqual([]);
     expect(layer.fireflies).toEqual([]);
     expect(layer.instanceBudget).toBe(0);
-  }, 15_000);
+  });
 
   it("authors a bounded, populated enchanted-forest language", () => {
     const { scatter, layer } = fixture("enchanted-forest");

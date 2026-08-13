@@ -36,7 +36,7 @@ describe("createPlannedVisualEnrichment", () => {
     expect(enrichments[0]).toEqual(enrichments[1]);
     expect(enrichments[0]).toEqual(enrichments[2]);
     expect(enrichments[0]).toEqual(enrichments[3]);
-  }, 15_000);
+  });
 
   it("fills unused canopy capacity with dispersed valid edge woodland", () => {
     const world = createDemoKingdom("spring");
