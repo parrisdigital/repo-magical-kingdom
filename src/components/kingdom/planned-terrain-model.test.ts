@@ -491,8 +491,10 @@ describe("planned global terrain", () => {
       lake: definition.water.lake,
     };
     let closestClearanceMargin = Number.POSITIVE_INFINITY;
+    let closestLakeClearanceMargin = Number.POSITIVE_INFINITY;
     for (const grove of plan.topology.groves) {
       let minimum = Number.POSITIVE_INFINITY;
+      let lakeMinimum = Number.POSITIVE_INFINITY;
       const radius = Math.max(grove.mask.radiusX, grove.mask.radiusZ);
       expect(
         physicalWaterCircleHasClearance(
@@ -505,25 +507,32 @@ describe("planned global terrain", () => {
       ).toBe(true);
       for (let index = 0; index < 10_000; index += 1) {
         const angle = (index / 10_000) * Math.PI * 2;
-        minimum = Math.min(
-          minimum,
-          queryPlannedWaterDistance(
-            plan,
-            grove.mask.center.x + Math.cos(angle) * radius,
-            grove.mask.center.z + Math.sin(angle) * radius,
-          ).shoreDistance,
+        const distance = queryPlannedWaterDistance(
+          plan,
+          grove.mask.center.x + Math.cos(angle) * radius,
+          grove.mask.center.z + Math.sin(angle) * radius,
         );
+        minimum = Math.min(minimum, distance.shoreDistance);
+        lakeMinimum = Math.min(lakeMinimum, distance.lakeDistance - 4);
       }
       expect(minimum, grove.id).toBeGreaterThanOrEqual(grove.exclusions.clearance - 0.002);
       closestClearanceMargin = Math.min(
         closestClearanceMargin,
         minimum - grove.exclusions.clearance,
       );
+      closestLakeClearanceMargin = Math.min(
+        closestLakeClearanceMargin,
+        lakeMinimum - grove.exclusions.clearance,
+      );
     }
     // Preserve this seed as a meaningful near-boundary regression instead of
     // coupling the test to a grove ID that changes with the terrain schema.
     expect(closestClearanceMargin).toBeGreaterThanOrEqual(-0.002);
-    expect(closestClearanceMargin).toBeLessThanOrEqual(1);
+    // The restored authored course becomes the nearest canonical water edge,
+    // while this exact seed still exercises the fitted lake polygon closely.
+    expect(closestClearanceMargin).toBeLessThanOrEqual(3);
+    expect(closestLakeClearanceMargin).toBeGreaterThanOrEqual(-0.002);
+    expect(closestLakeClearanceMargin).toBeLessThanOrEqual(4.5);
   });
 
   it("truthfully bounds actual fitted lake footprints across archetypes and scale tiers", () => {

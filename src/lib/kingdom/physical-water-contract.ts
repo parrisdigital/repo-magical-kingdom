@@ -248,6 +248,16 @@ export function routePhysicalCourseSegmentsAroundTerraces(
   const start = normalizeEndpoint(requestedStart, "start");
   const target = normalizeEndpoint(requestedTarget, "target");
   const normalizedGuide = [start, ...points.slice(1, -1), target];
+  // The authored course has at most twelve samples. Keep that curvature when
+  // every authored chord is already valid: a shortest-path solver would
+  // otherwise collapse a clear meander to the direct start-to-target edge.
+  // Obstructed guides continue through the visibility graph below.
+  if (
+    normalizedGuide.length <= 16 &&
+    normalizedGuide.slice(1).every((sample, index) => validEdge(normalizedGuide[index]!, sample))
+  ) {
+    return normalizedGuide;
+  }
   // Overlapping expanded terraces can form a coast-to-coast wall whose only
   // valid route passes around the front of an obstacle and briefly reverses Z,
   // so this must remain a general visibility graph rather than a monotonic DAG.

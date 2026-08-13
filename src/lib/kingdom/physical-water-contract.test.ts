@@ -78,6 +78,42 @@ describe("canonical physical lake", () => {
 });
 
 describe("physical water course routing", () => {
+  it("retains authored curvature when the endpoints already provide a wide span", () => {
+    const envelope = {
+      minX: -80,
+      maxX: 80,
+      minZ: -60,
+      maxZ: 60,
+      width: 160,
+      depth: 120,
+      center: { x: 0, z: 0 },
+      safeMargin: 8,
+    } as const;
+    const outline = [
+      { x: -72, z: -52 },
+      { x: 72, z: -52 },
+      { x: 72, z: 52 },
+      { x: -72, z: 52 },
+    ];
+    const start = { x: -28, z: -42 };
+    const target = { x: 24, z: 42 };
+    const guide = [start, { x: 30, z: -18 }, { x: -18, z: 2 }, { x: 34, z: 22 }, target];
+
+    const routed = routePhysicalCourseSegmentsAroundTerraces(guide, [], 8, envelope, outline, 1);
+    const chordXAtZ = (z: number) =>
+      start.x + ((z - start.z) / (target.z - start.z)) * (target.x - start.x);
+    const maximumDeviation = Math.max(
+      0,
+      ...routed.slice(1, -1).map(({ x, z }) => Math.abs(x - chordXAtZ(z))),
+    );
+
+    expect(routed[0]).toBe(start);
+    expect(routed.at(-1)).toBe(target);
+    expect(target.x - start.x).toBeGreaterThan(envelope.width * 0.09);
+    expect(maximumDeviation).toBeGreaterThan(envelope.width * 0.08);
+    expect(routed.length).toBeLessThanOrEqual(16);
+  });
+
   it("preserves explicit endpoints while retaining a safe authored meander", () => {
     const envelope = {
       minX: -80,
@@ -121,6 +157,57 @@ describe("physical water course routing", () => {
     expect(
       Math.max(...routed.map(({ x }) => x)) - Math.min(...routed.map(({ x }) => x)),
     ).toBeGreaterThan(envelope.width * 0.09);
+    for (let index = 1; index < routed.length; index += 1) {
+      expect(
+        segmentToExpandedEllipseDistance(routed[index - 1]!, routed[index]!, terrace, clearance),
+      ).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("uses visibility-graph detours when an expanded terrace blocks the guide", () => {
+    const envelope = {
+      minX: -80,
+      maxX: 80,
+      minZ: -60,
+      maxZ: 60,
+      width: 160,
+      depth: 120,
+      center: { x: 0, z: 0 },
+      safeMargin: 8,
+    } as const;
+    const outline = [
+      { x: -72, z: -52 },
+      { x: 72, z: -52 },
+      { x: 72, z: 52 },
+      { x: -72, z: 52 },
+    ];
+    const start = { x: -12, z: -44 };
+    const target = { x: 12, z: 44 };
+    const guide = [start, { x: 14, z: -14 }, { x: -14, z: 14 }, target];
+    const terrace = {
+      id: "obstacle-wall",
+      center: { x: 0, z: 0 },
+      radiusX: 30,
+      radiusZ: 8,
+    };
+    const sourceWidth = 8;
+    const clearance = sourceWidth * 1.42 * 0.5 + 5.5;
+
+    expect(segmentToExpandedEllipseDistance(start, target, terrace, clearance)).toBeLessThan(1);
+
+    const routed = routePhysicalCourseSegmentsAroundTerraces(
+      guide,
+      [terrace],
+      sourceWidth,
+      envelope,
+      outline,
+      -1,
+    );
+
+    expect(routed[0]).toBe(start);
+    expect(routed.at(-1)).toBe(target);
+    expect(routed.length).toBeGreaterThan(2);
+    expect(routed.length).toBeLessThanOrEqual(16);
     for (let index = 1; index < routed.length; index += 1) {
       expect(
         segmentToExpandedEllipseDistance(routed[index - 1]!, routed[index]!, terrace, clearance),
