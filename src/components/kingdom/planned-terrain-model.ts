@@ -155,6 +155,8 @@ const MATERIAL_ZONE_CODE: Readonly<Record<PlannedTerrainMaterialZone, number>> =
 };
 
 const definitionCache = new WeakMap<WorldPlan, PlannedTerrainDefinition>();
+const definitionCacheByTerrainKey = new Map<string, PlannedTerrainDefinition>();
+const MAX_TERRAIN_DEFINITION_CACHE_ENTRIES = 16;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -863,8 +865,18 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
 export function getPlannedTerrainDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   const cached = definitionCache.get(plan);
   if (cached) return cached;
+  const cachedByTerrainKey = definitionCacheByTerrainKey.get(plan.terrainKey);
+  if (cachedByTerrainKey) {
+    definitionCache.set(plan, cachedByTerrainKey);
+    return cachedByTerrainKey;
+  }
   const definition = makeDefinition(plan);
   definitionCache.set(plan, definition);
+  if (definitionCacheByTerrainKey.size >= MAX_TERRAIN_DEFINITION_CACHE_ENTRIES) {
+    const oldestKey = definitionCacheByTerrainKey.keys().next().value;
+    if (oldestKey !== undefined) definitionCacheByTerrainKey.delete(oldestKey);
+  }
+  definitionCacheByTerrainKey.set(plan.terrainKey, definition);
   return definition;
 }
 

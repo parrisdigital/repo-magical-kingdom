@@ -22,6 +22,15 @@ function numericArray(values: ArrayLike<number>): number[] {
 }
 
 describe("planned global terrain", () => {
+  it("shares one canonical definition across equivalent fresh plans", () => {
+    const springPlan = createWorldPlan(createDemoKingdom("spring"));
+    const winterPlan = createWorldPlan(createDemoKingdom("winter"));
+
+    expect(springPlan).not.toBe(winterPlan);
+    expect(springPlan.terrainKey).toBe(winterPlan.terrainKey);
+    expect(getPlannedTerrainDefinition(springPlan)).toBe(getPlannedTerrainDefinition(winterPlan));
+  });
+
   it("is deterministic and keeps geometry invariant across seasons", () => {
     const plans = KINGDOM_SEASONS.map((season) => createWorldPlan(createDemoKingdom(season)));
     const first = createPlannedTerrainModel(plans[0]!, {
