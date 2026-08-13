@@ -5,6 +5,9 @@ import { strict as assert } from "node:assert";
 
 const commitShaPattern = /^[0-9a-f]{40}$/;
 const signoffPattern = /^Signed-off-by:\s*(.+?)\s*<([^<>\s]+@[^<>\s]+)>\s*$/gim;
+const trustedAutomatedAuthors = new Map([
+  ["dependabot[bot]", "49699333+dependabot[bot]@users.noreply.github.com"],
+]);
 
 function signoffEmails(message) {
   return [...message.matchAll(signoffPattern)].map((match) => match[2].toLowerCase());
@@ -19,6 +22,13 @@ function parsedTrailers(message) {
   });
 }
 
+function isTrustedAutomatedCommit(pullRequestAuthor, authorName, authorEmail) {
+  return (
+    pullRequestAuthor === authorName &&
+    trustedAutomatedAuthors.get(authorName) === authorEmail.trim().toLowerCase()
+  );
+}
+
 function runSelfTest() {
   assert.deepEqual(
     signoffEmails(
@@ -31,6 +41,26 @@ function runSelfTest() {
     [],
   );
   assert.deepEqual(signoffEmails(parsedTrailers("Subject\n\nSigned-off-by: missing-address")), []);
+  assert.equal(
+    isTrustedAutomatedCommit(
+      "dependabot[bot]",
+      "dependabot[bot]",
+      "49699333+dependabot[bot]@users.noreply.github.com",
+    ),
+    true,
+  );
+  assert.equal(
+    isTrustedAutomatedCommit(
+      "untrusted-contributor",
+      "dependabot[bot]",
+      "49699333+dependabot[bot]@users.noreply.github.com",
+    ),
+    false,
+  );
+  assert.equal(
+    isTrustedAutomatedCommit("dependabot[bot]", "dependabot[bot]", "attacker@example.com"),
+    false,
+  );
   console.log("DCO parser self-test passed.");
 }
 
@@ -42,10 +72,14 @@ function pullRequestRange() {
   const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
   const baseSha = event.pull_request?.base?.sha;
   const headSha = event.pull_request?.head?.sha;
+  const pullRequestAuthor = event.pull_request?.user?.login;
   if (!commitShaPattern.test(baseSha || "") || !commitShaPattern.test(headSha || "")) {
     throw new Error("the GitHub pull_request event does not contain valid base and head SHAs");
   }
-  return { baseSha, headSha };
+  if (typeof pullRequestAuthor !== "string" || pullRequestAuthor.length === 0) {
+    throw new Error("the GitHub pull_request event does not contain a valid author login");
+  }
+  return { baseSha, headSha, pullRequestAuthor };
 }
 
 function git(...arguments_) {
@@ -56,12 +90,16 @@ function git(...arguments_) {
   }).trim();
 }
 
-function validateCommit(commit) {
+function validateCommit(commit, pullRequestAuthor) {
   const details = git("show", "--no-patch", "--format=%an%x00%ae%x00%B", commit);
   const [authorName, authorEmail, ...messageParts] = details.split("\0");
   const message = messageParts.join("\0");
   const emails = signoffEmails(parsedTrailers(message));
   const normalizedAuthorEmail = authorEmail.trim().toLowerCase();
+
+  if (isTrustedAutomatedCommit(pullRequestAuthor, authorName, normalizedAuthorEmail)) {
+    return null;
+  }
 
   if (!emails.includes(normalizedAuthorEmail)) {
     return {
@@ -82,10 +120,12 @@ if (process.argv.includes("--self-test")) {
 }
 
 try {
-  const { baseSha, headSha } = pullRequestRange();
+  const { baseSha, headSha, pullRequestAuthor } = pullRequestRange();
   const output = git("rev-list", "--no-merges", `${baseSha}..${headSha}`);
   const commits = output ? output.split("\n") : [];
-  const failures = commits.map(validateCommit).filter(Boolean);
+  const failures = commits
+    .map((commit) => validateCommit(commit, pullRequestAuthor))
+    .filter(Boolean);
 
   if (failures.length > 0) {
     console.error("DCO validation failed:\n");

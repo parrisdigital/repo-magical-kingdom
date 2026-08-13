@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState, type FormEvent } from "react";
 
 import {
@@ -257,12 +258,9 @@ function CoveragePanel({ world }: Readonly<{ world: KingdomWorld }>) {
 function Brand({ mode, isDemo }: Readonly<{ mode: ExperienceMode; isDemo: boolean }>) {
   return (
     <div className={styles.brand}>
-      <div className={styles.brandSigil} aria-hidden="true">
-        <span />
-        <span />
-        <span />
-        <span />
-      </div>
+      <span className={styles.brandSigil} aria-hidden="true">
+        <Image src="/brand/app-logo.png" alt="" width={64} height={64} sizes="36px" />
+      </span>
       <div>
         <p>Repo Magical Kingdom</p>
         <span>

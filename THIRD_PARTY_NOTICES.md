@@ -69,6 +69,16 @@ verbatim copying and distribution and has not been modified. Source:
 - Redistribution status: no source code, figures, imagery, meshes, website
   assets, or generated results are redistributed
 
+## Project-generated media
+
+The README hero, social preview, Seasonal Gateway application mark and
+installable icons, and Orbital Mountain favicon are original project media
+generated with OpenAI's image generation tool from this project's own reviewed
+application artwork. They are distributed under CC BY 4.0 rather than the
+repository's default MIT source-code license. Full prompts, supplied-reference
+rights, original output hashes, conversion steps, final file hashes, and human
+review records are maintained in `attribution/registry.json`.
+
 ## Assets
 
 | Creator                               | Pack                          | License | Runtime use                                      |

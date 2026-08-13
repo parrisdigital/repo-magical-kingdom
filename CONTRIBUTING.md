@@ -80,9 +80,10 @@ Signed-off-by: Your Name <your-email@example.com>
 
 Create it automatically with `git commit -s`. By signing off, you certify the
 statement in [DCO](DCO). Pull requests run a required local-policy check that
-verifies every non-merge commit has a valid `Signed-off-by:` trailer matching
-the commit author's email; the pull-request checkbox is not a substitute for
-the commit trailer.
+verifies every human-authored non-merge commit has a valid `Signed-off-by:`
+trailer matching the commit author's email; the pull-request checkbox is not a
+substitute for the commit trailer. GitHub Dependabot is the only narrowly
+identified automation exempted from the human sign-off check.
 
 ## Dependencies and assets
 

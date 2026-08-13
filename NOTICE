@@ -1,7 +1,13 @@
 Repo Magical Kingdom
 Copyright (c) 2026 Parris Digital
 
-Repo Magical Kingdom is distributed under the MIT License. See LICENSE.
+Repo Magical Kingdom source code and original documentation are distributed
+under the MIT License unless a file or registry entry says otherwise. See
+LICENSE.
+
+Project-generated README, social, application-brand, installable-icon, and
+favicon artwork is distributed under CC BY 4.0. Exact files, prompts, generation
+records, modifications, and hashes are declared in attribution/registry.json.
 
 This project is inspired by Repository City, uses ShieldCN to render live
 README badges, and draws research inspiration from the WorldClaw paper. Those

@@ -70,6 +70,16 @@ source file, or generated badge is committed to this repository.
 If badge images are ever vendored for offline use, their provenance and license
 must be reassessed and the local files registered.
 
+## Generated project identity
+
+The bundled Seasonal Gateway application mark and Orbital Mountain favicon are
+original generated media, not adaptations of WorldClaw, Tencent, a game, a
+franchise, or another project's branding. The only image supplied to OpenAI's
+image generation tool was this repository's registered release hero. The
+machine-readable registry preserves both complete prompts, the original
+generated-output hashes, the favicon's center-crop hash, every final file hash,
+human selection notes, rights review, and CC BY 4.0 distribution terms.
+
 ## WorldClaw
 
 WorldClaw contributes research ideas: structured scene specifications,
