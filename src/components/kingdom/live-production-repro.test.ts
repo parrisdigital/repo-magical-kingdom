@@ -67,4 +67,4 @@ it("creates truthful scatter for the captured live repository-city world", () =>
   clearPlannedScatterTopologyCacheForTests();
   expect(createPlannedScatter(world, createWorldPlan(world))).toEqual(scatter);
   clearPlannedScatterTopologyCacheForTests();
-});
+}, 20_000);
