@@ -14,7 +14,13 @@ import {
 } from "react";
 import * as THREE from "three";
 
-import { DEFAULT_KINGDOM_SEASON, KINGDOM_SEASON_LABELS, type KingdomSeason } from "@/lib/kingdom";
+import {
+  DEFAULT_KINGDOM_SEASON,
+  KINGDOM_SEASON_LABELS,
+  KINGDOM_WORLD_THEME_LABELS,
+  type KingdomSeason,
+  type KingdomWorldTheme,
+} from "@/lib/kingdom";
 import { createDemoKingdom, createDemoUniverse } from "@/lib/kingdom/demo-world";
 import { kingdomWorldSchema, repositoryUniverseSchema } from "@/lib/kingdom/schemas";
 import type {
@@ -30,7 +36,7 @@ import { KingdomHud, type ExperienceMode } from "./kingdom-hud";
 import { KingdomScenePlanned as KingdomScene } from "./kingdom-scene-planned";
 import { RepositoryUniverseScene } from "./universe-scene";
 
-const DEMO_WORLD = createDemoKingdom();
+const DEMO_WORLD = createDemoKingdom(DEFAULT_KINGDOM_SEASON, "enchanted-forest");
 const DEMO_UNIVERSE = createDemoUniverse();
 
 type NavigateOptions = Readonly<{ replace?: boolean }>;
@@ -67,6 +73,7 @@ export type KingdomExperienceProps = Readonly<{
   initialRepository?: string;
   initialRevision?: string;
   initialSeason?: KingdomSeason;
+  initialWorldTheme?: KingdomWorldTheme;
   initialMode?: ExperienceMode;
   kingdomEndpoint?: string;
   universeEndpoint?: string;
@@ -260,6 +267,7 @@ export function KingdomExperience({
   initialRepository,
   initialRevision,
   initialSeason = DEFAULT_KINGDOM_SEASON,
+  initialWorldTheme,
   initialMode = initialOwner && initialRepository ? "kingdom" : "landing",
   kingdomEndpoint = "/api/kingdom",
   universeEndpoint = "/api/universe",
@@ -276,6 +284,9 @@ export function KingdomExperience({
   const [contextFailureCount, setContextFailureCount] = useState(0);
   const [mode, setMode] = useState<ExperienceMode>(initialMode);
   const [season, setSeason] = useState<KingdomSeason>(initialSeason);
+  const [worldThemeChoice, setWorldThemeChoice] = useState<KingdomWorldTheme | null>(
+    initialWorldTheme ?? null,
+  );
   const [world, setWorld] = useState<KingdomWorld>(DEMO_WORLD);
   const [universe, setUniverse] = useState<RepositoryUniverse | null>(
     initialMode === "universe" ? DEMO_UNIVERSE : null,
@@ -331,6 +342,7 @@ export function KingdomExperience({
       owner: string,
       repository: string,
       requestedSeason: KingdomSeason,
+      requestedWorldTheme: KingdomWorldTheme | null,
       revision?: string,
       history: "push" | "replace" | "none" = "push",
       travelOptions?: KingdomTravelOptions,
@@ -352,10 +364,9 @@ export function KingdomExperience({
       }
 
       try {
-        const params = new URLSearchParams({
-          repository: `${owner}/${repository}`,
-          season: requestedSeason,
-        });
+        const params = new URLSearchParams({ repository: `${owner}/${repository}` });
+        if (requestedWorldTheme) params.set("world", requestedWorldTheme);
+        params.set("season", requestedSeason);
         if (revision) params.set("revision", revision);
         const response = await fetch(`${kingdomEndpoint}?${params.toString()}`, {
           signal: controller.signal,
@@ -390,17 +401,18 @@ export function KingdomExperience({
         setSelection(null);
         setWorld(nextWorld);
         setSeason(nextWorld.season);
+        setWorldThemeChoice(nextWorld.worldTheme);
         setUniverse(null);
         setMode("kingdom");
         setRepositoryInput(`${nextWorld.source.owner}/${nextWorld.source.repository}`);
         setResetToken((token) => token + 1);
         onWorldLoaded?.(nextWorld);
-        const canonicalPath = `/kingdom/${encodeURIComponent(nextWorld.source.owner)}/${encodeURIComponent(nextWorld.source.repository)}/${nextWorld.source.commitSha}?season=${nextWorld.season}`;
+        const canonicalPath = `/kingdom/${encodeURIComponent(nextWorld.source.owner)}/${encodeURIComponent(nextWorld.source.repository)}/${nextWorld.source.commitSha}?world=${nextWorld.worldTheme}&season=${nextWorld.season}`;
         if (history !== "none") {
           const navigationOptions = { replace: history === "replace" };
           if (travelOptions) {
             preserveSceneLocation(canonicalPath, navigationOptions);
-            document.title = `${nextWorld.source.owner}/${nextWorld.source.repository} · ${KINGDOM_SEASON_LABELS[nextWorld.season]} · Repo Magical Kingdom`;
+            document.title = `${nextWorld.source.owner}/${nextWorld.source.repository} · ${KINGDOM_WORLD_THEME_LABELS[nextWorld.worldTheme]} · ${KINGDOM_SEASON_LABELS[nextWorld.season]} · Repo Magical Kingdom`;
           } else navigate(canonicalPath, navigationOptions);
         }
         if (travelOptions) {
@@ -533,6 +545,7 @@ export function KingdomExperience({
           initialOwner,
           initialRepository,
           initialSeason,
+          initialWorldTheme ?? null,
           initialRevision,
           "replace",
         );
@@ -547,6 +560,7 @@ export function KingdomExperience({
     initialRepository,
     initialRevision,
     initialSeason,
+    initialWorldTheme,
     loadKingdom,
     loadUniverse,
   ]);
@@ -568,9 +582,9 @@ export function KingdomExperience({
     if (parsed.kind === "owner") {
       void loadUniverse(parsed.owner);
     } else {
-      void loadKingdom(parsed.owner, parsed.repository, season);
+      void loadKingdom(parsed.owner, parsed.repository, season, worldThemeChoice);
     }
-  }, [loadKingdom, loadUniverse, repositoryInput, season]);
+  }, [loadKingdom, loadUniverse, repositoryInput, season, worldThemeChoice]);
 
   const enterRepository = useCallback(
     (repository: UniverseRepository | RepositoryPortal) => {
@@ -588,33 +602,64 @@ export function KingdomExperience({
         repository.owner,
         repository.repository,
         repositorySeason,
+        worldThemeChoice,
         undefined,
         "push",
         travelOptions,
       );
     },
-    [loadKingdom, mode, reducedMotion, season],
+    [loadKingdom, mode, reducedMotion, season, worldThemeChoice],
   );
 
-  const isDemo = world.buildKey === DEMO_WORLD.buildKey;
+  const isDemo = mode === "landing";
 
   const changeSeason = useCallback(
     (nextSeason: KingdomSeason) => {
       setSeason(nextSeason);
-      if (mode === "kingdom" && !isDemo) {
+      if (mode === "landing") {
+        setWorld(createDemoKingdom(nextSeason, worldThemeChoice ?? "enchanted-forest"));
+      } else if (mode === "kingdom") {
         void loadKingdom(
           world.source.owner,
           world.source.repository,
           nextSeason,
+          world.worldTheme,
           world.source.commitSha,
           "push",
         );
       }
     },
     [
-      isDemo,
       loadKingdom,
       mode,
+      world.worldTheme,
+      world.source.commitSha,
+      world.source.owner,
+      world.source.repository,
+      worldThemeChoice,
+    ],
+  );
+
+  const changeWorldTheme = useCallback(
+    (nextWorldTheme: KingdomWorldTheme | null) => {
+      setWorldThemeChoice(nextWorldTheme);
+      if (mode === "landing") {
+        setWorld(createDemoKingdom(season, nextWorldTheme ?? "enchanted-forest"));
+      } else if (mode === "kingdom") {
+        void loadKingdom(
+          world.source.owner,
+          world.source.repository,
+          season,
+          nextWorldTheme,
+          world.source.commitSha,
+          "push",
+        );
+      }
+    },
+    [
+      loadKingdom,
+      mode,
+      season,
       world.source.commitSha,
       world.source.owner,
       world.source.repository,
@@ -737,6 +782,7 @@ export function KingdomExperience({
         isDemo={isDemo}
         soundEnabled={soundEnabled}
         season={season}
+        worldTheme={worldThemeChoice}
         onRepositoryInput={setRepositoryInput}
         onSubmit={submitRepository}
         onSelect={setSelection}
@@ -749,6 +795,8 @@ export function KingdomExperience({
           requestRef.current?.abort();
           setTravel(null);
           setMode("landing");
+          setWorld(createDemoKingdom(season, worldThemeChoice ?? "enchanted-forest"));
+          setUniverse(null);
           setSelection(null);
           setErrorMessage(null);
           navigate("/");
@@ -756,6 +804,7 @@ export function KingdomExperience({
         onShowUniverse={() => void loadUniverse(world.source.owner, "push", !reducedMotion)}
         onToggleSound={() => setSoundEnabled((enabled) => !enabled)}
         onSeasonChange={changeSeason}
+        onWorldThemeChange={changeWorldTheme}
       />
     </main>
   );

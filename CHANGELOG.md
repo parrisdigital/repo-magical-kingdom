@@ -22,12 +22,18 @@ begin.
   kingdoms while preserving canonical URLs and document titles.
 - Thirteen additional audited Kenney models, expanding the seasonal vocabulary
   to 26 topology-stable tree, crop, flower, mushroom, snow, and stone GLBs.
+- Deterministic Kingdom Valley and Enchanted Forest world styles, independently
+  selectable from spring, summer, autumn, and winter.
+- Procedural terrestrial, ringed gas giant, ice giant, and rocky repository
+  planets with atmosphere, clouds, moons, and responsive focus navigation.
 
 ### Changed
 
 - README signals now use ShieldCN's light/dark ghost-badge composition, with a
   restrained live CI pulse.
 - Profile-universe camera fitting now protects short desktop viewports without
-  clipping inhabited planets.
+  clipping repository planets, including full ring systems.
+- Profile worlds now use celestial surface shaders instead of miniature houses,
+  fences, and trees mounted directly on overview spheres.
 
 [Unreleased]: https://github.com/parrisdigital/repo-magical-kingdom/commits/main

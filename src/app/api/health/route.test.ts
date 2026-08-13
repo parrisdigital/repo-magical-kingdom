@@ -11,7 +11,9 @@ describe("health route", () => {
       status: "operational",
       service: "repo-magical-kingdom",
       worldSchema: "repo-kingdom/v1",
+      worldThemes: 2,
       seasons: 4,
+      planetClasses: 4,
     });
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(JSON.stringify(body)).not.toContain("GITHUB_TOKEN");

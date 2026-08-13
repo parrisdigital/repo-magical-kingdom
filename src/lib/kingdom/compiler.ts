@@ -16,9 +16,10 @@ import {
   type RealmThemeIdentity,
   type Vec3,
 } from "./types";
+import { deriveDefaultKingdomWorldTheme, type KingdomWorldTheme } from "./world-theme";
 
 const COMPILER_VERSION = "1.0.0" as const;
-const STYLE_VERSION = "one-world-seasons/organic-valley-v2";
+const STYLE_VERSION = "repo-world-themes/organic-realm-v3";
 const MAX_NAMED_PROVINCES = 15;
 const MAX_DIRECT_ENTITIES = 900;
 const LARGE_WORLD_DIRECT_ENTITIES = 720;
@@ -52,6 +53,7 @@ const LEGACY_THEME_BY_SEASON: Readonly<Record<KingdomSeason, RealmThemeIdentity>
 
 export type CompileKingdomOptions = Readonly<{
   season?: KingdomSeason;
+  worldTheme?: KingdomWorldTheme;
 }>;
 
 type EntitySpec = Omit<KingdomEntity, "position"> & Readonly<{ provinceKey: string }>;
@@ -609,6 +611,28 @@ export function compileKingdom(
   const eligibleFiles = snapshot.files
     .filter((file) => omissionReason(file.path) === null)
     .map(classifyFile);
+  const categoryTotals = countByCategory(eligibleFiles);
+  const categories = [...categoryTotals.entries()].map(([category, total]) => ({
+    category,
+    ...total,
+  }));
+  const languageTotals = new Map<string, { files: number; bytes: number }>();
+  for (const file of eligibleFiles) {
+    const current = languageTotals.get(file.language) ?? { files: 0, bytes: 0 };
+    current.files += 1;
+    current.bytes += file.size;
+    languageTotals.set(file.language, current);
+  }
+  const languages = [...languageTotals.entries()]
+    .map(([name, total]) => ({ name, ...total }))
+    .sort((a, b) => b.bytes - a.bytes || b.files - a.files || a.name.localeCompare(b.name));
+  const worldTheme =
+    options.worldTheme ??
+    deriveDefaultKingdomWorldTheme({
+      repositoryId: snapshot.repositoryId,
+      categories,
+      languages,
+    });
   const selectedProvinces = chooseProvinceKeys(eligibleFiles);
   const specs = createEntitySpecs(snapshot, eligibleFiles, selectedProvinces);
   const provinceStats = createProvinceStats(eligibleFiles, selectedProvinces);
@@ -673,17 +697,6 @@ export function compileKingdom(
     ...portals.map((portal) => Math.hypot(portal.position.x, portal.position.z) + 10),
   );
 
-  const languageTotals = new Map<string, { files: number; bytes: number }>();
-  for (const file of eligibleFiles) {
-    const current = languageTotals.get(file.language) ?? { files: 0, bytes: 0 };
-    current.files += 1;
-    current.bytes += file.size;
-    languageTotals.set(file.language, current);
-  }
-  const categories = [...countByCategory(eligibleFiles).entries()].map(([category, total]) => ({
-    category,
-    ...total,
-  }));
   const representedFiles = entities.reduce((total, entity) => total + entity.representedFiles, 0);
   const omittedFiles = omissions.reduce((total, omission) => total + omission.files, 0);
   const maxHeight = Math.max(14, ...entities.map((entity) => entity.scale.y));
@@ -711,6 +724,7 @@ export function compileKingdom(
       COMPILER_VERSION,
       STYLE_VERSION,
       season,
+      worldTheme,
       seed,
       orderedRelatedRepositories
         .map((repository) =>
@@ -756,6 +770,7 @@ export function compileKingdom(
     description: snapshot.description,
     generatedAt: snapshot.committedAt,
     season,
+    worldTheme,
     theme: {
       id: legacyTheme.id,
       label: legacyTheme.label,
@@ -785,9 +800,7 @@ export function compileKingdom(
       files: eligibleFiles.length,
       bytes: eligibleFiles.reduce((total, file) => total + file.size, 0),
       provinces: provinces.length,
-      languages: [...languageTotals.entries()]
-        .map(([name, total]) => ({ name, ...total }))
-        .sort((a, b) => b.bytes - a.bytes || b.files - a.files || a.name.localeCompare(b.name)),
+      languages,
       categories,
     },
     warnings: [

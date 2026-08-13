@@ -1,25 +1,18 @@
 "use client";
 
-import {
-  Html,
-  Line,
-  OrbitControls,
-  PerspectiveCamera,
-  Sparkles,
-  Stars,
-  useGLTF,
-} from "@react-three/drei";
+import { Html, Line, OrbitControls, PerspectiveCamera, Sparkles, Stars } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
+import type { KingdomSeason } from "@/lib/kingdom";
 import {
-  getKenneySeasonalPalette,
-  kenneySeasonalAssetReferenceUrl,
-} from "@/lib/assets/kenney-seasonal";
-import { quaterniusAssetUrl } from "@/lib/assets/quaternius";
-import { KINGDOM_SEASON_LABELS, type KingdomSeason } from "@/lib/kingdom";
-import type { RepositoryUniverse, Selection, UniverseRepository } from "@/lib/kingdom/types";
+  REPOSITORY_PLANET_CLASS_LABELS,
+  type RepositoryPlanetClass,
+  type RepositoryUniverse,
+  type Selection,
+  type UniverseRepository,
+} from "@/lib/kingdom/types";
 
 import { seededUnit } from "./world-utils";
 
@@ -35,511 +28,457 @@ type RepositoryUniverseSceneProps = Readonly<{
   quality: "low" | "high";
 }>;
 
-type PlanetSeasonStyle = Readonly<{
-  ground: string;
-  highland: string;
-  water: string;
-  soil: string;
-  road: string;
-  roadMarking: string;
-  foliage: string;
-  roof: string;
+type PlanetVisualProfile = Readonly<{
+  primary: string;
+  secondary: string;
+  accent: string;
+  dark: string;
   atmosphere: string;
-  cloud: string;
-  snow: number;
+  clouds: string;
+  ringInner: string;
+  ringOuter: string;
+  cloudOpacity: number;
+  axialTilt: number;
+  ringed: boolean;
 }>;
 
-const PLANET_STYLES: Readonly<Record<KingdomSeason, PlanetSeasonStyle>> = {
-  spring: {
-    ground: "#76a84f",
-    highland: "#b8d878",
-    water: "#55abc2",
-    soil: "#9a744d",
-    road: "#d7c8aa",
-    roadMarking: "#faf0cd",
-    foliage: "#efabc3",
-    roof: "#b66757",
-    atmosphere: "#9fdcef",
-    cloud: "#fff8e9",
-    snow: 0,
-  },
-  summer: {
-    ground: "#4f853c",
-    highland: "#86ad4f",
-    water: "#3e92ad",
-    soil: "#886d43",
-    road: "#cfb98e",
-    roadMarking: "#f7e7b0",
-    foliage: "#4d8b43",
-    roof: "#a9513d",
-    atmosphere: "#7dcce8",
-    cloud: "#fff9e8",
-    snow: 0,
-  },
-  autumn: {
-    ground: "#8d743d",
-    highland: "#c99547",
-    water: "#567f94",
-    soil: "#775033",
-    road: "#bca27d",
-    roadMarking: "#efd6a0",
-    foliage: "#bf6435",
-    roof: "#823f34",
-    atmosphere: "#e3a36e",
-    cloud: "#fff0d7",
-    snow: 0,
-  },
-  winter: {
-    ground: "#a9bbb5",
-    highland: "#edf2ee",
-    water: "#668fa5",
-    soil: "#89918f",
-    road: "#aeb7ba",
-    roadMarking: "#f8fbfa",
-    foliage: "#47685c",
-    roof: "#795653",
-    atmosphere: "#c7e0ea",
-    cloud: "#ffffff",
-    snow: 0.82,
-  },
+const TERRESTRIAL_LAND: Readonly<Record<KingdomSeason, string>> = {
+  spring: "#3f8b55",
+  summer: "#697f3f",
+  autumn: "#8d693c",
+  winter: "#d7e1dc",
 };
 
-const MINIATURE_ASSETS = {
-  wall: quaterniusAssetUrl("medieval", "Wall_Plaster_Straight"),
-  door: quaterniusAssetUrl("medieval", "Wall_Plaster_Door_Round"),
-  window: quaterniusAssetUrl("medieval", "Wall_Plaster_Window_Wide_Round"),
-  roof: quaterniusAssetUrl("medieval", "Roof_RoundTiles_4x4"),
-  chimney: quaterniusAssetUrl("medieval", "Prop_Chimney"),
-  fence: quaterniusAssetUrl("medieval", "Prop_WoodenFence_Single"),
-  vine: quaterniusAssetUrl("medieval", "Prop_Vine1"),
-  broadleaf: quaterniusAssetUrl("nature", "CommonTree_2"),
-  flowering: quaterniusAssetUrl("nature", "TwistedTree_1"),
-  pine: quaterniusAssetUrl("nature", "Pine_2"),
-  bush: quaterniusAssetUrl("nature", "Bush_Common_Flowers"),
-} as const;
+function createPlanetVisualProfile(repository: UniverseRepository): PlanetVisualProfile {
+  const variant = seededUnit(`${repository.id}:celestial-profile`);
+  const tiltDirection = variant > 0.5 ? 1 : -1;
+  const axialTilt = tiltDirection * (0.08 + seededUnit(`${repository.id}:axial-tilt`) * 0.34);
 
-for (const url of Object.values(MINIATURE_ASSETS)) useGLTF.preload(url);
-for (const season of ["spring", "summer", "autumn", "winter"] as const) {
-  const palette = getKenneySeasonalPalette(season);
-  for (const reference of [...palette.canopy, ...palette.groundDetails]) {
-    useGLTF.preload(kenneySeasonalAssetReferenceUrl(reference));
-  }
-}
-
-function createPlanetGeometry(
-  repository: UniverseRepository,
-  detail: "low" | "high",
-): THREE.BufferGeometry {
-  const geometry = new THREE.SphereGeometry(
-    repository.radius,
-    detail === "high" ? 48 : 28,
-    detail === "high" ? 32 : 20,
-  );
-  const positions = geometry.getAttribute("position");
-  const colors = new Float32Array(positions.count * 3);
-  const style = PLANET_STYLES[repository.season];
-  const ground = new THREE.Color(style.ground);
-  const highland = new THREE.Color(style.highland);
-  const seed = seededUnit(`${repository.id}:planet-surface`) * Math.PI * 8;
-  const point = new THREE.Vector3();
-
-  for (let index = 0; index < positions.count; index += 1) {
-    point.fromBufferAttribute(positions, index).normalize();
-    const terrainNoise =
-      Math.sin(point.x * 3.2 + point.z * 1.6 + seed) * 0.52 +
-      Math.cos(point.y * 4.1 - point.x * 1.2 - seed * 0.37) * 0.31 +
-      Math.sin((point.x + point.y - point.z) * 5.4 + seed * 0.21) * 0.17;
-    const elevation = THREE.MathUtils.smoothstep(terrainNoise, -0.55, 0.82);
-    const color = ground.clone().lerp(highland, 0.12 + elevation * 0.3);
-    if (repository.season === "winter") {
-      const polarSnow = THREE.MathUtils.smoothstep(Math.abs(point.y), 0.12, 0.92);
-      color.lerp(highland, Math.max(style.snow * 0.45, polarSnow * 0.72));
-    }
-    colors[index * 3] = color.r;
-    colors[index * 3 + 1] = color.g;
-    colors[index * 3 + 2] = color.b;
-  }
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.computeBoundingSphere();
-  return geometry;
-}
-
-function surfaceNormal(latitude: number, longitude: number): THREE.Vector3 {
-  const latitudeCosine = Math.cos(latitude);
-  return new THREE.Vector3(
-    latitudeCosine * Math.cos(longitude),
-    Math.sin(latitude),
-    latitudeCosine * Math.sin(longitude),
-  ).normalize();
-}
-
-function PlanetAnchor({
-  latitude,
-  longitude,
-  radius,
-  rotation = 0,
-  children,
-}: Readonly<{
-  latitude: number;
-  longitude: number;
-  radius: number;
-  rotation?: number;
-  children: React.ReactNode;
-}>) {
-  const transform = useMemo(() => {
-    const normal = surfaceNormal(latitude, longitude);
+  if (repository.planetClass === "gas-giant") {
     return {
-      position: normal.multiplyScalar(radius),
-      quaternion: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal),
+      primary: "#b88342",
+      secondary: "#e4c486",
+      accent: "#f1dfba",
+      dark: "#6c472b",
+      atmosphere: "#e8bd72",
+      clouds: "#f7e7c9",
+      ringInner: "#d9c398",
+      ringOuter: "#8b7457",
+      cloudOpacity: 0,
+      axialTilt,
+      ringed: true,
     };
-  }, [latitude, longitude, radius]);
-  return (
-    <group position={transform.position} quaternion={transform.quaternion}>
-      <group rotation-y={rotation}>{children}</group>
-    </group>
-  );
+  }
+
+  if (repository.planetClass === "ice-giant") {
+    return {
+      primary: "#1f628a",
+      secondary: "#65b7cf",
+      accent: "#b9e4eb",
+      dark: "#0c2848",
+      atmosphere: "#6ed7ff",
+      clouds: "#e3f6f7",
+      ringInner: "#9dc4cf",
+      ringOuter: "#527786",
+      cloudOpacity: 0.18,
+      axialTilt,
+      ringed: variant > 0.42,
+    };
+  }
+
+  if (repository.planetClass === "rocky") {
+    return {
+      primary: variant > 0.5 ? "#8b4430" : "#676b70",
+      secondary: variant > 0.5 ? "#c77c4b" : "#a9a29a",
+      accent: variant > 0.5 ? "#e0ad70" : "#d5cec3",
+      dark: variant > 0.5 ? "#3f1f20" : "#272b32",
+      atmosphere: variant > 0.5 ? "#d88257" : "#8096aa",
+      clouds: "#d8c7b0",
+      ringInner: "#8c7765",
+      ringOuter: "#50453d",
+      cloudOpacity: variant > 0.72 ? 0.08 : 0,
+      axialTilt,
+      ringed: false,
+    };
+  }
+
+  return {
+    primary: repository.season === "winter" ? "#174f6f" : "#0b4475",
+    secondary: TERRESTRIAL_LAND[repository.season],
+    accent: repository.season === "winter" ? "#f0f3ef" : "#c8b37d",
+    dark: "#031b38",
+    atmosphere: "#53bde9",
+    clouds: "#f5f7f3",
+    ringInner: "#8fa5a5",
+    ringOuter: "#455c63",
+    cloudOpacity: repository.season === "winter" ? 0.38 : 0.27,
+    axialTilt,
+    ringed: false,
+  };
 }
 
-function MiniatureAsset({
-  url,
-  targetHeight,
-  tint,
-  tintStrength = 0.28,
-  castShadow = true,
+const PLANET_VERTEX_SHADER = /* glsl */ `
+  varying vec3 vLocalPosition;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+
+  void main() {
+    vLocalPosition = normalize(position);
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPosition.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+  }
+`;
+
+const NOISE_GLSL = /* glsl */ `
+  float hash31(vec3 point) {
+    point = fract(point * 0.1031);
+    point += dot(point, point.yzx + 33.33);
+    return fract((point.x + point.y) * point.z);
+  }
+
+  float noise3(vec3 point) {
+    vec3 cell = floor(point);
+    vec3 local = fract(point);
+    local = local * local * (3.0 - 2.0 * local);
+    float n000 = hash31(cell);
+    float n100 = hash31(cell + vec3(1.0, 0.0, 0.0));
+    float n010 = hash31(cell + vec3(0.0, 1.0, 0.0));
+    float n110 = hash31(cell + vec3(1.0, 1.0, 0.0));
+    float n001 = hash31(cell + vec3(0.0, 0.0, 1.0));
+    float n101 = hash31(cell + vec3(1.0, 0.0, 1.0));
+    float n011 = hash31(cell + vec3(0.0, 1.0, 1.0));
+    float n111 = hash31(cell + vec3(1.0, 1.0, 1.0));
+    return mix(
+      mix(mix(n000, n100, local.x), mix(n010, n110, local.x), local.y),
+      mix(mix(n001, n101, local.x), mix(n011, n111, local.x), local.y),
+      local.z
+    );
+  }
+
+  float fbm(vec3 point) {
+    float value = 0.0;
+    float amplitude = 0.52;
+    for (int octave = 0; octave < 5; octave += 1) {
+      value += noise3(point) * amplitude;
+      point = point * 2.03 + vec3(7.1, 3.7, 5.9);
+      amplitude *= 0.5;
+    }
+    return value;
+  }
+`;
+
+const PLANET_FRAGMENT_SHADER = /* glsl */ `
+  uniform float uKind;
+  uniform float uSeed;
+  uniform float uSelected;
+  uniform vec3 uPrimary;
+  uniform vec3 uSecondary;
+  uniform vec3 uAccent;
+  uniform vec3 uDark;
+  uniform vec3 uAtmosphere;
+  uniform vec3 uLightDirection;
+
+  varying vec3 vLocalPosition;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+
+  ${NOISE_GLSL}
+
+  void main() {
+    vec3 point = normalize(vLocalPosition);
+    vec3 normal = normalize(vWorldNormal);
+    vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+    vec3 lightDirection = normalize(uLightDirection);
+    float diffuse = max(dot(normal, lightDirection), 0.0);
+    float halfLight = smoothstep(-0.24, 0.58, dot(normal, lightDirection));
+    float latitude = abs(point.y);
+    vec3 color;
+    float oceanMask = 0.0;
+
+    if (uKind < 0.5) {
+      float continents = fbm(point * 1.85 + vec3(uSeed * 7.0, 1.2, -2.4));
+      continents += (fbm(point * 5.2 - vec3(uSeed * 3.0)) - 0.5) * 0.19;
+      float land = smoothstep(0.49, 0.565, continents);
+      float mountain = smoothstep(0.61, 0.83, continents + noise3(point * 11.0) * 0.1);
+      float coast = smoothstep(0.485, 0.515, continents) * (1.0 - smoothstep(0.54, 0.58, continents));
+      vec3 ocean = mix(uDark, uPrimary, 0.74 + noise3(point * 9.0) * 0.16);
+      vec3 landColor = mix(uSecondary, uAccent, mountain * 0.72 + noise3(point * 8.0) * 0.12);
+      landColor = mix(landColor, uAccent, coast * 0.34);
+      float polarIce = smoothstep(0.77, 0.94, latitude + (noise3(point * 7.0) - 0.5) * 0.14);
+      color = mix(ocean, landColor, land);
+      color = mix(color, vec3(0.92, 0.96, 0.95), polarIce * (0.64 + 0.36 * land));
+      oceanMask = 1.0 - land;
+    } else if (uKind < 1.5) {
+      float turbulence = fbm(point * vec3(2.0, 5.0, 2.0) + vec3(uSeed * 9.0));
+      float band = sin(point.y * 48.0 + turbulence * 7.0 + uSeed * 16.0);
+      float fineBand = sin(point.y * 112.0 - turbulence * 4.0) * 0.22;
+      float blend = smoothstep(-0.82, 0.78, band + fineBand);
+      color = mix(uPrimary, uSecondary, blend);
+      color = mix(color, uDark, smoothstep(0.58, 0.92, sin(point.y * 19.0 + turbulence * 3.0)) * 0.34);
+      vec2 stormPoint = vec2(point.x - 0.5, (point.y + 0.18) * 2.8);
+      float storm = 1.0 - smoothstep(0.12, 0.34, length(stormPoint));
+      color = mix(color, uAccent, storm * smoothstep(0.1, 0.8, turbulence) * 0.72);
+      color = mix(color, uAccent, smoothstep(0.83, 0.98, latitude) * 0.28);
+    } else if (uKind < 2.5) {
+      float flow = fbm(point * vec3(2.4, 6.0, 2.4) + vec3(uSeed * 5.0));
+      float band = sin(point.y * 34.0 + flow * 4.6 + uSeed * 11.0);
+      color = mix(uPrimary, uSecondary, 0.42 + band * 0.2 + flow * 0.2);
+      color = mix(color, uAccent, smoothstep(0.69, 0.96, latitude + flow * 0.08) * 0.45);
+      color = mix(color, uDark, smoothstep(0.72, 0.96, noise3(point * 13.0)) * 0.18);
+    } else {
+      float terrain = fbm(point * 3.8 + vec3(uSeed * 8.0));
+      float detail = noise3(point * 18.0 - vec3(uSeed * 3.0));
+      color = mix(uPrimary, uSecondary, smoothstep(0.28, 0.78, terrain));
+      color = mix(color, uAccent, smoothstep(0.72, 0.96, detail) * 0.34);
+      float basin = smoothstep(0.54, 0.86, noise3(point * 8.0 + terrain));
+      color = mix(color, uDark, basin * 0.28);
+    }
+
+    float rim = pow(1.0 - max(dot(normal, viewDirection), 0.0), 3.2);
+    float specular = pow(max(dot(reflect(-lightDirection, normal), viewDirection), 0.0), 44.0);
+    vec3 lit = color * (0.22 + halfLight * 0.82 + diffuse * 0.13);
+    lit += uAtmosphere * rim * (0.09 + uSelected * 0.08);
+    lit += vec3(0.75, 0.9, 1.0) * specular * oceanMask * 0.38;
+    gl_FragColor = vec4(lit, 1.0);
+  }
+`;
+
+const CLOUD_FRAGMENT_SHADER = /* glsl */ `
+  uniform float uTime;
+  uniform float uSeed;
+  uniform float uOpacity;
+  uniform vec3 uColor;
+  uniform vec3 uLightDirection;
+
+  varying vec3 vLocalPosition;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+
+  ${NOISE_GLSL}
+
+  void main() {
+    vec3 point = normalize(vLocalPosition);
+    vec3 drift = vec3(uTime * 0.012, 0.0, -uTime * 0.007);
+    float coverage = fbm(point * 4.8 + drift + vec3(uSeed * 11.0));
+    coverage += (noise3(point * 14.0 - drift * 1.7) - 0.5) * 0.18;
+    float alpha = smoothstep(0.54, 0.69, coverage) * uOpacity;
+    float light = 0.4 + 0.6 * smoothstep(-0.2, 0.7, dot(normalize(vWorldNormal), normalize(uLightDirection)));
+    gl_FragColor = vec4(uColor * light, alpha);
+  }
+`;
+
+const ATMOSPHERE_FRAGMENT_SHADER = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uStrength;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+
+  void main() {
+    vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+    float fresnel = pow(1.0 - abs(dot(normalize(vWorldNormal), viewDirection)), 2.35);
+    gl_FragColor = vec4(uColor, fresnel * uStrength);
+  }
+`;
+
+const RING_VERTEX_SHADER = /* glsl */ `
+  varying float vRadius;
+  varying vec3 vWorldNormal;
+
+  void main() {
+    vRadius = length(position.xy);
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const RING_FRAGMENT_SHADER = /* glsl */ `
+  uniform float uInnerRadius;
+  uniform float uOuterRadius;
+  uniform float uSeed;
+  uniform vec3 uInnerColor;
+  uniform vec3 uOuterColor;
+  varying float vRadius;
+  varying vec3 vWorldNormal;
+
+  void main() {
+    float normalizedRadius = clamp((vRadius - uInnerRadius) / (uOuterRadius - uInnerRadius), 0.0, 1.0);
+    float bands = sin(normalizedRadius * 128.0 + uSeed * 17.0) * 0.5 + 0.5;
+    bands = mix(bands, sin(normalizedRadius * 33.0 - uSeed * 9.0) * 0.5 + 0.5, 0.34);
+    float cassini = smoothstep(0.035, 0.075, abs(normalizedRadius - 0.57));
+    float edge = smoothstep(0.0, 0.035, normalizedRadius) * (1.0 - smoothstep(0.965, 1.0, normalizedRadius));
+    vec3 color = mix(uInnerColor, uOuterColor, normalizedRadius + bands * 0.14);
+    float light = 0.45 + abs(vWorldNormal.y) * 0.5;
+    float alpha = edge * cassini * (0.34 + bands * 0.48);
+    gl_FragColor = vec4(color * light, alpha);
+  }
+`;
+
+function planetClassIndex(planetClass: RepositoryPlanetClass): number {
+  return planetClass === "terrestrial"
+    ? 0
+    : planetClass === "gas-giant"
+      ? 1
+      : planetClass === "ice-giant"
+        ? 2
+        : 3;
+}
+
+function CelestialPlanet({
+  repository,
+  detail,
+  profile,
+  reducedMotion,
+  selected,
 }: Readonly<{
-  url: string;
-  targetHeight: number;
-  tint: string;
-  tintStrength?: number;
-  castShadow?: boolean;
+  repository: UniverseRepository;
+  detail: "low" | "medium" | "high";
+  profile: PlanetVisualProfile;
+  reducedMotion: boolean;
+  selected: boolean;
 }>) {
-  const { scene } = useGLTF(url);
-  const asset = useMemo(() => {
-    const object = scene.clone(true);
-    const materials: THREE.Material[] = [];
-    object.traverse((child) => {
-      if (!(child instanceof THREE.Mesh)) return;
-      const sourceMaterials = Array.isArray(child.material) ? child.material : [child.material];
-      const clonedMaterials = sourceMaterials.map((source) => {
-        const material = source.clone();
-        if (material instanceof THREE.MeshStandardMaterial) {
-          material.color.lerp(new THREE.Color(tint), tintStrength);
-          material.roughness = Math.max(0.64, material.roughness);
-        }
-        materials.push(material);
-        return material;
-      });
-      child.material = Array.isArray(child.material) ? clonedMaterials : clonedMaterials[0]!;
-      child.castShadow = castShadow;
-      child.receiveShadow = true;
+  const body = useRef<THREE.Group>(null);
+  const cloudShell = useRef<THREE.Mesh>(null);
+  const cloudShader = useRef<THREE.ShaderMaterial>(null);
+  const seed = seededUnit(`${repository.id}:planet-surface`);
+  const lightDirection = useMemo(
+    () =>
+      new THREE.Vector3(
+        -repository.position.x,
+        -repository.position.y,
+        -repository.position.z,
+      ).normalize(),
+    [repository.position.x, repository.position.y, repository.position.z],
+  );
+  const surfaceMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: PLANET_VERTEX_SHADER,
+        fragmentShader: PLANET_FRAGMENT_SHADER,
+        uniforms: {
+          uKind: { value: planetClassIndex(repository.planetClass) },
+          uSeed: { value: seed },
+          uSelected: { value: selected ? 1 : 0 },
+          uPrimary: { value: new THREE.Color(profile.primary) },
+          uSecondary: { value: new THREE.Color(profile.secondary) },
+          uAccent: { value: new THREE.Color(profile.accent) },
+          uDark: { value: new THREE.Color(profile.dark) },
+          uAtmosphere: { value: new THREE.Color(profile.atmosphere) },
+          uLightDirection: { value: lightDirection },
+        },
+      }),
+    [lightDirection, profile, repository.planetClass, seed, selected],
+  );
+  const cloudMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: PLANET_VERTEX_SHADER,
+        fragmentShader: CLOUD_FRAGMENT_SHADER,
+        uniforms: {
+          uTime: { value: 0 },
+          uSeed: { value: seed },
+          uOpacity: { value: profile.cloudOpacity },
+          uColor: { value: new THREE.Color(profile.clouds) },
+          uLightDirection: { value: lightDirection },
+        },
+        transparent: true,
+        depthWrite: false,
+      }),
+    [lightDirection, profile.cloudOpacity, profile.clouds, seed],
+  );
+  const atmosphereMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: PLANET_VERTEX_SHADER,
+        fragmentShader: ATMOSPHERE_FRAGMENT_SHADER,
+        uniforms: {
+          uColor: { value: new THREE.Color(profile.atmosphere) },
+          uStrength: { value: selected ? 0.72 : 0.46 },
+        },
+        side: THREE.BackSide,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    [profile.atmosphere, selected],
+  );
+  const ringMaterial = useMemo(() => {
+    const innerRadius = repository.radius * 1.28;
+    const outerRadius = repository.radius * (repository.planetClass === "gas-giant" ? 2.05 : 1.72);
+    return new THREE.ShaderMaterial({
+      vertexShader: RING_VERTEX_SHADER,
+      fragmentShader: RING_FRAGMENT_SHADER,
+      uniforms: {
+        uInnerRadius: { value: innerRadius },
+        uOuterRadius: { value: outerRadius },
+        uSeed: { value: seed },
+        uInnerColor: { value: new THREE.Color(profile.ringInner) },
+        uOuterColor: { value: new THREE.Color(profile.ringOuter) },
+      },
+      side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
     });
-    object.updateMatrixWorld(true);
-    const bounds = new THREE.Box3().setFromObject(object);
-    const center = bounds.getCenter(new THREE.Vector3());
-    const height = Math.max(0.001, bounds.max.y - bounds.min.y);
-    const scale = targetHeight / height;
-    object.scale.setScalar(scale);
-    object.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
-    return { materials, object };
-  }, [castShadow, scene, targetHeight, tint, tintStrength]);
+  }, [profile.ringInner, profile.ringOuter, repository.planetClass, repository.radius, seed]);
 
   useEffect(
     () => () => {
-      for (const material of asset.materials) material.dispose();
+      surfaceMaterial.dispose();
+      cloudMaterial.dispose();
+      atmosphereMaterial.dispose();
+      ringMaterial.dispose();
     },
-    [asset],
+    [atmosphereMaterial, cloudMaterial, ringMaterial, surfaceMaterial],
   );
-  return <primitive object={asset.object} />;
-}
 
-function MiniatureHouse({
-  radius,
-  style,
-  variant,
-}: Readonly<{ radius: number; style: PlanetSeasonStyle; variant: number }>) {
-  const wallHeight = radius * (variant === 0 ? 0.34 : 0.27);
-  const footprint = variant === 0 ? 1.08 : 0.86;
-  const wallOffset = radius * (variant === 0 ? 0.13 : 0.105);
+  useFrame(({ clock }, delta) => {
+    if (reducedMotion) return;
+    if (body.current) body.current.rotation.y += delta * (selected ? 0.052 : 0.022 + seed * 0.018);
+    if (cloudShell.current) cloudShell.current.rotation.y += delta * (0.034 + seed * 0.015);
+    if (cloudShader.current) cloudShader.current.uniforms.uTime!.value = clock.elapsedTime;
+  });
+
+  const widthSegments = detail === "high" ? 80 : detail === "medium" ? 56 : 36;
+  const heightSegments = detail === "high" ? 56 : detail === "medium" ? 36 : 24;
+  const outerRingRadius =
+    repository.radius * (repository.planetClass === "gas-giant" ? 2.05 : 1.72);
+
   return (
-    <group scale={[footprint, 1, footprint]}>
-      {[
-        { url: MINIATURE_ASSETS.door, position: [0, 0, wallOffset], rotation: 0 },
-        { url: MINIATURE_ASSETS.wall, position: [0, 0, -wallOffset], rotation: Math.PI },
-        {
-          url: MINIATURE_ASSETS.window,
-          position: [-wallOffset, 0, 0],
-          rotation: Math.PI / 2,
-        },
-        {
-          url: MINIATURE_ASSETS.window,
-          position: [wallOffset, 0, 0],
-          rotation: -Math.PI / 2,
-        },
-      ].map((wall, index) => (
-        <group
-          key={index}
-          position={wall.position as [number, number, number]}
-          rotation-y={wall.rotation}
-        >
-          <MiniatureAsset
-            url={wall.url}
-            targetHeight={wallHeight}
-            tint="#eadbc0"
-            tintStrength={0.14}
-          />
-        </group>
-      ))}
-      <group position-y={wallHeight * 0.9} scale={[1.18, 1, 1.18]}>
-        <MiniatureAsset
-          url={MINIATURE_ASSETS.roof}
-          targetHeight={radius * (variant === 0 ? 0.18 : 0.15)}
-          tint={style.roof}
-          tintStrength={0.46}
-        />
+    <group rotation-z={profile.axialTilt}>
+      <group ref={body}>
+        <mesh castShadow receiveShadow>
+          <sphereGeometry args={[repository.radius, widthSegments, heightSegments]} />
+          <primitive object={surfaceMaterial} attach="material" />
+        </mesh>
       </group>
-      <group position={[radius * 0.13, wallHeight * 1.07, -radius * 0.03]}>
-        <MiniatureAsset
-          url={MINIATURE_ASSETS.chimney}
-          targetHeight={radius * 0.11}
-          tint="#80685b"
-        />
-      </group>
-      {variant === 0 ? (
-        <group position={[-wallOffset * 1.05, wallHeight * 0.05, radius * 0.05]}>
-          <MiniatureAsset
-            url={MINIATURE_ASSETS.vine}
-            targetHeight={wallHeight * 0.76}
-            tint={style.foliage}
-            tintStrength={0.38}
-          />
-        </group>
+      {profile.cloudOpacity > 0 && detail !== "low" ? (
+        <mesh ref={cloudShell} scale={1.018}>
+          <sphereGeometry args={[repository.radius, widthSegments, heightSegments]} />
+          <primitive ref={cloudShader} object={cloudMaterial} attach="material" />
+        </mesh>
       ) : null}
-      <pointLight
-        position={[0, wallHeight * 0.58, radius * 0.12]}
-        color="#ffd38e"
-        intensity={0.64}
-        distance={radius * 1.2}
-        decay={1.5}
-      />
-    </group>
-  );
-}
-
-function MiniatureFence({ radius, style }: Readonly<{ radius: number; style: PlanetSeasonStyle }>) {
-  return (
-    <group>
-      {[-1, 0, 1].map((offset) => (
-        <group key={offset} position-x={offset * radius * 0.1}>
-          <MiniatureAsset
-            url={MINIATURE_ASSETS.fence}
-            targetHeight={radius * 0.075}
-            tint={style.soil}
-            tintStrength={0.34}
-          />
+      <mesh scale={1.065}>
+        <sphereGeometry args={[repository.radius, widthSegments, heightSegments]} />
+        <primitive object={atmosphereMaterial} attach="material" />
+      </mesh>
+      {profile.ringed ? (
+        <mesh rotation-x={Math.PI / 2}>
+          <ringGeometry args={[repository.radius * 1.28, outerRingRadius, 128, 4]} />
+          <primitive object={ringMaterial} attach="material" />
+        </mesh>
+      ) : null}
+      {repository.stars > 0 && detail !== "low" ? (
+        <group rotation-y={seed * Math.PI * 2} rotation-x={0.18 + seed * 0.24}>
+          <mesh position={[repository.radius * 1.72, 0, 0]} castShadow>
+            <sphereGeometry args={[Math.max(0.14, repository.radius * 0.105), 24, 16]} />
+            <meshStandardMaterial color="#aeb2b4" roughness={1} metalness={0} />
+          </mesh>
+          <mesh rotation-x={Math.PI / 2}>
+            <torusGeometry args={[repository.radius * 1.72, repository.radius * 0.005, 6, 96]} />
+            <meshBasicMaterial color="#a7bfd0" transparent opacity={0.16} />
+          </mesh>
         </group>
-      ))}
-    </group>
-  );
-}
-
-function MiniatureBush({ radius, style }: Readonly<{ radius: number; style: PlanetSeasonStyle }>) {
-  return (
-    <MiniatureAsset
-      url={MINIATURE_ASSETS.bush}
-      targetHeight={radius * 0.12}
-      tint={style.foliage}
-      tintStrength={0.36}
-      castShadow={false}
-    />
-  );
-}
-
-function PlanetCloud({
-  radius,
-  style,
-  seed,
-}: Readonly<{ radius: number; style: PlanetSeasonStyle; seed: number }>) {
-  return (
-    <group scale={0.85 + seed * 0.24}>
-      <mesh position-x={-radius * 0.08} scale={[1.55, 0.52, 0.82]}>
-        <sphereGeometry args={[radius * 0.075, 12, 8]} />
-        <meshStandardMaterial
-          color={style.cloud}
-          emissive={style.cloud}
-          emissiveIntensity={0.18}
-          transparent
-          opacity={0.88}
-          depthWrite={false}
-          roughness={1}
-        />
-      </mesh>
-      <mesh position-x={radius * 0.055} scale={[1.3, 0.64, 0.9]}>
-        <sphereGeometry args={[radius * 0.07, 12, 8]} />
-        <meshStandardMaterial
-          color={style.cloud}
-          emissive={style.cloud}
-          emissiveIntensity={0.18}
-          transparent
-          opacity={0.84}
-          depthWrite={false}
-          roughness={1}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function MiniatureTree({
-  repository,
-  index,
-  style,
-  emphasis = 1,
-}: Readonly<{
-  repository: UniverseRepository;
-  index: number;
-  style: PlanetSeasonStyle;
-  emphasis?: number;
-}>) {
-  const role =
-    repository.season === "winter"
-      ? "pine"
-      : repository.season === "spring" && index % 2 === 0
-        ? "flowering"
-        : "broadleaf";
-  const seasonalPalette = getKenneySeasonalPalette(repository.season);
-  const seasonalTreeUrl = kenneySeasonalAssetReferenceUrl(
-    seasonalPalette.canopy[index % seasonalPalette.canopy.length]!,
-  );
-  return (
-    <MiniatureAsset
-      url={
-        repository.season === "spring" && index % 3 === 0 ? MINIATURE_ASSETS[role] : seasonalTreeUrl
-      }
-      targetHeight={
-        repository.radius * emphasis * (0.38 + seededUnit(`${repository.id}:tree:${index}`) * 0.09)
-      }
-      tint={style.foliage}
-      tintStrength={repository.season === "winter" ? 0.46 : 0.42}
-    />
-  );
-}
-
-function MiniatureSeasonAccent({
-  repository,
-  index,
-}: Readonly<{ repository: UniverseRepository; index: number }>) {
-  const style = PLANET_STYLES[repository.season];
-  const palette = getKenneySeasonalPalette(repository.season);
-  const reference = palette.groundDetails[index % palette.groundDetails.length]!;
-  return (
-    <MiniatureAsset
-      url={kenneySeasonalAssetReferenceUrl(reference)}
-      targetHeight={repository.radius * (repository.season === "winter" ? 0.08 : 0.11)}
-      tint={repository.season === "winter" ? style.highland : style.foliage}
-      tintStrength={repository.season === "winter" ? 0.12 : 0.24}
-      castShadow={false}
-    />
-  );
-}
-
-function MiniatureHabitat({
-  repository,
-  detail,
-}: Readonly<{ repository: UniverseRepository; detail: "medium" | "high" }>) {
-  const style = PLANET_STYLES[repository.season];
-  const seed = seededUnit(`${repository.id}:habitat`) * Math.PI * 2;
-  const crownLongitude = 0.9 + (seededUnit(`${repository.id}:crown-longitude`) - 0.5) * 0.12;
-  const treeAnchors = [
-    { latitude: 0.74, longitude: crownLongitude - 0.58 },
-    { latitude: 0.42, longitude: crownLongitude - 0.36 },
-    { latitude: 0.68, longitude: crownLongitude + 0.4 },
-    { latitude: 0.38, longitude: crownLongitude + 0.58 },
-    { latitude: 0.52, longitude: crownLongitude + 1.02 },
-    { latitude: 0.42, longitude: crownLongitude - 1.08 },
-  ];
-  const highDetail = detail === "high";
-  return (
-    <group>
-      <PlanetAnchor
-        latitude={0.56}
-        longitude={crownLongitude}
-        radius={repository.radius * 1.005}
-        rotation={-seed * 0.35}
-      >
-        <MiniatureHouse radius={repository.radius} style={style} variant={0} />
-      </PlanetAnchor>
-      {treeAnchors.slice(0, highDetail ? 4 : 3).map((anchor, index) => (
-        <PlanetAnchor
-          key={`${repository.id}:tree:${index}`}
-          latitude={anchor.latitude}
-          longitude={anchor.longitude}
-          radius={repository.radius * 1.008}
-          rotation={seed + index * 1.7}
-        >
-          <MiniatureTree
-            repository={repository}
-            index={index}
-            style={style}
-            emphasis={index === 0 ? 1.12 : 1}
-          />
-        </PlanetAnchor>
-      ))}
-      {highDetail
-        ? [2.42].map((longitude, index) => (
-            <PlanetAnchor
-              key={`${repository.id}:fence:${index}`}
-              latitude={0.04 + index * 0.08}
-              longitude={crownLongitude + (longitude - 2.6) * 0.32}
-              radius={repository.radius * 1.006}
-              rotation={longitude + Math.PI / 2}
-            >
-              <MiniatureFence radius={repository.radius} style={style} />
-            </PlanetAnchor>
-          ))
-        : null}
-      {highDetail
-        ? [1.2, 5.74].map((longitude, index) => (
-            <PlanetAnchor
-              key={`${repository.id}:bush:${index}`}
-              latitude={0.2 + index * 0.14}
-              longitude={crownLongitude + (longitude - 3.4) * 0.28}
-              radius={repository.radius * 1.008}
-              rotation={index}
-            >
-              <MiniatureBush radius={repository.radius} style={style} />
-            </PlanetAnchor>
-          ))
-        : null}
-      {highDetail
-        ? [0.72, 5.16].map((longitude, index) => (
-            <PlanetAnchor
-              key={`${repository.id}:season-accent:${index}`}
-              latitude={0.12 + index * 0.12}
-              longitude={crownLongitude + (longitude - 3) * 0.3}
-              radius={repository.radius * 1.009}
-              rotation={-longitude}
-            >
-              <MiniatureSeasonAccent repository={repository} index={index} />
-            </PlanetAnchor>
-          ))
-        : null}
-      <PlanetAnchor
-        latitude={0.86}
-        longitude={crownLongitude + 1.38}
-        radius={repository.radius * 1.12}
-        rotation={seed}
-      >
-        <PlanetCloud radius={repository.radius} style={style} seed={seed / (Math.PI * 2)} />
-      </PlanetAnchor>
-      {highDetail ? (
-        <PlanetAnchor
-          latitude={0.42}
-          longitude={crownLongitude - 1.45}
-          radius={repository.radius * 1.1}
-          rotation={-seed}
-        >
-          <PlanetCloud radius={repository.radius} style={style} seed={1 - seed / (Math.PI * 2)} />
-        </PlanetAnchor>
       ) : null}
     </group>
   );
@@ -557,20 +496,23 @@ function ProfileStar({ reducedMotion }: Readonly<{ reducedMotion: boolean }>) {
   return (
     <group>
       <mesh ref={core}>
-        <icosahedronGeometry args={[1.6, 3]} />
-        <meshStandardMaterial
-          color="#fff0ad"
-          emissive="#f5a835"
-          emissiveIntensity={2.8}
-          roughness={0.32}
+        <sphereGeometry args={[1.72, 48, 32]} />
+        <meshBasicMaterial color="#ffe08b" toneMapped={false} />
+      </mesh>
+      <mesh scale={1.42}>
+        <sphereGeometry args={[1.72, 40, 28]} />
+        <meshBasicMaterial
+          color="#ffbe55"
+          transparent
+          opacity={0.2}
+          depthWrite={false}
+          side={THREE.BackSide}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
         />
       </mesh>
-      <mesh rotation-x={Math.PI / 2}>
-        <torusGeometry args={[2.4, 0.045, 8, 80]} />
-        <meshBasicMaterial color="#f5d779" transparent opacity={0.52} />
-      </mesh>
-      <pointLight color="#ffd57c" intensity={42} distance={28} decay={1.4} />
-      <Sparkles count={28} scale={7} size={2.5} speed={reducedMotion ? 0 : 0.25} color="#ffe3a1" />
+      <pointLight color="#ffd89a" intensity={52} distance={48} decay={1.35} />
+      <Sparkles count={34} scale={8} size={2.1} speed={reducedMotion ? 0 : 0.18} color="#ffe3a1" />
     </group>
   );
 }
@@ -596,24 +538,13 @@ function RepositoryWorld({
 }>) {
   const group = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
+  const profile = useMemo(() => createPlanetVisualProfile(repository), [repository]);
   const textureSeed = seededUnit(`${repository.owner}/${repository.repository}`);
-  const style = PLANET_STYLES[repository.season];
-  const geometry = useMemo(
-    () => createPlanetGeometry(repository, detail === "low" ? "low" : "high"),
-    [detail, repository],
-  );
-  const roadTilt = (textureSeed - 0.5) * 0.72;
-  const roadWidth = 0.062 + textureSeed * 0.018;
-
-  useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ clock }) => {
     if (!reducedMotion && group.current) {
-      group.current.rotation.y = selected
-        ? Math.sin(clock.elapsedTime * 0.22 + textureSeed * 4) * 0.025
-        : clock.elapsedTime * (0.012 + textureSeed * 0.016);
       group.current.position.y =
-        repository.position.y + Math.sin(clock.elapsedTime * 0.32 + textureSeed * 8) * 0.12;
+        repository.position.y + Math.sin(clock.elapsedTime * 0.24 + textureSeed * 8) * 0.09;
     }
   });
 
@@ -642,102 +573,28 @@ function RepositoryWorld({
         document.body.style.cursor = "default";
       }}
     >
-      <group scale={traveling ? 1.24 : selected ? 1.1 : hovered ? 1.04 : 1}>
-        <mesh geometry={geometry} castShadow receiveShadow>
-          <meshStandardMaterial
-            vertexColors
-            emissive={style.ground}
-            emissiveIntensity={selected ? 0.12 : 0.035}
-            roughness={0.86}
-            metalness={0.015}
-            envMapIntensity={0.28}
-            flatShading={false}
-          />
-        </mesh>
-        <mesh rotation={[roadTilt, textureSeed * 0.6, roadTilt * -0.72]}>
-          <sphereGeometry
-            args={[
-              repository.radius * 1.009,
-              64,
-              8,
-              0,
-              Math.PI * 2,
-              Math.PI / 2 - roadWidth,
-              roadWidth * 2,
-            ]}
-          />
-          <meshStandardMaterial
-            color={style.road}
-            roughness={0.96}
-            polygonOffset
-            polygonOffsetFactor={-1}
-          />
-        </mesh>
-        <mesh rotation={[roadTilt * -0.55, textureSeed * 2.3, roadTilt * 0.38]}>
-          <sphereGeometry
-            args={[
-              repository.radius * 1.01,
-              56,
-              8,
-              0,
-              Math.PI * 2,
-              Math.PI / 2 - roadWidth * 0.5,
-              roadWidth,
-            ]}
-          />
-          <meshStandardMaterial color={style.water} roughness={0.3} metalness={0.05} />
-        </mesh>
-        <mesh rotation={[roadTilt, textureSeed * 0.6, roadTilt * -0.72]}>
-          <sphereGeometry
-            args={[
-              repository.radius * 1.013,
-              64,
-              4,
-              0,
-              Math.PI * 2,
-              Math.PI / 2 - roadWidth * 0.13,
-              roadWidth * 0.26,
-            ]}
-          />
-          <meshBasicMaterial color={style.roadMarking} transparent opacity={0.82} />
-        </mesh>
-        <mesh scale={1.038}>
-          <sphereGeometry args={[repository.radius, 36, 24]} />
-          <meshBasicMaterial
-            color={style.atmosphere}
-            transparent
-            opacity={selected ? 0.085 : 0.036}
-            depthWrite={false}
-            side={THREE.BackSide}
-            blending={THREE.AdditiveBlending}
-          />
-        </mesh>
-        {detail !== "low" ? (
-          <Suspense fallback={null}>
-            <MiniatureHabitat repository={repository} detail={detail} />
-          </Suspense>
-        ) : null}
-        {repository.stars > 0 ? (
-          <mesh
-            position={[
-              repository.radius * 1.62,
-              repository.radius * 0.38,
-              repository.radius * 0.52,
-            ]}
-          >
-            <icosahedronGeometry args={[Math.max(0.12, repository.radius * 0.095), 2]} />
-            <meshStandardMaterial color="#d8dce3" roughness={0.94} />
-          </mesh>
-        ) : null}
+      <group scale={traveling ? 1.2 : selected ? 1.09 : hovered ? 1.045 : 1}>
+        <CelestialPlanet
+          repository={repository}
+          detail={detail}
+          profile={profile}
+          reducedMotion={reducedMotion}
+          selected={selected}
+        />
         {selected ? (
           <>
-            <pointLight color={style.atmosphere} intensity={9} distance={repository.radius * 3.4} />
+            <pointLight
+              color={profile.atmosphere}
+              intensity={5.5}
+              distance={repository.radius * 4}
+              decay={1.8}
+            />
             <Sparkles
-              count={18}
-              scale={repository.radius * 2.8}
-              size={1.6}
-              speed={reducedMotion ? 0 : 0.16}
-              color={style.atmosphere}
+              count={12}
+              scale={repository.radius * 3}
+              size={1.2}
+              speed={reducedMotion ? 0 : 0.08}
+              color={profile.atmosphere}
             />
           </>
         ) : null}
@@ -746,12 +603,13 @@ function RepositoryWorld({
         <Html
           center
           distanceFactor={12}
-          position={[0, repository.radius * 1.72, 0]}
+          position={[0, repository.radius * (profile.ringed ? 2.2 : 1.62), 0]}
           style={{ pointerEvents: "none" }}
         >
           <div className="kingdom-world-label kingdom-world-label--universe" aria-hidden="true">
             <span>
-              {KINGDOM_SEASON_LABELS[repository.season]} · {repository.language ?? "Repository"}
+              {REPOSITORY_PLANET_CLASS_LABELS[repository.planetClass]} ·{" "}
+              {repository.language ?? "Repository"}
             </span>
             {repository.repository}
           </div>
@@ -766,19 +624,28 @@ function OrbitalLines({
 }: Readonly<{ repositories: ReadonlyArray<UniverseRepository> }>) {
   return (
     <group>
-      {repositories.slice(0, 18).map((repository) => (
-        <Line
-          key={repository.id}
-          points={[
-            new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(repository.position.x, repository.position.y, repository.position.z),
-          ]}
-          color={`hsl(${repository.hue} 50% 65%)`}
-          lineWidth={0.45}
-          opacity={0.12}
-          transparent
-        />
-      ))}
+      {repositories.slice(0, 18).map((repository) => {
+        const radius = Math.hypot(repository.position.x, repository.position.z);
+        const tilt = (seededUnit(`${repository.id}:orbit-tilt`) - 0.5) * 0.08;
+        const points = Array.from({ length: 97 }, (_, index) => {
+          const angle = (index / 96) * Math.PI * 2;
+          return new THREE.Vector3(
+            Math.cos(angle) * radius,
+            Math.sin(angle) * radius * tilt,
+            Math.sin(angle) * radius,
+          );
+        });
+        return (
+          <Line
+            key={repository.id}
+            points={points}
+            color="#6c829e"
+            lineWidth={0.36}
+            opacity={0.075}
+            transparent
+          />
+        );
+      })}
     </group>
   );
 }
@@ -842,7 +709,8 @@ function UniverseCamera({
   const overview = useMemo(() => {
     const bounds = new THREE.Box3();
     for (const repository of universe.repositories) {
-      const padding = repository.radius * 1.72;
+      const profile = createPlanetVisualProfile(repository);
+      const padding = repository.radius * (profile.ringed ? 2.28 : 1.42);
       bounds.expandByPoint(
         new THREE.Vector3(
           repository.position.x - padding,
@@ -864,20 +732,36 @@ function UniverseCamera({
     bounds.expandByPoint(new THREE.Vector3(-3, -3, -3));
     bounds.expandByPoint(new THREE.Vector3(3, 3, 3));
     const center = bounds.getCenter(new THREE.Vector3());
-    const dimensions = bounds.getSize(new THREE.Vector3());
-    const radius = Math.max(14, dimensions.length() * 0.5);
     const aspect = Math.max(0.45, size.width / Math.max(1, size.height));
     const portrait = aspect < 0.78;
     const fovDegrees = portrait ? 48 : 39;
-    const fov = THREE.MathUtils.degToRad(fovDegrees);
-    const fitHeight = Math.max(dimensions.y + dimensions.z * 0.5, dimensions.x / aspect);
-    const landscapeMargin = size.height < 800 ? 1.12 : 1.1;
-    const distance =
-      Math.max(radius * 1.48, fitHeight / (2 * Math.tan(fov / 2))) *
-      (portrait ? 0.9 : landscapeMargin);
     const direction = portrait
-      ? new THREE.Vector3(0.36, 0.98, 1.34).normalize()
+      ? new THREE.Vector3(0.26, 2.8, 0.38).normalize()
       : new THREE.Vector3(0.58, 0.92, 1.16).normalize();
+    const right = new THREE.Vector3()
+      .crossVectors(new THREE.Vector3(0, 1, 0), direction)
+      .normalize();
+    const screenUp = new THREE.Vector3().crossVectors(direction, right).normalize();
+    const tangent = Math.tan(THREE.MathUtils.degToRad(fovDegrees) / 2);
+    const margin = portrait ? 1.04 : size.height < 800 ? 1.2 : 1.16;
+    let distance = 14;
+    for (const repository of universe.repositories) {
+      const profile = createPlanetVisualProfile(repository);
+      const padding = repository.radius * (profile.ringed ? 2.18 : 1.2);
+      const relative = new THREE.Vector3(
+        repository.position.x,
+        repository.position.y,
+        repository.position.z,
+      ).sub(center);
+      const depth = relative.dot(direction) + padding;
+      const horizontal = Math.abs(relative.dot(right)) + padding;
+      const vertical = Math.abs(relative.dot(screenUp)) + padding;
+      distance = Math.max(
+        distance,
+        depth + (horizontal * margin) / (tangent * aspect),
+        depth + (vertical * margin) / tangent,
+      );
+    }
     return {
       center,
       distance,
@@ -890,14 +774,21 @@ function UniverseCamera({
     if (selection?.kind === "repository") {
       const { position, radius } = selection.repository;
       const traveling = travelingRepositoryId === selection.repository.id;
+      const focusScale = createPlanetVisualProfile(selection.repository).ringed ? 1.56 : 1;
       goalTarget.current.set(position.x, position.y, position.z);
       goalPosition.current.set(
         position.x +
-          radius * (traveling ? (size.width < 700 ? 3.05 : 2.65) : size.width < 700 ? 4.1 : 3.2),
+          radius *
+            focusScale *
+            (traveling ? (size.width < 700 ? 3.05 : 2.65) : size.width < 700 ? 4.1 : 3.2),
         position.y +
-          radius * (traveling ? (size.width < 700 ? 2.7 : 1.9) : size.width < 700 ? 3.65 : 2.35),
+          radius *
+            focusScale *
+            (traveling ? (size.width < 700 ? 2.7 : 1.9) : size.width < 700 ? 3.65 : 2.35),
         position.z +
-          radius * (traveling ? (size.width < 700 ? 4.2 : 3.45) : size.width < 700 ? 5.5 : 4.2),
+          radius *
+            focusScale *
+            (traveling ? (size.width < 700 ? 4.2 : 3.45) : size.width < 700 ? 5.5 : 4.2),
       );
     } else {
       goalTarget.current.copy(overview.center);

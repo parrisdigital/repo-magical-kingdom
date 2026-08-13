@@ -83,10 +83,35 @@ describe("createWorldPlan", () => {
     const [spring, ...otherSeasons] = plans;
     for (const plan of otherSeasons) {
       expect(plan.topologyKey).toBe(spring?.topologyKey);
+      expect(plan.worldTheme).toBe(spring?.worldTheme);
       expect(plan.repository).toEqual(spring?.repository);
       expect(plan.topology).toEqual(spring?.topology);
       expect(plan.appearance).not.toEqual(spring?.appearance);
     }
+  });
+
+  it("authors different deterministic geography for each world theme", () => {
+    const valleyWorld = createDemoKingdom("spring", "kingdom-valley");
+    const forestWorld = createDemoKingdom("spring", "enchanted-forest");
+    const valley = createWorldPlan(valleyWorld);
+    const forest = createWorldPlan(forestWorld);
+
+    expect(valley.worldTheme).toBe("kingdom-valley");
+    expect(forest.worldTheme).toBe("enchanted-forest");
+    expect(valley.appearance.worldTheme).toBe("kingdom-valley");
+    expect(forest.appearance.worldTheme).toBe("enchanted-forest");
+    expect(forest.topologyKey).not.toBe(valley.topologyKey);
+    expect(forest.terrainKey).toBe(valley.topologyKey);
+    expect(forest.placementKey).toBe(valley.placementKey);
+    expect(forest.topology).not.toEqual(valley.topology);
+
+    const valleyEntities = valley.topology.semanticZones.flatMap((zone) => zone.entityIds).sort();
+    const forestEntities = forest.topology.semanticZones.flatMap((zone) => zone.entityIds).sort();
+    expect(forestEntities).toEqual(valleyEntities);
+    expect(forest.topology.visualBudgets.maxTrees).toBeGreaterThanOrEqual(
+      valley.topology.visualBudgets.maxTrees,
+    );
+    expect(forest.topology.visualBudgets.maxTrees).toBeLessThanOrEqual(240);
   });
 
   it("keeps every authored region inside the renderer envelope", () => {

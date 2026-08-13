@@ -485,7 +485,7 @@ function deterministicJointBuildingPlacement(
 ): ReadonlyMap<number, Sample> | null {
   const cosine = Math.cos(mask.rotation);
   const sine = Math.sin(mask.rotation);
-  const phase = random(`${plan.topologyKey}:${hamletId}:joint-packing`)() * TAU;
+  const phase = random(`${plan.placementKey}:${hamletId}:joint-packing`)() * TAU;
   const ringOrder = [0.84, 0.9, 0.78, 0.96, 0.72, 0.66, 0.58] as const;
   const angularSteps = 32;
   const candidates = specs.map((spec) => {
@@ -563,7 +563,7 @@ function createLandmarkAnchors(plan: WorldPlan): ReadonlyArray<LandmarkAnchor> {
         : requireCandidate(
             `${landmark.id} landmark clearing`,
             placementMask,
-            random(`${plan.topologyKey}:${landmark.id}:anchor`),
+            random(`${plan.placementKey}:${landmark.id}:anchor`),
             existing,
             footprintRadius,
             {
@@ -588,7 +588,7 @@ function createBuildings(
   return plan.topology.hamlets.flatMap((hamlet) => {
     const placementMask = hamletPlacementMask(plan, hamlet);
     const count = hamlet.maxBuildings;
-    const rng = random(`${plan.topologyKey}:${hamlet.id}:buildings`);
+    const rng = random(`${plan.placementKey}:${hamlet.id}:buildings`);
     const placements: Placement[] = landmarkAnchors
       .filter((anchor) => anchor.hamletId === hamlet.id)
       .map((anchor) => ({ sample: anchor.sample, radius: anchor.footprintRadius }));
@@ -691,7 +691,7 @@ function createBuildings(
     }
     return specs.map(({ originalIndex: index, entityId, assetRole, scale, footprintRadius }) => {
       const sample = jointSamples.get(index)!;
-      const transformRng = random(`${plan.topologyKey}:${hamlet.id}:joint-transform:${index}`);
+      const transformRng = random(`${plan.placementKey}:${hamlet.id}:joint-transform:${index}`);
       const rotationY = Math.atan2(
         placementMask.center.x - sample.x,
         placementMask.center.z - sample.z,
@@ -720,7 +720,7 @@ function createLandmarks(
   anchors: ReadonlyArray<LandmarkAnchor>,
 ): ReadonlyArray<PlannedLandmark> {
   return anchors.map(({ landmark, hamletId, sample, footprintRadius }) => {
-    const rng = random(`${plan.topologyKey}:${landmark.id}:landmark`);
+    const rng = random(`${plan.placementKey}:${landmark.id}:landmark`);
     const scale = round(0.9 + landmark.prominence * 0.35);
     return {
       id: landmark.id,
@@ -778,7 +778,7 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
   const rows = 9;
   for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
-      const rng = random(`${plan.topologyKey}:runtime-grove:${column}:${row}`);
+      const rng = random(`${plan.placementKey}:runtime-grove:${column}:${row}`);
       const sample = {
         x: round(
           envelope.minX +
@@ -798,7 +798,7 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
       );
       candidates.push({
         sample,
-        score: nearestSemantic + (hash(`${plan.topologyKey}:${column}:${row}`) % 1_000) / 1_000,
+        score: nearestSemantic + (hash(`${plan.placementKey}:${column}:${row}`) % 1_000) / 1_000,
       });
     }
   }
@@ -855,7 +855,7 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
         (first, second) => first.distance - second.distance || first.id.localeCompare(second.id),
       )[0]!.candidateIndex;
     const [semantic] = availableSemanticGroves.splice(semanticIndex, 1);
-    const rng = random(`${plan.topologyKey}:runtime-grove-shape:${index}`);
+    const rng = random(`${plan.placementKey}:runtime-grove-shape:${index}`);
     const rearDensityBoost =
       center.z <= envelope.center.z - envelope.depth * 0.08 ||
       Math.abs(center.x - envelope.center.x) >= envelope.width * 0.28
@@ -881,7 +881,7 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
         12,
         Math.min(
           runtimeCapacity,
-          17 + rearDensityBoost + (hash(`${plan.topologyKey}:runtime-grove-count:${index}`) % 5),
+          17 + rearDensityBoost + (hash(`${plan.placementKey}:runtime-grove-count:${index}`) % 5),
         ),
       ),
       runtimeCapacity,
@@ -896,7 +896,7 @@ function createTrees(plan: WorldPlan): ReadonlyArray<PlannedTree> {
   const runtimeGroves = findRuntimeGroves(plan);
   const globalPlacements: Placement[] = [];
   for (const [groveIndex, grove] of runtimeGroves.entries()) {
-    const rng = random(`${plan.topologyKey}:${grove.id}:trees`);
+    const rng = random(`${plan.placementKey}:${grove.id}:trees`);
     const target = Math.min(grove.target, grove.runtimeCapacity, 24, remainingBudget);
     const placements: Placement[] = [];
     const roles = TREE_ROLES[grove.palette];
@@ -949,7 +949,7 @@ function createTrees(plan: WorldPlan): ReadonlyArray<PlannedTree> {
   for (let index = 0; index < edgeTarget; index += 1) {
     const grove = runtimeGroves[index % runtimeGroves.length];
     if (!grove) break;
-    const rng = random(`${plan.topologyKey}:edge-tree:${index}`);
+    const rng = random(`${plan.placementKey}:edge-tree:${index}`);
     const footprintRadius = round(0.64 + rng() * 0.18);
     const edgeMask: EllipseRegionMask = {
       ...grove.mask,
@@ -1022,7 +1022,7 @@ function createGroundCover(
       rotation: 0,
       feather: 3.5,
     };
-    const rng = random(`${plan.topologyKey}:${groveId}:ground-cover:v2`);
+    const rng = random(`${plan.placementKey}:${groveId}:ground-cover:v2`);
     const clusterCount = 2;
     for (let index = 0; index < clusterCount; index += 1) {
       const memberCount = Math.min(12, 8 + (hash(`${groveId}:cluster:${index}`) % 5));
@@ -1219,7 +1219,7 @@ function createAmbientDetails(
   }
 
   for (const { zone, memberCounts } of zoneClusters) {
-    const rng = random(`${plan.topologyKey}:ambient:${zone}:microclusters`);
+    const rng = random(`${plan.placementKey}:ambient:${zone}:microclusters`);
     for (const [clusterIndex, memberCount] of memberCounts.entries()) {
       const clusterId = `ambient-${zone}-cluster-${clusterIndex}`;
       let members: PlannedAmbientDetail[] | null = null;
@@ -1290,7 +1290,7 @@ function createAmbientDetails(
 
 function createWildlife(plan: WorldPlan): ReadonlyArray<PlannedWildlife> {
   return plan.topology.wildlifeZones.flatMap((zone) => {
-    const rng = random(`${plan.topologyKey}:${zone.id}:wildlife`);
+    const rng = random(`${plan.placementKey}:${zone.id}:wildlife`);
     const placements: Placement[] = [];
     return Array.from({ length: zone.maxActors }, (_, index): PlannedWildlife | null => {
       const sample = bestCandidate(zone.mask, rng, placements, 0.8, {

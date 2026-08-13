@@ -9,11 +9,12 @@ export const metadata: Metadata = {
     default: "Repo Magical Kingdom",
     template: "%s · Repo Magical Kingdom",
   },
-  description: "Turn any public GitHub repository into a living, explorable 3D world.",
+  description: "Turn any public GitHub repository into a living, selectable 3D world.",
   applicationName: "Repo Magical Kingdom",
   openGraph: {
     title: "Repo Magical Kingdom",
-    description: "Explore code as a living realm of terrain, settlements, landmarks, and portals.",
+    description:
+      "Explore repository planets, then enter living realms of terrain, settlements, landmarks, and portals.",
     type: "website",
     images: [
       {

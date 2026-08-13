@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Turn public GitHub repositories into living, explorable four-season kingdoms.",
+  "description": "Turn public GitHub repositories into living, selectable 3D worlds and planetary universes.",
   "license": "MIT",
   "packageManager": "pnpm@10.32.1",
   "engines": {

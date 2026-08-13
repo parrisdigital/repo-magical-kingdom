@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { FILE_CATEGORIES, KINGDOM_SEASONS, REALM_BIOMES, REALM_THEMES } from "./types";
+import { KINGDOM_WORLD_THEMES } from "./world-theme";
 
 const vec3Schema = z.object({
   x: z.number().finite(),
@@ -40,6 +41,7 @@ export const kingdomWorldSchema = z.object({
   description: z.string().nullable(),
   generatedAt: z.string(),
   season: seasonSchema,
+  worldTheme: z.enum(KINGDOM_WORLD_THEMES),
   theme: z.object({
     id: z.enum(REALM_THEMES),
     label: z.string().min(1),
@@ -157,6 +159,7 @@ export const repositoryUniverseSchema = z.object({
       radius: z.number().positive(),
       hue: z.number().min(0).max(359),
       season: seasonSchema.default("spring"),
+      planetClass: z.enum(["terrestrial", "gas-giant", "ice-giant", "rocky"]),
     }),
   ),
 });

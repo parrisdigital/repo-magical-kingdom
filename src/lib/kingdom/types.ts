@@ -1,3 +1,5 @@
+import type { KingdomWorldTheme } from "./world-theme";
+
 export const KINGDOM_SEASONS = ["spring", "summer", "autumn", "winter"] as const;
 
 export type KingdomSeason = (typeof KINGDOM_SEASONS)[number];
@@ -156,6 +158,8 @@ export type KingdomWorld = Readonly<{
   generatedAt: string;
   /** The user-selected season for the entire repository world. */
   season: KingdomSeason;
+  /** The selected geography, settlement, and ecology style. */
+  worldTheme: KingdomWorldTheme;
   /** @deprecated Use season. Retained for repo-kingdom/v1 compatibility. */
   theme: RealmThemeIdentity;
   bounds: Readonly<{ radius: number; height: number }>;
@@ -185,7 +189,24 @@ export type UniverseRepository = Readonly<{
   radius: number;
   hue: number;
   season: KingdomSeason;
+  planetClass: RepositoryPlanetClass;
 }>;
+
+export const REPOSITORY_PLANET_CLASSES = [
+  "terrestrial",
+  "gas-giant",
+  "ice-giant",
+  "rocky",
+] as const;
+
+export type RepositoryPlanetClass = (typeof REPOSITORY_PLANET_CLASSES)[number];
+
+export const REPOSITORY_PLANET_CLASS_LABELS: Readonly<Record<RepositoryPlanetClass, string>> = {
+  terrestrial: "Terrestrial world",
+  "gas-giant": "Ringed gas giant",
+  "ice-giant": "Ice giant",
+  rocky: "Rocky world",
+};
 
 export type RepositoryUniverse = Readonly<{
   schema: "repo-universe/v1";

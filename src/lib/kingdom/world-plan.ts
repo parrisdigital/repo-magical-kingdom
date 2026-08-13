@@ -1,6 +1,7 @@
 import { stableDigest, stableFraction, stableHash } from "./hash";
 import type { FileCategory, KingdomEntity, KingdomSeason, KingdomWorld, Province } from "./types";
 import { deriveRepositoryWorldIdentity, type RepositoryWorldIdentity } from "./world-identity";
+import type { KingdomWorldTheme } from "./world-theme";
 
 export type WorldPlanPoint = Readonly<{ x: number; z: number }>;
 
@@ -229,6 +230,7 @@ export type WorldPlanTopology = Readonly<{
 
 export type WorldPlanAppearance = Readonly<{
   season: KingdomSeason;
+  worldTheme: KingdomWorldTheme;
   terrain: Readonly<{
     lowland: string;
     meadow: string;
@@ -257,12 +259,24 @@ export type WorldPlanAppearance = Readonly<{
     sunlight: string;
     sunlightIntensity: number;
   }>;
+  magic: Readonly<{
+    primary: string;
+    secondary: string;
+    glowIntensity: number;
+    ancientTreeScale: number;
+    groundDetailScale: number;
+  }>;
 }>;
 
 export type WorldPlan = Readonly<{
   schema: "repo-world-plan/v1";
   version: "1.0.0";
   topologyKey: string;
+  /** Stable repository terrain identity, intentionally independent of world styling. */
+  terrainKey: string;
+  /** Stable collision-safe placement identity, independent of seasonal and theme styling. */
+  placementKey: string;
+  worldTheme: KingdomWorldTheme;
   repository: Readonly<{
     id: number;
     owner: string;
@@ -773,7 +787,11 @@ function createGroves(
   water: WaterSystem,
   maxTrees: number,
 ): ReadonlyArray<ForestGroveRegion> {
-  const desiredCount = clamp(3 + Math.floor(world.provinces.length / 4), 3, 7);
+  const desiredCount = clamp(
+    3 + Math.floor(world.provinces.length / 4) + (world.worldTheme === "enchanted-forest" ? 1 : 0),
+    3,
+    7,
+  );
   const rearLimit = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40) + 7;
   const candidates = Array.from({ length: 56 }, (_, index) => {
     const column = index % 8;
@@ -797,9 +815,14 @@ function createGroves(
   for (const candidate of candidates) {
     if (chosen.length >= desiredCount) break;
     const preferredRadius = round(
-      7.5 + stableFraction(`${world.seed}:grove-radius:${candidate.index}`) * 3.5,
+      (world.worldTheme === "enchanted-forest" ? 8.4 : 7.5) +
+        stableFraction(`${world.seed}:grove-radius:${candidate.index}`) *
+          (world.worldTheme === "enchanted-forest" ? 3.9 : 3.5),
     );
-    const radii = [preferredRadius, 7, 5.8];
+    const radii =
+      world.worldTheme === "enchanted-forest"
+        ? [preferredRadius, 8, 6.4]
+        : [preferredRadius, 7, 5.8];
     const radius = radii.find(
       (candidateRadius) =>
         candidate.center.x - candidateRadius >= envelope.minX + envelope.safeMargin &&
@@ -850,9 +873,16 @@ function createGroves(
         ),
         feather: 3.5,
       },
-      palette: grovePalette(category, index),
+      palette:
+        world.worldTheme === "enchanted-forest" && index % 3 !== 1
+          ? index % 2 === 0
+            ? "twisted"
+            : "mixed"
+          : grovePalette(category, index),
       densityPerHundredSquareUnits: round(
-        1.4 + stableFraction(`${world.seed}:grove-density:${candidate.sourceIndex}`) * 1.1,
+        (world.worldTheme === "enchanted-forest" ? 2.05 : 1.4) +
+          stableFraction(`${world.seed}:grove-density:${candidate.sourceIndex}`) *
+            (world.worldTheme === "enchanted-forest" ? 1.25 : 1.1),
       ),
       maxTrees: Math.min(treeShare, Math.max(12, Math.round(Math.PI * radiusX * radiusZ * 0.075))),
       exclusions: {
@@ -970,7 +1000,15 @@ function createVisualBudgets(
     maxHamlets: 4,
     maxBuildings: hamlets.reduce((total, hamlet) => total + hamlet.maxBuildings, 0),
     maxGroves: 7,
-    maxTrees: Math.round(clamp(90 + world.provinces.length * 10 + complexity * 5, 120, 240)),
+    maxTrees: Math.round(
+      clamp(
+        (world.worldTheme === "enchanted-forest" ? 155 : 90) +
+          world.provinces.length * (world.worldTheme === "enchanted-forest" ? 11 : 10) +
+          complexity * (world.worldTheme === "enchanted-forest" ? 6 : 5),
+        world.worldTheme === "enchanted-forest" ? 190 : 120,
+        240,
+      ),
+    ),
     maxLandmarks: 6,
     maxWildlifeActors: Math.round(
       clamp(4 + world.provinces.length / 4 + largeRepositoryActorBonus, 4, 12),
@@ -1207,7 +1245,9 @@ function createCamera(
   };
 }
 
-const APPEARANCE_BY_SEASON: Readonly<Record<KingdomSeason, Omit<WorldPlanAppearance, "season">>> = {
+type SeasonalAppearance = Omit<WorldPlanAppearance, "season" | "worldTheme" | "magic">;
+
+const APPEARANCE_BY_SEASON: Readonly<Record<KingdomSeason, SeasonalAppearance>> = {
   spring: {
     terrain: {
       lowland: "#6f8f57",
@@ -1330,22 +1370,174 @@ const APPEARANCE_BY_SEASON: Readonly<Record<KingdomSeason, Omit<WorldPlanAppeara
   },
 };
 
+const ENCHANTED_FOREST_APPEARANCE_BY_SEASON: Readonly<Record<KingdomSeason, SeasonalAppearance>> = {
+  spring: {
+    terrain: {
+      lowland: "#355f43",
+      meadow: "#527d4f",
+      escarpment: "#4d5d50",
+      shore: "#85795d",
+      water: "#3e8b91",
+    },
+    foliage: {
+      broadleaf: ["#2e704b", "#4f9563", "#83bb72"],
+      pine: ["#25513f", "#397057"],
+      flowering: ["#e7a8c0", "#f1d0dd", "#8ac778"],
+      trunk: "#584737",
+      leafCoverage: 0.98,
+      snowCoverage: 0,
+    },
+    architecture: {
+      plasterTint: "#d6d0b4",
+      roofTint: "#567052",
+      timberTint: "#493d31",
+      windowGlow: "#aef6cf",
+    },
+    atmosphere: {
+      sky: "#9bc5c4",
+      horizon: "#dbe1bc",
+      fog: "#819e86",
+      sunlight: "#d9f0bb",
+      sunlightIntensity: 1.02,
+    },
+  },
+  summer: {
+    terrain: {
+      lowland: "#294f36",
+      meadow: "#416f42",
+      escarpment: "#435449",
+      shore: "#7d7255",
+      water: "#327c87",
+    },
+    foliage: {
+      broadleaf: ["#1e613d", "#397c4a", "#68a553"],
+      pine: ["#1d4838", "#2c6147"],
+      flowering: ["#d99368", "#e8c75e", "#64a453"],
+      trunk: "#4f3d30",
+      leafCoverage: 1,
+      snowCoverage: 0,
+    },
+    architecture: {
+      plasterTint: "#cbc5a6",
+      roofTint: "#496448",
+      timberTint: "#41362d",
+      windowGlow: "#8ce8bb",
+    },
+    atmosphere: {
+      sky: "#7cb9c0",
+      horizon: "#d2d7a5",
+      fog: "#708f78",
+      sunlight: "#d8e99c",
+      sunlightIntensity: 1.14,
+    },
+  },
+  autumn: {
+    terrain: {
+      lowland: "#4e5133",
+      meadow: "#6d6a39",
+      escarpment: "#514c43",
+      shore: "#866d4e",
+      water: "#3f7078",
+    },
+    foliage: {
+      broadleaf: ["#8e3f2a", "#b95f2f", "#c98b3e"],
+      pine: ["#254c3b", "#3a6444"],
+      flowering: ["#a64a35", "#d48544", "#6d783c"],
+      trunk: "#49362f",
+      leafCoverage: 0.84,
+      snowCoverage: 0,
+    },
+    architecture: {
+      plasterTint: "#cbb89c",
+      roofTint: "#5d593b",
+      timberTint: "#3d312b",
+      windowGlow: "#f0b868",
+    },
+    atmosphere: {
+      sky: "#8da9ad",
+      horizon: "#d4aa79",
+      fog: "#8e8970",
+      sunlight: "#e0ad68",
+      sunlightIntensity: 0.96,
+    },
+  },
+  winter: {
+    terrain: {
+      lowland: "#aebeb5",
+      meadow: "#d5ddd5",
+      escarpment: "#5c6a68",
+      shore: "#a8a797",
+      water: "#587f8c",
+    },
+    foliage: {
+      broadleaf: ["#4f6259", "#65786a", "#86958b"],
+      pine: ["#244b40", "#396154"],
+      flowering: ["#a7b8ad", "#d4ddd7", "#647d6f"],
+      trunk: "#453d38",
+      leafCoverage: 0.32,
+      snowCoverage: 0.88,
+    },
+    architecture: {
+      plasterTint: "#d5d8cf",
+      roofTint: "#4c5f54",
+      timberTint: "#393531",
+      windowGlow: "#9be2c3",
+    },
+    atmosphere: {
+      sky: "#9eb7c0",
+      horizon: "#d8e1dc",
+      fog: "#aab9b3",
+      sunlight: "#d3e4df",
+      sunlightIntensity: 0.8,
+    },
+  },
+};
+
+function createAppearance(world: KingdomWorld): WorldPlanAppearance {
+  const seasonalAppearance =
+    world.worldTheme === "enchanted-forest"
+      ? ENCHANTED_FOREST_APPEARANCE_BY_SEASON[world.season]
+      : APPEARANCE_BY_SEASON[world.season];
+  return {
+    season: world.season,
+    worldTheme: world.worldTheme,
+    ...seasonalAppearance,
+    magic:
+      world.worldTheme === "enchanted-forest"
+        ? {
+            primary: world.season === "autumn" ? "#ffd17e" : "#87f5c6",
+            secondary: world.season === "winter" ? "#b6dfff" : "#d6a6ff",
+            glowIntensity: world.season === "winter" ? 0.72 : 1,
+            ancientTreeScale: 1.62,
+            groundDetailScale: 1.18,
+          }
+        : {
+            primary: seasonalAppearance.architecture.windowGlow,
+            secondary: seasonalAppearance.terrain.water,
+            glowIntensity: 0.28,
+            ancientTreeScale: 1,
+            groundDetailScale: 1,
+          },
+  };
+}
+
 function createTopologyKey(world: KingdomWorld, topology: WorldPlanTopology): string {
-  return stableDigest(
-    [
-      "repo-world-plan/v1",
-      world.source.repositoryId,
-      world.source.commitSha,
-      world.seed,
-      stableDigest(JSON.stringify(topology)),
-    ].join(":"),
-  );
+  const identity = [
+    "repo-world-plan/v1",
+    world.source.repositoryId,
+    world.source.commitSha,
+    world.seed,
+  ];
+  if (world.worldTheme === "enchanted-forest") identity.push(world.worldTheme);
+  identity.push(stableDigest(JSON.stringify(topology)));
+  return stableDigest(identity.join(":"));
 }
 
 /**
  * Converts compiler output into a deterministic, renderer-agnostic scene plan.
- * Repository semantics choose spatial roles; the selected season is isolated in
- * `appearance`, so changing seasons cannot move terrain, settlements, or actors.
+ * Repository semantics and the selected world theme choose spatial roles. The
+ * season is isolated in `appearance`, so changing seasons cannot move terrain,
+ * settlements, or actors inside the selected world.
  */
 export function createWorldPlan(world: KingdomWorld): WorldPlan {
   const identity = deriveRepositoryWorldIdentity(world);
@@ -1361,7 +1553,6 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
     hamlets,
     visualBudgets.maxWildlifeActors,
   );
-  const seasonalAppearance = APPEARANCE_BY_SEASON[world.season];
   const semanticZones = createSemanticZones(world, hamlets);
   const topology: WorldPlanTopology = {
     envelope,
@@ -1387,11 +1578,42 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
     scatterConstraints: createScatterConstraints(groves, hamlets, visualBudgets),
     visualBudgets,
   };
+  const topologyKey = createTopologyKey(world, topology);
+  const terrainKey =
+    world.worldTheme === "kingdom-valley"
+      ? topologyKey
+      : (() => {
+          const valleyWorld: KingdomWorld = { ...world, worldTheme: "kingdom-valley" };
+          const valleyBudgets = createVisualBudgets(valleyWorld, hamlets);
+          const valleyGroves = createGroves(
+            valleyWorld,
+            envelope,
+            hamlets,
+            water,
+            valleyBudgets.maxTrees,
+          );
+          const valleyTopology: WorldPlanTopology = {
+            ...topology,
+            groves: valleyGroves,
+            wildlifeZones: createWildlifeZones(
+              valleyWorld,
+              valleyGroves,
+              hamlets,
+              valleyBudgets.maxWildlifeActors,
+            ),
+            scatterConstraints: createScatterConstraints(valleyGroves, hamlets, valleyBudgets),
+            visualBudgets: valleyBudgets,
+          };
+          return createTopologyKey(valleyWorld, valleyTopology);
+        })();
 
   return {
     schema: "repo-world-plan/v1",
     version: "1.0.0",
-    topologyKey: createTopologyKey(world, topology),
+    topologyKey,
+    terrainKey,
+    placementKey: terrainKey,
+    worldTheme: world.worldTheme,
     repository: {
       id: world.source.repositoryId,
       owner: world.source.owner,
@@ -1400,9 +1622,6 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
     },
     identity,
     topology,
-    appearance: {
-      season: world.season,
-      ...seasonalAppearance,
-    },
+    appearance: createAppearance(world),
   };
 }

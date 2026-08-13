@@ -5,15 +5,16 @@ The kingdom and universe endpoints read public GitHub metadata and are intention
 ## Canonical requests
 
 - `/api/kingdom` accepts exactly one `repository`, exactly one lowercase `season` (`spring`,
-  `summer`, `autumn`, or `winter`), and, optionally, one non-empty `revision`.
+  `summer`, `autumn`, or `winter`), and, optionally, one lowercase `world`
+  (`kingdom-valley` or `enchanted-forest`) plus one non-empty `revision`.
 - `/api/universe` accepts exactly one `owner` parameter.
 - Unknown and duplicate parameters, oversized request URLs, GitHub navigation subpaths, embedded
   GitHub query strings, and fragments are rejected before GitHub is contacted.
 - Accepted URL and shorthand forms are normalized to a lowercase owner/repository identity before
   throttling and in-flight request coalescing.
-- Season is part of the kingdom's in-flight request key, immutable-cache identity, and compiler
-  build identity. The ingestion rate-limit bucket remains repository-scoped so requesting another
-  season cannot bypass GitHub-read limits.
+- World style and season are part of the kingdom's in-flight request key, immutable-cache identity,
+  and compiler build identity. The ingestion rate-limit bucket remains repository-scoped so
+  requesting another style or season cannot bypass GitHub-read limits.
 
 ## Caching
 

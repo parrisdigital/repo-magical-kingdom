@@ -1,8 +1,8 @@
 import { parseGithubOwner, parseRepositoryReference } from "@/lib/github";
-import { isKingdomSeason, KingdomError } from "@/lib/kingdom";
+import { isKingdomSeason, isKingdomWorldTheme, KingdomError } from "@/lib/kingdom";
 
 import type { RepositoryReference } from "@/lib/github";
-import type { KingdomSeason } from "@/lib/kingdom";
+import type { KingdomSeason, KingdomWorldTheme } from "@/lib/kingdom";
 
 export const MAX_REQUEST_URL_BYTES = 2_048;
 
@@ -17,6 +17,7 @@ export type CanonicalKingdomRequest = Readonly<{
   reference: RepositoryReference;
   repositoryKey: string;
   season: KingdomSeason;
+  worldTheme?: KingdomWorldTheme;
   requestKey: string;
   cacheableImmutableRequest: boolean;
 }>;
@@ -145,16 +146,24 @@ function canonicalQuery(parameters: Readonly<Record<string, string>>): string {
 export function parseCanonicalKingdomRequest(request: Request): CanonicalKingdomRequest {
   const { url, parameters } = parseRequestUrl(
     request,
-    ["repository", "season", "revision"],
+    ["repository", "world", "season", "revision"],
     ["repository", "season"],
   );
   const repositoryInput = parameters.repository ?? "";
   const seasonInput = parameters.season;
+  const hasExplicitWorldTheme = "world" in parameters;
+  const worldThemeInput = hasExplicitWorldTheme ? parameters.world : undefined;
   const hasExplicitRevision = "revision" in parameters;
   const revisionInput = hasExplicitRevision ? (parameters.revision ?? "") : null;
 
   if (!isKingdomSeason(seasonInput)) {
     throw invalidInput("Query parameter season must be spring, summer, autumn, or winter.");
+  }
+  if (hasExplicitWorldTheme && !worldThemeInput?.trim()) {
+    throw invalidInput("Query parameter world may not be empty.");
+  }
+  if (worldThemeInput !== undefined && !isKingdomWorldTheme(worldThemeInput)) {
+    throw invalidInput("Query parameter world must be kingdom-valley or enchanted-forest.");
   }
   if (hasExplicitRevision && !revisionInput?.trim()) {
     throw invalidInput("Query parameter revision may not be empty.");
@@ -177,6 +186,7 @@ export function parseCanonicalKingdomRequest(request: Request): CanonicalKingdom
   const immutableRevision = Boolean(revision && FULL_COMMIT_SHA.test(revision));
   const expectedQuery = canonicalQuery({
     repository: repositoryKey,
+    ...(worldThemeInput ? { world: worldThemeInput } : {}),
     season: seasonInput,
     ...(revision ? { revision } : {}),
   });
@@ -185,7 +195,8 @@ export function parseCanonicalKingdomRequest(request: Request): CanonicalKingdom
     reference,
     repositoryKey,
     season: seasonInput,
-    requestKey: `kingdom:${repositoryKey}@${revision ?? "<default>"}?season=${seasonInput}`,
+    ...(worldThemeInput ? { worldTheme: worldThemeInput } : {}),
+    requestKey: `kingdom:${repositoryKey}@${revision ?? "<default>"}?world=${worldThemeInput ?? "<auto>"}&season=${seasonInput}`,
     cacheableImmutableRequest:
       hasExplicitRevision && immutableRevision && url.search.slice(1) === expectedQuery,
   };

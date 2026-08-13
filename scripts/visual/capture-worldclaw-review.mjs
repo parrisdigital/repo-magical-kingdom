@@ -10,7 +10,22 @@ const artifactDirectory = path.resolve(
   process.env.VISUAL_REVIEW_ARTIFACT_DIR ?? path.join(repositoryRoot, "artifacts", "visual-review"),
 );
 const baseUrl = (process.env.VISUAL_REVIEW_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-const reviewPath = "/visual-review?season=spring&clean=1";
+const reviewWorld = process.env.VISUAL_REVIEW_WORLD ?? "enchanted-forest";
+const reviewSeason = process.env.VISUAL_REVIEW_SEASON ?? "spring";
+const releasedWorlds = new Set(["kingdom-valley", "enchanted-forest"]);
+const releasedSeasons = new Set(["spring", "summer", "autumn", "winter"]);
+if (!releasedWorlds.has(reviewWorld)) {
+  throw new Error(`Unsupported VISUAL_REVIEW_WORLD: ${reviewWorld}`);
+}
+if (!releasedSeasons.has(reviewSeason)) {
+  throw new Error(`Unsupported VISUAL_REVIEW_SEASON: ${reviewSeason}`);
+}
+const reviewQuery = new URLSearchParams({
+  world: reviewWorld,
+  season: reviewSeason,
+  clean: "1",
+});
+const reviewPath = `/visual-review?${reviewQuery.toString()}`;
 const settleMilliseconds = Number(process.env.VISUAL_REVIEW_SETTLE_MS ?? 6500);
 const requestedCaptureIds = new Set(
   (process.env.VISUAL_REVIEW_CAPTURE_IDS ?? "")
@@ -222,7 +237,10 @@ async function captureScene(browser, capture) {
     if (capture.explore) await moveToExplorationView(page, canvas);
     const inspection = await inspectPage(page, canvas, browserFailures);
 
-    const screenshotFile = path.join(artifactDirectory, `${capture.id}-spring.png`);
+    const screenshotFile = path.join(
+      artifactDirectory,
+      `${capture.id}-${reviewWorld}-${reviewSeason}.png`,
+    );
     const screenshot = await page.screenshot({ path: screenshotFile, animations: "disabled" });
     return {
       id: capture.id,
@@ -268,7 +286,8 @@ const runError = runErrors.length > 0 ? runErrors.join("\n\n") : null;
 const report = {
   baseUrl,
   route: reviewPath,
-  season: "spring",
+  world: reviewWorld,
+  season: reviewSeason,
   captures: results,
   automatedVerdict: runError ? "FAIL" : "PASS",
   runError,

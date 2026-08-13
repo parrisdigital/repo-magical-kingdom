@@ -84,6 +84,29 @@ describe("compileKingdom", () => {
     }
   });
 
+  it("derives an explainable world theme while allowing an explicit override", () => {
+    const sourceHeavy = snapshot(
+      Array.from({ length: 24 }, (_, index) => `src/feature-${index}.ts`),
+    );
+    const visualHeavy = snapshot([
+      ...Array.from({ length: 8 }, (_, index) => `src/feature-${index}.ts`),
+      ...Array.from({ length: 8 }, (_, index) => `docs/scene-${index}.md`),
+      ...Array.from({ length: 8 }, (_, index) => `public/scene-${index}.png`),
+    ]);
+
+    expect(compileKingdom(sourceHeavy).worldTheme).toBe("kingdom-valley");
+    expect(compileKingdom(visualHeavy).worldTheme).toBe("enchanted-forest");
+
+    const valley = compileKingdom(visualHeavy, { worldTheme: "kingdom-valley" });
+    const forest = compileKingdom(visualHeavy, { worldTheme: "enchanted-forest" });
+    expect(valley.worldTheme).toBe("kingdom-valley");
+    expect(forest.worldTheme).toBe("enchanted-forest");
+    expect(forest.buildKey).not.toBe(valley.buildKey);
+    expect(forest.entities).toEqual(valley.entities);
+    expect(forest.routes).toEqual(valley.routes);
+    expect(forest.provinces).toEqual(valley.provinces);
+  });
+
   it("keeps geography and build identity stable when source files arrive out of order", () => {
     const paths = ["src/a.ts", "docs/guide.md", "tests/a.test.ts", "package.json"];
     const source = snapshot(paths);

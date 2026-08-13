@@ -3,7 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { createDemoKingdom, createDemoUniverse } from "../../src/lib/kingdom/demo-world";
 
 const selectedSeason = "autumn" as const;
-const demoKingdom = createDemoKingdom(selectedSeason);
+const selectedWorldTheme = "enchanted-forest" as const;
+const demoKingdom = createDemoKingdom(selectedSeason, selectedWorldTheme);
 const kingdomFixture = {
   ...demoKingdom,
   // A distinct key ensures the fetched package is treated as a real kingdom,
@@ -17,7 +18,7 @@ const universeFixture = {
   displayName: "Parris Digital Observatory",
 };
 
-const canonicalKingdomPath = `/kingdom/${kingdomFixture.source.owner}/${kingdomFixture.source.repository}/${kingdomFixture.source.commitSha}?season=${selectedSeason}`;
+const canonicalKingdomPath = `/kingdom/${kingdomFixture.source.owner}/${kingdomFixture.source.repository}/${kingdomFixture.source.commitSha}?world=${selectedWorldTheme}&season=${selectedSeason}`;
 const requestedRepository = "parrisdigital/repo-magical-kingdom";
 const explorerSourcePath = "components/city/city-scene.tsx";
 
@@ -117,6 +118,10 @@ test.describe("Repo Magical Kingdom journeys", () => {
     await expect(app).toHaveAttribute("data-mode", "landing");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByLabel("GitHub repository or profile")).toBeVisible();
+    const worldSelector = page.getByRole("radiogroup", { name: /choose a world/i });
+    await expect(worldSelector).toBeVisible();
+    await expect(worldSelector.getByRole("radio")).toHaveCount(3);
+    await expect(worldSelector.getByRole("radio", { name: "Repo choice" })).toBeChecked();
     const seasonSelector = page.getByRole("radiogroup", { name: /season/i });
     await expect(seasonSelector).toBeVisible();
     await expect(seasonSelector.getByRole("radio")).toHaveCount(4);
@@ -183,6 +188,11 @@ test.describe("Repo Magical Kingdom journeys", () => {
       .getByLabel("GitHub repository or profile")
       .fill(`https://github.com/${requestedRepository}`);
     await page
+      .getByRole("radiogroup", { name: /choose a world/i })
+      .getByText("Enchanted Forest", { exact: true })
+      .click();
+    await expect(page.getByRole("radio", { name: "Enchanted Forest" })).toBeChecked();
+    await page
       .getByRole("radiogroup", { name: /season/i })
       .getByText("Autumn", { exact: true })
       .click();
@@ -201,6 +211,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
     ).toBeVisible();
     expect(apiRequests.length).toBeGreaterThan(0);
     expect(apiRequests[0]?.searchParams.get("repository")).toBe(requestedRepository);
+    expect(apiRequests[0]?.searchParams.get("world")).toBe(selectedWorldTheme);
     expect(apiRequests[0]?.searchParams.get("season")).toBe(selectedSeason);
 
     await page.getByRole("button", { name: /Explore/ }).click();
@@ -261,6 +272,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
     await expect(page.locator('main[data-mode="kingdom"]')).toBeVisible();
     await expect.poll(() => apiRequests.length, { timeout: 15_000 }).toBeGreaterThan(0);
     expect(apiRequests[0]?.searchParams.get("revision")).toBe(kingdomFixture.source.commitSha);
+    expect(apiRequests[0]?.searchParams.get("world")).toBe(selectedWorldTheme);
     expect(apiRequests[0]?.searchParams.get("season")).toBe(selectedSeason);
     const canvas = await expectWebGlKingdom(page);
     await expect(page.getByRole("heading", { name: kingdomFixture.title })).toBeVisible();
@@ -303,15 +315,22 @@ test.describe("Repo Magical Kingdom journeys", () => {
     const input = page.getByLabel("GitHub repository or profile");
     const submit = page.getByRole("button", { name: /Forge kingdom/ });
     const winter = page.getByRole("radio", { name: "Winter" });
+    const enchantedForest = page.getByRole("radio", { name: "Enchanted Forest" });
+    const enchantedForestOption = page
+      .getByRole("radiogroup", { name: /world/i })
+      .getByText("Enchanted Forest", { exact: true });
     const winterOption = page
       .getByRole("radiogroup", { name: /season/i })
       .getByText("Winter", { exact: true });
     await expect(input).toBeInViewport();
     await expect(submit).toBeInViewport();
+    await expect(enchantedForestOption).toBeInViewport();
     await expect(winterOption).toBeInViewport();
     await input.fill("parrisdigital/repo-magical-kingdom");
+    await enchantedForestOption.click();
     await winterOption.click();
     await expect(winter).toBeChecked();
+    await expect(enchantedForest).toBeChecked();
     await expect(input).toHaveValue("parrisdigital/repo-magical-kingdom");
     await expect(submit).toBeEnabled();
   });
@@ -378,7 +397,7 @@ test.describe("Cinematic repository travel", () => {
     await expect(page.getByRole("heading", { name: kingdomFixture.title })).toBeVisible();
     await expect(app).toHaveAttribute("data-travel-phase", "idle", { timeout: 10_000 });
     await expect(page).toHaveTitle(
-      `${kingdomFixture.source.owner}/${kingdomFixture.source.repository} · Autumn · Repo Magical Kingdom`,
+      `${kingdomFixture.source.owner}/${kingdomFixture.source.repository} · Enchanted Forest · Autumn · Repo Magical Kingdom`,
     );
 
     await page.getByRole("button", { name: /View @.*'s universe/ }).click();
