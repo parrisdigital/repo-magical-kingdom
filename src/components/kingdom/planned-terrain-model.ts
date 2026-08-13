@@ -526,7 +526,7 @@ function sampleCoursePolyline(
 function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   const { course: courseMask, lake: lakeMask } = getWaterMasks(plan);
   const envelope = plan.topology.envelope;
-  const parameters = boundaryParameters(plan.topologyKey);
+  const parameters = boundaryParameters(plan.terrainKey);
   const rearFaceZ = plan.topology.camera.horizonZ + envelope.depth * 0.025;
   // A connected lateral chain creates one dominant rear escarpment rather than
   // a few isolated mound primitives. Repository identity still jitters every
@@ -534,22 +534,22 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   const basePeakFractions = [-0.43, -0.28, -0.11, 0.07, 0.25, 0.42] as const;
   const peaks = basePeakFractions.map((fraction, index) => {
     const xJitter =
-      (stableFraction(`${plan.topologyKey}:peak:${index}:x`) - 0.5) * envelope.width * 0.022;
+      (stableFraction(`${plan.terrainKey}:peak:${index}:x`) - 0.5) * envelope.width * 0.022;
     const zJitter =
-      (stableFraction(`${plan.topologyKey}:peak:${index}:z`) - 0.5) * envelope.depth * 0.025;
+      (stableFraction(`${plan.terrainKey}:peak:${index}:z`) - 0.5) * envelope.depth * 0.025;
     const heroLift = index === 3 ? 13.5 : index === 2 ? 7.2 : index === 4 ? 4.4 : 0;
     return {
       x: envelope.center.x + envelope.width * fraction + xJitter,
       z:
         envelope.minZ +
         envelope.depth *
-          (0.095 + Math.sin(index * 1.37 + stableHash(plan.topologyKey) * 0.000_01) * 0.014) +
+          (0.095 + Math.sin(index * 1.37 + stableHash(plan.terrainKey) * 0.000_01) * 0.014) +
         zJitter,
-      amplitude: 20.5 + stableFraction(`${plan.topologyKey}:peak:${index}:height`) * 8.5 + heroLift,
+      amplitude: 20.5 + stableFraction(`${plan.terrainKey}:peak:${index}:height`) * 8.5 + heroLift,
       radiusX:
-        envelope.width * (0.075 + stableFraction(`${plan.topologyKey}:peak:${index}:rx`) * 0.022),
+        envelope.width * (0.075 + stableFraction(`${plan.terrainKey}:peak:${index}:rx`) * 0.022),
       radiusZ:
-        envelope.depth * (0.105 + stableFraction(`${plan.topologyKey}:peak:${index}:rz`) * 0.025),
+        envelope.depth * (0.105 + stableFraction(`${plan.terrainKey}:peak:${index}:rz`) * 0.025),
     } satisfies PlannedMountainPeak;
   });
   const terraces = plan.topology.hamlets.map((hamlet, index) => {
@@ -562,14 +562,14 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
       radiusX: visualMask.radiusX,
       radiusZ: visualMask.radiusZ,
       targetHeight:
-        2.15 + rearward * 2.1 + stableFraction(`${plan.topologyKey}:terrace:${index}`) * 0.45,
+        2.15 + rearward * 2.1 + stableFraction(`${plan.terrainKey}:terrace:${index}`) * 0.45,
     } satisfies PlannedHamletTerrace;
   });
 
   const targetLakeArea =
     envelope.width *
     envelope.depth *
-    (0.135 + stableFraction(`${plan.topologyKey}:lake-area`) * 0.025);
+    (0.135 + stableFraction(`${plan.terrainKey}:lake-area`) * 0.025);
   const aspect = clamp(envelope.width / envelope.depth, 0.78, 1.12);
   const radiusX = Math.sqrt((targetLakeArea * aspect) / Math.PI);
   const radiusZ = targetLakeArea / (Math.PI * radiusX);
@@ -590,12 +590,12 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     preferredLakeCenter.z,
   );
   const inletAngle =
-    -Math.PI / 2 - 0.16 + (stableFraction(`${plan.topologyKey}:inlet-angle`) - 0.5) * 0.1;
+    -Math.PI / 2 - 0.16 + (stableFraction(`${plan.terrainKey}:inlet-angle`) - 0.5) * 0.1;
   const islet = {
     center: point(lakeCenter.x + radiusX * 0.17, lakeCenter.z + radiusZ * 0.13),
     radiusX: clamp(radiusX * 0.105, 3.4, 5.2),
     radiusZ: clamp(radiusZ * 0.058, 2.6, 4.1),
-    rotation: -0.48 + stableFraction(`${plan.topologyKey}:islet-rotation`) * 0.34,
+    rotation: -0.48 + stableFraction(`${plan.terrainKey}:islet-rotation`) * 0.34,
   } as const;
   const provisionalLake: PlannedLake = {
     center: lakeCenter,
@@ -608,7 +608,7 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     islet,
   };
   const provisionalLakeShape = {
-    key: plan.topologyKey,
+    key: plan.terrainKey,
     terraces,
     water: { lake: provisionalLake },
   } satisfies LakeShapeDefinition;
@@ -619,12 +619,12 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   );
   const headwaterX =
     envelope.center.x +
-    envelope.width * (-0.055 + (stableFraction(`${plan.topologyKey}:headwater-x`) - 0.5) * 0.035);
+    envelope.width * (-0.055 + (stableFraction(`${plan.terrainKey}:headwater-x`) - 0.5) * 0.035);
   // Begin the visible course at the toe of the rear wall. The escarpment owns
   // the spring/waterfall above it; a single coplanar river strip must never
   // climb through the mountain as a blue ramp.
   const headwaterZ = rearFaceZ + envelope.depth * 0.035;
-  const coursePhase = stableFraction(`${plan.topologyKey}:course-meander`) * Math.PI * 2;
+  const coursePhase = stableFraction(`${plan.terrainKey}:course-meander`) * Math.PI * 2;
   const plannedCoursePoints = Array.from({ length: 8 }, (_, index) => {
     const progress = index / 7;
     const meanderEnvelope = Math.sin(progress * Math.PI);
@@ -674,7 +674,7 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     islet,
   };
   const temporaryDefinition = {
-    key: plan.topologyKey,
+    key: plan.terrainKey,
     terraces,
     water: { lake: lakeDefinition },
   } satisfies LakeShapeDefinition;
@@ -709,7 +709,7 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   })();
 
   const partial: Omit<PlannedTerrainDefinition, "outline"> = {
-    key: plan.topologyKey,
+    key: plan.terrainKey,
     envelope,
     rearFaceZ,
     ordinaryHouseHeight: 7.5,
@@ -1145,7 +1145,7 @@ export function buildPlannedTerrainGeometry(
   options: PlannedTerrainBuildOptions = {},
 ): PlannedTerrainGeometry {
   const definition = getPlannedTerrainDefinition(plan);
-  const parameters = boundaryParameters(plan.topologyKey);
+  const parameters = boundaryParameters(plan.terrainKey);
   const segmentsX = clamp(Math.round(options.segmentsX ?? 96), 16, 160);
   const segmentsZ = clamp(Math.round(options.segmentsZ ?? 112), 20, 180);
   const positions: number[] = [];
@@ -1187,7 +1187,7 @@ export function buildPlannedTerrainGeometry(
   const sidePositions: number[] = [];
   const sideIndices: number[] = [];
   const sideZones: number[] = [];
-  const cliffSeed = stableHash(`${plan.topologyKey}:side-cliff`);
+  const cliffSeed = stableHash(`${plan.terrainKey}:side-cliff`);
   const { center } = definition.envelope;
   for (let index = 0; index < outline.length; index += 1) {
     const boundaryPoint = outline[index]!;
@@ -1334,7 +1334,7 @@ export function createPlannedTerrainModel(
 ): PlannedTerrainModel {
   return {
     schema: "planned-global-terrain/v1",
-    key: plan.topologyKey,
+    key: plan.terrainKey,
     definition: getPlannedTerrainDefinition(plan),
     terrain: buildPlannedTerrainGeometry(plan, options),
     water: buildPlannedWaterGeometry(plan, options),

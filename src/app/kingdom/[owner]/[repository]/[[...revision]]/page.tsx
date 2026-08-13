@@ -5,8 +5,11 @@ import { KingdomExperience } from "@/components/kingdom";
 import {
   DEFAULT_KINGDOM_SEASON,
   isKingdomSeason,
+  isKingdomWorldTheme,
   KINGDOM_SEASON_LABELS,
+  KINGDOM_WORLD_THEME_LABELS,
   type KingdomSeason,
+  type KingdomWorldTheme,
 } from "@/lib/kingdom";
 
 type KingdomRouteParams = Readonly<{
@@ -17,7 +20,7 @@ type KingdomRouteParams = Readonly<{
 
 type KingdomPageProps = Readonly<{
   params: Promise<KingdomRouteParams>;
-  searchParams: Promise<Readonly<{ season?: string | string[] }>>;
+  searchParams: Promise<Readonly<{ world?: string | string[]; season?: string | string[] }>>;
 }>;
 
 function readRevision(revision: string[] | undefined): string | undefined {
@@ -32,15 +35,25 @@ function readSeason(value: string | string[] | undefined): KingdomSeason {
   return value;
 }
 
+function readWorldTheme(value: string | string[] | undefined): KingdomWorldTheme | undefined {
+  if (value === undefined) return undefined;
+  if (!isKingdomWorldTheme(value)) notFound();
+  return value;
+}
+
 export async function generateMetadata({
   params,
   searchParams,
 }: KingdomPageProps): Promise<Metadata> {
   const [{ owner, repository }, query] = await Promise.all([params, searchParams]);
   const season = readSeason(query.season);
+  const worldTheme = readWorldTheme(query.world);
+  const worldLabel = worldTheme
+    ? KINGDOM_WORLD_THEME_LABELS[worldTheme]
+    : "Repository-selected world";
   return {
-    title: `${owner}/${repository} · ${KINGDOM_SEASON_LABELS[season]}`,
-    description: `Explore ${owner}/${repository} as a living ${season} repository world.`,
+    title: `${owner}/${repository} · ${worldLabel} · ${KINGDOM_SEASON_LABELS[season]}`,
+    description: `Explore ${owner}/${repository} as a living ${season} ${worldLabel.toLowerCase()}.`,
   };
 }
 
@@ -54,6 +67,7 @@ export default async function KingdomPage({ params, searchParams }: KingdomPageP
       initialRepository={repository}
       initialRevision={readRevision(revision)}
       initialSeason={readSeason(query.season)}
+      initialWorldTheme={readWorldTheme(query.world)}
     />
   );
 }

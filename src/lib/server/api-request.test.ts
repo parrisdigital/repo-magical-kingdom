@@ -4,8 +4,15 @@ import { parseCanonicalKingdomRequest, parseCanonicalUniverseRequest } from "./a
 
 const SHA = "ABCDEF0123456789ABCDEF0123456789ABCDEF01";
 
-function kingdomUrl(repository: string, revision?: string, season = "spring"): string {
-  const parameters = new URLSearchParams({ repository, season });
+function kingdomUrl(
+  repository: string,
+  revision?: string,
+  season = "spring",
+  worldTheme?: string,
+): string {
+  const parameters = new URLSearchParams({ repository });
+  if (worldTheme !== undefined) parameters.set("world", worldTheme);
+  parameters.set("season", season);
   if (revision !== undefined) parameters.set("revision", revision);
   return `https://example.test/api/kingdom?${parameters.toString()}`;
 }
@@ -21,7 +28,9 @@ describe("canonical API request parsing", () => {
     });
     expect(parsed.repositoryKey).toBe("owner/repository");
     expect(parsed.season).toBe("spring");
-    expect(parsed.requestKey).toBe(`kingdom:owner/repository@${SHA.toLowerCase()}?season=spring`);
+    expect(parsed.requestKey).toBe(
+      `kingdom:owner/repository@${SHA.toLowerCase()}?world=<auto>&season=spring`,
+    );
     expect(parsed.cacheableImmutableRequest).toBe(false);
   });
 
@@ -55,6 +64,19 @@ describe("canonical API request parsing", () => {
     },
   );
 
+  it.each(["kingdom-valley", "enchanted-forest"])(
+    "includes the explicit %s world in canonical and in-flight identity",
+    (worldTheme) => {
+      const parsed = parseCanonicalKingdomRequest(
+        new Request(kingdomUrl("owner/repository", SHA.toLowerCase(), "spring", worldTheme)),
+      );
+
+      expect(parsed.worldTheme).toBe(worldTheme);
+      expect(parsed.requestKey).toContain(`world=${worldTheme}`);
+      expect(parsed.cacheableImmutableRequest).toBe(true);
+    },
+  );
+
   it.each([
     "https://github.com/owner/repository?tab=readme",
     "https://github.com/owner/repository#readme",
@@ -72,6 +94,9 @@ describe("canonical API request parsing", () => {
     "https://example.test/api/kingdom?repository=owner%2Frepo",
     "https://example.test/api/kingdom?repository=owner%2Frepo&season=monsoon",
     "https://example.test/api/kingdom?repository=owner%2Frepo&season=spring&season=winter",
+    "https://example.test/api/kingdom?repository=owner%2Frepo&world=&season=spring",
+    "https://example.test/api/kingdom?repository=owner%2Frepo&world=space-opera&season=spring",
+    "https://example.test/api/kingdom?repository=owner%2Frepo&world=kingdom-valley&world=enchanted-forest&season=spring",
   ])("rejects cache-key aliases from unsupported, duplicate, or empty parameters", (url) => {
     expect(() => parseCanonicalKingdomRequest(new Request(url))).toThrow();
   });

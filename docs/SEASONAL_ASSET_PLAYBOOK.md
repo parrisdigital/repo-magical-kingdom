@@ -2,8 +2,10 @@
 
 This playbook translates Repo Magical Kingdom's research direction into a
 repeatable, legally reviewable asset workflow. A repository receives one chosen
-season at a time. Season changes appearance—foliage, snow, surface accents,
-atmosphere—not repository-derived geography or semantic coverage.
+world style and season at a time. World style selects a bounded composition
+layer (currently Kingdom Valley or Enchanted Forest); season changes
+appearance—foliage, snow, surface accents, atmosphere—not repository-derived
+geography or semantic coverage.
 
 ## Research blueprint and project adaptation
 

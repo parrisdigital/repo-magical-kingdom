@@ -11,7 +11,9 @@ export function GET() {
       service: "repo-magical-kingdom",
       version: packageJson.version,
       worldSchema: "repo-kingdom/v1",
+      worldThemes: 2,
       seasons: 4,
+      planetClasses: 4,
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
     },
     {

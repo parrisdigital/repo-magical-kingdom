@@ -69,7 +69,7 @@ GitHub URL
   → public-repository verification
   → immutable commit snapshot
   → repository semantics and coverage
-  → deterministic realm WorldPackage
+  → deterministic world style + seasonal WorldPackage
   → React Three Fiber kingdom
 ```
 
@@ -77,8 +77,8 @@ The world hierarchy is deliberately legible:
 
 | Repository concept                     | Kingdom expression               |
 | -------------------------------------- | -------------------------------- |
-| GitHub profile or organization         | Universe                         |
-| Repository                             | Kingdom or world                 |
+| GitHub profile or organization         | Planetary repository universe    |
+| Repository                             | Enterable kingdom or world       |
 | Repository root                        | Crown Nexus                      |
 | Workspace, package, or major subsystem | Province                         |
 | Module or folder cluster               | Settlement                       |
@@ -91,12 +91,35 @@ Decorative trees, animals, particles, weather, and water do not secretly claim
 to be files or quality scores. When scenery communicates repository data, the
 experience says so and links back to its evidence.
 
+## Choose the world, then choose its season
+
+World style and season are separate, shareable choices. Repository evidence
+selects a default style, while an explorer can override it before forging or
+from inside a kingdom.
+
+- **Kingdom Valley** builds an open inhabited watershed with hamlets,
+  escarpments, routes, forests, wildlife, and a foreground lake.
+- **Enchanted Forest** keeps the same traceable repository geography but adds
+  denser ancient groves, moss-covered architecture, root arches, runestones,
+  mushroom circles, and restrained magical life.
+- **Spring, summer, autumn, and winter** recolor and relight either world without
+  silently changing its repository-derived placement.
+
+Canonical links preserve both axes, for example
+`?world=enchanted-forest&season=autumn`. Additional world types can extend the
+same versioned contract without turning every repository into the same scene.
+
+Profile pages now present repositories as a real planetary system. Deterministic
+repository evidence selects a terrestrial, ringed gas giant, ice giant, or rocky
+planet; entering that planet loads its complete kingdom rather than mounting toy
+buildings on the overview sphere.
+
 ## Design principles
 
 - **A world, not a reskinned city.** Repository evidence becomes terrain,
   settlements, archives, workshops, strongholds, paths, and portals through a
-  coherent world archetype. Spring, summer, autumn, and winter are selectable
-  appearances over the same repository-derived geography.
+  coherent world archetype. World style and season are independently selectable
+  over the same repository-derived geography.
 - **Truth before spectacle.** Meaningful objects expose their repository path,
   immutable commit, and reason for existing.
 - **Stable geography.** A seed and versioned compiler keep repeated builds
@@ -160,8 +183,9 @@ The compiler and renderer have intentionally different responsibilities:
   public visibility, tree recovery, validation, rate limits, and provenance.
 - Pure domain code classifies and aggregates repository evidence into a
   versioned kingdom graph.
-- The realm compiler assigns a stable world archetype, regions, terrain,
-  landmarks, routes, camera anchors, LOD groups, and coverage metadata.
+- The realm compiler assigns a stable world archetype and default world style,
+  then regions, terrain, landmarks, routes, camera anchors, LOD groups, and
+  coverage metadata.
 - The serialized `WorldPackage` contains no React, DOM, Three.js, or provider
   response objects.
 - React Three Fiber renders the package and owns camera, picking, quality, and

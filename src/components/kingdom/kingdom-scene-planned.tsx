@@ -41,6 +41,10 @@ import {
   createPlannedVisualEnrichment,
   type PlannedVisualEnrichment,
 } from "./planned-visual-enrichment";
+import {
+  createPlannedWorldThemeLayer,
+  type PlannedWorldThemeLayer,
+} from "./planned-world-theme-model";
 
 type Quality = "low" | "high";
 type VecTuple = readonly [number, number, number];
@@ -56,7 +60,7 @@ const PORTRAIT_CAMERA_ELEVATION = THREE.MathUtils.degToRad(48);
 const PORTRAIT_CAMERA_AZIMUTH = THREE.MathUtils.degToRad(9);
 
 type FoliagePalette = "broadleaf" | "pine" | "flowering";
-type SurfaceStyle = "default" | "architecture" | "rock";
+type SurfaceStyle = "default" | "architecture" | "rock" | "rune";
 
 type KingdomSceneProps = Readonly<{
   world: KingdomWorld;
@@ -243,9 +247,12 @@ function InstancePrimitive({
         material instanceof THREE.MeshStandardMaterial &&
         plan.appearance.season === "spring"
       ) {
-        material.color.lerp(new THREE.Color("#b7d79a"), 0.38);
+        material.color.lerp(
+          new THREE.Color(plan.appearance.foliage.broadleaf[1] ?? "#78a86b"),
+          plan.worldTheme === "enchanted-forest" ? 0.62 : 0.38,
+        );
         material.emissiveMap = material.map;
-        material.emissive.set("#708c5d");
+        material.emissive.set(plan.appearance.foliage.broadleaf[0] ?? "#708c5d");
         material.emissiveIntensity = 0.2;
         material.roughness = Math.max(0.82, material.roughness);
       }
@@ -259,9 +266,10 @@ function InstancePrimitive({
         if (foliagePalette === "flowering" && plan.appearance.season === "spring") {
           material.map = null;
           material.normalMap = null;
-          material.color.set(materialIndex % 2 === 0 ? "#f7cbd8" : "#f9dfe5");
-          material.emissive.set("#9a6475");
-          material.emissiveIntensity = 0.36;
+          const colors = plan.appearance.foliage.flowering;
+          material.color.set(colors[materialIndex % colors.length] ?? "#f7cbd8");
+          material.emissive.set(colors[(materialIndex + 1) % colors.length] ?? "#9a6475");
+          material.emissiveIntensity = plan.worldTheme === "enchanted-forest" ? 0.28 : 0.36;
           material.toneMapped = true;
         } else if (plan.appearance.season === "spring") {
           // Several source diffuse maps contain deep autumn-red texels. Spring
@@ -269,18 +277,14 @@ function InstancePrimitive({
           // one season while retaining each model's authored silhouette.
           material.map = null;
           material.normalMap = null;
-          material.color.set(
+          const colors =
             foliagePalette === "pine"
-              ? materialIndex % 2 === 0
-                ? "#91b98a"
-                : "#a8c99a"
-              : materialIndex % 2 === 0
-                ? "#b8dda0"
-                : "#c9e8b0",
-          );
+              ? plan.appearance.foliage.pine
+              : plan.appearance.foliage.broadleaf;
+          material.color.set(colors[materialIndex % colors.length] ?? "#8fbd72");
           material.emissiveMap = null;
-          material.emissive.set(foliagePalette === "pine" ? "#5f8060" : "#7fa36c");
-          material.emissiveIntensity = 0.3;
+          material.emissive.set(colors[(materialIndex + 1) % colors.length] ?? "#63805b");
+          material.emissiveIntensity = plan.worldTheme === "enchanted-forest" ? 0.2 : 0.3;
         } else if (plan.appearance.season === "summer") {
           material.color.set("#ffffff");
           material.emissiveMap = material.map;
@@ -304,10 +308,17 @@ function InstancePrimitive({
         material.map = null;
         material.normalMap = null;
         material.aoMap = null;
-        material.color.set(roofMaterial ? "#e7b2aa" : timberMaterial ? "#a77d60" : "#f0dfc7");
+        const surfaceColor = roofMaterial
+          ? plan.appearance.architecture.roofTint
+          : timberMaterial
+            ? plan.appearance.architecture.timberTint
+            : plan.appearance.architecture.plasterTint;
+        material.color.set(surfaceColor);
         material.emissiveMap = null;
-        material.emissive.set(roofMaterial ? "#6f403b" : timberMaterial ? "#4b3225" : "#8a735a");
-        material.emissiveIntensity = roofMaterial ? 0.13 : timberMaterial ? 0.08 : 0.11;
+        material.emissive
+          .copy(material.color)
+          .multiplyScalar(plan.worldTheme === "enchanted-forest" ? 0.32 : 0.24);
+        material.emissiveIntensity = roofMaterial ? 0.14 : timberMaterial ? 0.09 : 0.11;
       }
       if (material instanceof THREE.MeshStandardMaterial && surfaceStyle === "rock") {
         material.roughness = 1;
@@ -318,6 +329,18 @@ function InstancePrimitive({
           material.emissive.set("#bca28c");
           material.emissiveIntensity = 0.36;
         }
+      }
+      if (material instanceof THREE.MeshStandardMaterial && surfaceStyle === "rune") {
+        material.map = null;
+        material.normalMap = null;
+        material.roughness = 0.9;
+        material.metalness = 0;
+        material.color
+          .set(plan.appearance.terrain.escarpment)
+          .lerp(new THREE.Color(plan.appearance.magic.secondary), 0.2);
+        material.emissiveMap = null;
+        material.emissive.set(plan.appearance.magic.primary);
+        material.emissiveIntensity = 0.34 * plan.appearance.magic.glowIntensity;
       }
       return material;
     });
@@ -569,9 +592,10 @@ function addBuildingAssembly(
   groups: InstanceGroups,
   role: ArchitectureRole,
   parent: THREE.Matrix4,
-  options: Readonly<{ compound: CompoundIdentity; hero: boolean }> = {
+  options: Readonly<{ compound: CompoundIdentity; hero: boolean; enchanted: boolean }> = {
     compound: "village",
     hero: false,
+    enchanted: false,
   },
 ) {
   const kind = architectureKind(role);
@@ -621,6 +645,13 @@ function addBuildingAssembly(
   } else if (!kind.brick) {
     addInstance(groups, MODULE_URLS.vine, multiply(parent, matrixAt(-1.1, 0.12, 2.02, 0, 0.82)));
   }
+  if (options.enchanted) {
+    addInstance(
+      groups,
+      MODULE_URLS.vine,
+      multiply(parent, matrixAt(1.08, stories > 1 ? 2.85 : 0.18, 2.04, 0, 0.76)),
+    );
+  }
   if (kind.workshop) {
     addInstance(groups, MODULE_URLS.wagon, multiply(parent, matrixAt(3.1, 0, 0.8, -0.4, 0.85)));
   }
@@ -628,13 +659,18 @@ function addBuildingAssembly(
   if (!options.hero) return;
   if (options.compound === "civic") {
     const annex = multiply(parent, matrixAt(-3.15, 0, -0.9, 0.08, 0.68));
-    addBuildingAssembly(groups, "watchtower", annex, { compound: "civic", hero: false });
+    addBuildingAssembly(groups, "watchtower", annex, {
+      compound: "civic",
+      hero: false,
+      enchanted: options.enchanted,
+    });
     addInstance(groups, MODULE_URLS.vine, multiply(parent, matrixAt(1.25, 0.15, 2.04, 0, 0.88)));
   } else if (options.compound === "productive") {
     const annex = multiply(parent, matrixAt(-3.25, 0, -0.55, -0.12, 0.7));
     addBuildingAssembly(groups, "brick-cottage", annex, {
       compound: "productive",
       hero: false,
+      enchanted: options.enchanted,
     });
     addInstance(groups, MODULE_URLS.chimney, multiply(parent, matrixAt(-1.2, 4.75, -0.8, 0, 0.82)));
     addInstance(groups, MODULE_URLS.wagon, multiply(parent, matrixAt(3.7, 0, -1.7, -0.9, 0.92)));
@@ -643,6 +679,7 @@ function addBuildingAssembly(
     addBuildingAssembly(groups, "plaster-cottage", annex, {
       compound: "village",
       hero: false,
+      enchanted: options.enchanted,
     });
     addInstance(groups, MODULE_URLS.vine, multiply(parent, matrixAt(-1.15, 0.12, 2.04, 0, 0.9)));
   }
@@ -789,6 +826,7 @@ function createArchitectureGroups(scatter: PlannedScatter, plan: WorldPlan): Ins
     addBuildingAssembly(groups, renderedRole, parent, {
       compound: compound?.identity ?? "village",
       hero,
+      enchanted: plan.worldTheme === "enchanted-forest",
     });
   }
 
@@ -909,24 +947,41 @@ function createTreeGroups(
   scatter: PlannedScatter,
   plan: WorldPlan,
   enrichment: PlannedVisualEnrichment,
+  themeLayer: PlannedWorldThemeLayer,
 ): Map<string, THREE.Matrix4[]> {
   const groups = new Map<string, THREE.Matrix4[]>();
+  const ancientTreeIds = new Set(themeLayer.ancientTreeIds);
   const seasonalCanopy = getKenneySeasonalPalette(plan.appearance.season).canopy;
   for (const tree of scatter.trees) {
     const x = tree.transform.position.x;
     const z = tree.transform.position.z;
     const y = samplePlannedTerrainHeight(plan, x, z);
     const base = tree.transform.scale.y;
-    const visualScale = base * 0.96;
+    const ancient = ancientTreeIds.has(tree.id);
+    const visualScale =
+      base *
+      0.96 *
+      (ancient
+        ? plan.appearance.magic.ancientTreeScale
+        : plan.worldTheme === "enchanted-forest"
+          ? 1.08
+          : 1);
     const seasonalSlot = Math.floor(stableFraction(`${tree.id}:seasonal-slot`) * 3);
     const useSeasonalModel =
+      !ancient &&
       tree.assetRole !== "dead-tree" &&
       (plan.appearance.season === "winter" ||
         plan.appearance.season === "autumn" ||
         tree.paletteRole !== "flowering");
-    const treeUrl = useSeasonalModel
-      ? kenneySeasonalAssetReferenceUrl(seasonalCanopy[seasonalSlot % seasonalCanopy.length]!)
-      : TREE_URLS[tree.assetRole];
+    const treeUrl = ancient
+      ? TREE_URLS[
+          stableFraction(`${tree.id}:ancient-silhouette`) < 0.5
+            ? "twisted-tree-1"
+            : "twisted-tree-2"
+        ]
+      : useSeasonalModel
+        ? kenneySeasonalAssetReferenceUrl(seasonalCanopy[seasonalSlot % seasonalCanopy.length]!)
+        : TREE_URLS[tree.assetRole];
     addInstance(
       groups,
       treeUrl,
@@ -944,13 +999,14 @@ function createTreeGroups(
     const treeUrl = useSeasonalModel
       ? kenneySeasonalAssetReferenceUrl(seasonalCanopy[seasonalSlot % seasonalCanopy.length]!)
       : TREE_URLS[tree.assetRole];
+    const themeScale = plan.worldTheme === "enchanted-forest" ? 1.08 : 1;
     addInstance(
       groups,
       treeUrl,
       matrixAt(tree.position.x, y, tree.position.z, tree.rotationY, [
-        tree.scale.x,
-        tree.scale.y,
-        tree.scale.z,
+        tree.scale.x * themeScale,
+        tree.scale.y * themeScale,
+        tree.scale.z * themeScale,
       ]),
     );
   }
@@ -1073,14 +1129,16 @@ function VegetationLayer({
   scatter,
   plan,
   enrichment,
+  themeLayer,
 }: Readonly<{
   scatter: PlannedScatter;
   plan: WorldPlan;
   enrichment: PlannedVisualEnrichment;
+  themeLayer: PlannedWorldThemeLayer;
 }>) {
   const trees = useMemo(
-    () => createTreeGroups(scatter, plan, enrichment),
-    [enrichment, plan, scatter],
+    () => createTreeGroups(scatter, plan, enrichment, themeLayer),
+    [enrichment, plan, scatter, themeLayer],
   );
   const ground = useMemo(() => createGroundGroups(scatter, plan), [plan, scatter]);
   const ambient = useMemo(() => createAmbientGroups(scatter, plan), [plan, scatter]);
@@ -1124,7 +1182,9 @@ function VegetationLayer({
             url={url}
             matrices={matrices}
             plan={plan}
-            targetHeight={role ? GROUND_TARGET_HEIGHT[role] : 0.7}
+            targetHeight={
+              (role ? GROUND_TARGET_HEIGHT[role] : 0.7) * plan.appearance.magic.groundDetailScale
+            }
             foliagePalette={
               role === "flowering-bush" || role === "flower-group"
                 ? "flowering"
@@ -1151,7 +1211,9 @@ function VegetationLayer({
             url={url}
             matrices={matrices}
             plan={plan}
-            targetHeight={role ? AMBIENT_TARGET_HEIGHT[role] : 0.8}
+            targetHeight={
+              (role ? AMBIENT_TARGET_HEIGHT[role] : 0.8) * plan.appearance.magic.groundDetailScale
+            }
             foliagePalette={foliagePalette}
             castShadow={role === "medium-rock-1" || role === "medium-rock-2"}
           />
@@ -1184,7 +1246,10 @@ function VegetationLayer({
             url={url}
             matrices={matrices}
             plan={plan}
-            targetHeight={role ? AMBIENT_TARGET_HEIGHT[role] * 1.2 : 0.9}
+            targetHeight={
+              (role ? AMBIENT_TARGET_HEIGHT[role] * 1.2 : 0.9) *
+              plan.appearance.magic.groundDetailScale
+            }
             foliagePalette={foliagePalette}
             surfaceStyle={role?.includes("rock") ? "rock" : "default"}
           />
@@ -1206,11 +1271,198 @@ function VegetationLayer({
             url={url}
             matrices={matrices}
             plan={plan}
-            targetHeight={role ? AMBIENT_TARGET_HEIGHT[role] * 1.18 : 0.9}
+            targetHeight={
+              (role ? AMBIENT_TARGET_HEIGHT[role] * 1.18 : 0.9) *
+              plan.appearance.magic.groundDetailScale
+            }
             foliagePalette={foliagePalette}
           />
         );
       })}
+    </group>
+  );
+}
+
+function EnchantedRootArch({
+  arch,
+  plan,
+}: Readonly<{
+  arch: PlannedWorldThemeLayer["rootArches"][number];
+  plan: WorldPlan;
+}>) {
+  const geometry = useMemo(() => {
+    const start = new THREE.Vector3(arch.start.x, arch.start.y, arch.start.z);
+    const end = new THREE.Vector3(arch.end.x, arch.end.y, arch.end.z);
+    const middle = start
+      .clone()
+      .lerp(end, 0.5)
+      .setY(Math.max(start.y, end.y) + arch.height);
+    const curve = new THREE.CatmullRomCurve3(
+      [start, start.clone().lerp(middle, 0.48), middle, middle.clone().lerp(end, 0.52), end],
+      false,
+      "centripetal",
+    );
+    return new THREE.TubeGeometry(curve, 28, arch.radius, 7, false);
+  }, [arch]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <mesh geometry={geometry} castShadow receiveShadow>
+      <meshStandardMaterial
+        color={plan.appearance.foliage.trunk}
+        roughness={1}
+        emissive={plan.appearance.magic.primary}
+        emissiveIntensity={0.055 * plan.appearance.magic.glowIntensity}
+      />
+    </mesh>
+  );
+}
+
+function EnchantedFireflies({
+  layer,
+  plan,
+  reducedMotion,
+  quality,
+}: Readonly<{
+  layer: PlannedWorldThemeLayer;
+  plan: WorldPlan;
+  reducedMotion: boolean;
+  quality: Quality;
+}>) {
+  const points = quality === "high" ? layer.fireflies : layer.fireflies.slice(0, 42);
+  const object = useRef<THREE.Points>(null);
+  const geometry = useMemo(() => {
+    const positions = new Float32Array(points.length * 3);
+    const colors = new Float32Array(points.length * 3);
+    const primary = new THREE.Color(plan.appearance.magic.primary);
+    const secondary = new THREE.Color(plan.appearance.magic.secondary);
+    points.forEach((firefly, index) => {
+      positions[index * 3] = firefly.anchor.x;
+      positions[index * 3 + 1] = firefly.anchor.y;
+      positions[index * 3 + 2] = firefly.anchor.z;
+      const color = index % 4 === 0 ? secondary : primary;
+      colors[index * 3] = color.r;
+      colors[index * 3 + 1] = color.g;
+      colors[index * 3 + 2] = color.b;
+    });
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    next.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    return next;
+  }, [plan.appearance.magic.primary, plan.appearance.magic.secondary, points]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useFrame(({ clock }) => {
+    if (reducedMotion || !object.current) return;
+    const attribute = object.current.geometry.getAttribute("position");
+    if (!(attribute instanceof THREE.BufferAttribute)) return;
+    const time = clock.elapsedTime;
+    points.forEach((firefly, index) => {
+      const angle = firefly.phase + time * firefly.speed;
+      attribute.setXYZ(
+        index,
+        firefly.anchor.x + Math.cos(angle * 1.17) * firefly.orbitRadius * 0.32,
+        firefly.anchor.y + Math.sin(angle * 1.61) * firefly.verticalTravel,
+        firefly.anchor.z + Math.sin(angle) * firefly.orbitRadius * 0.32,
+      );
+    });
+    attribute.needsUpdate = true;
+  });
+  return (
+    <points ref={object} geometry={geometry} frustumCulled={false}>
+      <pointsMaterial
+        vertexColors
+        size={quality === "high" ? 0.48 : 0.62}
+        sizeAttenuation
+        transparent
+        opacity={0.92}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </points>
+  );
+}
+
+function EnchantedThemeLayer({
+  layer,
+  plan,
+  reducedMotion,
+  quality,
+}: Readonly<{
+  layer: PlannedWorldThemeLayer;
+  plan: WorldPlan;
+  reducedMotion: boolean;
+  quality: Quality;
+}>) {
+  const runestoneMatrices = useMemo(
+    () =>
+      layer.runestones.map((runestone) =>
+        matrixAt(
+          runestone.position.x,
+          runestone.position.y,
+          runestone.position.z,
+          runestone.rotationY,
+          runestone.scale,
+        ),
+      ),
+    [layer.runestones],
+  );
+  const mushroomMatrices = useMemo(
+    () =>
+      layer.mushrooms.map((mushroom) =>
+        matrixAt(
+          mushroom.position.x,
+          mushroom.position.y,
+          mushroom.position.z,
+          mushroom.rotationY,
+          mushroom.scale,
+        ),
+      ),
+    [layer.mushrooms],
+  );
+  if (layer.worldTheme !== "enchanted-forest") return null;
+  return (
+    <group name="enchanted-forest-language">
+      <AssetInstances
+        url={AMBIENT_URLS["medium-rock-2"]}
+        matrices={runestoneMatrices}
+        plan={plan}
+        targetHeight={3.15}
+        surfaceStyle="rune"
+        castShadow
+      />
+      <AssetInstances
+        url={GROUND_URLS.mushroom}
+        matrices={mushroomMatrices}
+        plan={plan}
+        targetHeight={0.58 * plan.appearance.magic.groundDetailScale}
+      />
+      {layer.runestones.map((runestone) => (
+        <group
+          key={`${runestone.id}:glow`}
+          position={[runestone.position.x, runestone.position.y + 0.12, runestone.position.z]}
+          rotation-y={runestone.rotationY + runestone.glowPhase * 0.08}
+        >
+          <mesh rotation-x={Math.PI / 2}>
+            <torusGeometry args={[0.56 * runestone.scale, 0.035, 6, 22]} />
+            <meshBasicMaterial
+              color={plan.appearance.magic.primary}
+              transparent
+              opacity={0.72}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        </group>
+      ))}
+      {layer.rootArches.map((arch) => (
+        <EnchantedRootArch key={arch.id} arch={arch} plan={plan} />
+      ))}
+      <EnchantedFireflies
+        layer={layer}
+        plan={plan}
+        reducedMotion={reducedMotion}
+        quality={quality}
+      />
     </group>
   );
 }
@@ -2001,6 +2253,7 @@ export function KingdomScenePlanned({
   const plan = useMemo(() => createWorldPlan(world), [world]);
   const scatter = useMemo(() => createPlannedScatter(world, plan), [plan, world]);
   const enrichment = useMemo(() => createPlannedVisualEnrichment(plan, scatter), [plan, scatter]);
+  const themeLayer = useMemo(() => createPlannedWorldThemeLayer(plan, scatter), [plan, scatter]);
   return (
     <>
       <Atmosphere plan={plan} season={season} quality={quality} reducedMotion={reducedMotion} />
@@ -2009,7 +2262,12 @@ export function KingdomScenePlanned({
       <PlannedWatershed plan={plan} quality={quality} reducedMotion={reducedMotion} />
       <PlannedPaths plan={plan} scatter={scatter} />
       <Suspense fallback={<LoadingMarker plan={plan} />}>
-        <VegetationLayer scatter={scatter} plan={plan} enrichment={enrichment} />
+        <VegetationLayer
+          scatter={scatter}
+          plan={plan}
+          enrichment={enrichment}
+          themeLayer={themeLayer}
+        />
         <ArchitectureLayer
           world={world}
           plan={plan}
@@ -2018,6 +2276,12 @@ export function KingdomScenePlanned({
           onHover={onHover}
         />
         <WildlifeLayer scatter={scatter} plan={plan} reducedMotion={reducedMotion} />
+        <EnchantedThemeLayer
+          layer={themeLayer}
+          plan={plan}
+          reducedMotion={reducedMotion}
+          quality={quality}
+        />
       </Suspense>
       <PlannedLife
         plan={plan}

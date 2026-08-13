@@ -6,9 +6,18 @@ import {
   deriveRepositoryWorldIdentity,
   KINGDOM_SEASONS,
   KINGDOM_SEASON_LABELS,
+  KINGDOM_WORLD_THEMES,
+  KINGDOM_WORLD_THEME_DESCRIPTIONS,
+  KINGDOM_WORLD_THEME_LABELS,
   type KingdomSeason,
+  type KingdomWorldTheme,
 } from "@/lib/kingdom";
-import type { KingdomWorld, RepositoryUniverse, Selection } from "@/lib/kingdom/types";
+import {
+  REPOSITORY_PLANET_CLASS_LABELS,
+  type KingdomWorld,
+  type RepositoryUniverse,
+  type Selection,
+} from "@/lib/kingdom/types";
 
 import styles from "./kingdom-experience.module.css";
 import { BIOME_COLORS, BIOME_LABELS, CATEGORY_LABELS } from "./world-utils";
@@ -27,6 +36,7 @@ type KingdomHudProps = Readonly<{
   isDemo: boolean;
   soundEnabled: boolean;
   season: KingdomSeason;
+  worldTheme: KingdomWorldTheme | null;
   onRepositoryInput: (value: string) => void;
   onSubmit: () => void;
   onSelect: (selection: Selection) => void;
@@ -36,6 +46,7 @@ type KingdomHudProps = Readonly<{
   onShowUniverse: () => void;
   onToggleSound: () => void;
   onSeasonChange: (season: KingdomSeason) => void;
+  onWorldThemeChange: (worldTheme: KingdomWorldTheme | null) => void;
 }>;
 
 function formatBytes(bytes: number): string {
@@ -74,6 +85,66 @@ function SeasonPicker({
             {KINGDOM_SEASON_LABELS[option]}
           </label>
         ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function WorldThemePicker({
+  worldTheme,
+  onChange,
+  compact = false,
+}: Readonly<{
+  worldTheme: KingdomWorldTheme | null;
+  onChange: (worldTheme: KingdomWorldTheme | null) => void;
+  compact?: boolean;
+}>) {
+  const options: ReadonlyArray<
+    Readonly<{ value: KingdomWorldTheme | null; label: string; description: string }>
+  > = [
+    ...(compact
+      ? []
+      : [
+          {
+            value: null,
+            label: "Repo choice",
+            description: "Let repository evidence select the initial world.",
+          } as const,
+        ]),
+    ...KINGDOM_WORLD_THEMES.map((option) => ({
+      value: option,
+      label: KINGDOM_WORLD_THEME_LABELS[option],
+      description: KINGDOM_WORLD_THEME_DESCRIPTIONS[option],
+    })),
+  ];
+
+  return (
+    <fieldset
+      className={compact ? styles.worldThemePickerCompact : styles.worldThemePicker}
+      role="radiogroup"
+    >
+      <legend>{compact ? "World" : "Choose a world"}</legend>
+      <div>
+        {options.map((option) => {
+          const key = option.value ?? "repository-choice";
+          return (
+            <label
+              key={key}
+              data-selected={worldTheme === option.value ? "true" : "false"}
+              title={option.description}
+            >
+              <input
+                type="radio"
+                name={compact ? "world-theme" : "forge-world-theme"}
+                value={key}
+                checked={worldTheme === option.value}
+                onChange={() => onChange(option.value)}
+              />
+              <span aria-hidden="true" data-world-theme={key} />
+              {option.label}
+            </label>
+          );
+        })}
       </div>
     </fieldset>
   );
@@ -130,6 +201,10 @@ function CoveragePanel({ world }: Readonly<{ world: KingdomWorld }>) {
               <dd>
                 {world.schema} · compiler {world.compilerVersion}
               </dd>
+            </div>
+            <div>
+              <dt>World</dt>
+              <dd>{KINGDOM_WORLD_THEME_LABELS[world.worldTheme]}</dd>
             </div>
             <div>
               <dt>Discovered</dt>
@@ -306,7 +381,7 @@ function ExplorerDrawer({
               <div
                 className={styles.miniMap}
                 role="img"
-                aria-label={`Map of the ${world.theme.label} kingdom`}
+                aria-label={`Map of the ${KINGDOM_WORLD_THEME_LABELS[world.worldTheme]}`}
               >
                 <span className={styles.miniMapNexus} aria-hidden="true" />
                 {world.provinces.map((province) => {
@@ -436,6 +511,7 @@ function UniverseDrawer({
                   <span>
                     <strong>{repository.repository}</strong>
                     <small>
+                      {REPOSITORY_PLANET_CLASS_LABELS[repository.planetClass]} ·{" "}
                       {KINGDOM_SEASON_LABELS[repository.season]} ·{" "}
                       {repository.language ?? "Repository"} · ★ {repository.stars.toLocaleString()}
                     </small>
@@ -505,11 +581,12 @@ function SelectionCard({
     canEnter = true;
   } else {
     const { repository } = selection;
-    kicker = `${KINGDOM_SEASON_LABELS[repository.season]} repository world`;
+    kicker = REPOSITORY_PLANET_CLASS_LABELS[repository.planetClass];
     title = `${repository.owner}/${repository.repository}`;
     description = repository.description ?? "An explorable repository world.";
     facts.push(
       ["Season", KINGDOM_SEASON_LABELS[repository.season]],
+      ["Planet", REPOSITORY_PLANET_CLASS_LABELS[repository.planetClass]],
       ["Language", repository.language ?? "Unknown"],
       ["Stars", repository.stars.toLocaleString()],
     );
@@ -586,6 +663,7 @@ export function KingdomHud({
   isDemo,
   soundEnabled,
   season,
+  worldTheme,
   onRepositoryInput,
   onSubmit,
   onSelect,
@@ -595,6 +673,7 @@ export function KingdomHud({
   onShowUniverse,
   onToggleSound,
   onSeasonChange,
+  onWorldThemeChange,
 }: KingdomHudProps) {
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -607,7 +686,7 @@ export function KingdomHud({
   const subtitle =
     mode === "universe"
       ? `${universe?.repositoryCount ?? 0} explorable worlds`
-      : `${worldIdentity.label} · ${KINGDOM_SEASON_LABELS[season]} · ${worldIdentity.scaleTier} realm · ${world.coverage.representedFiles.toLocaleString()} files represented`;
+      : `${KINGDOM_WORLD_THEME_LABELS[world.worldTheme]} · ${KINGDOM_SEASON_LABELS[season]} · ${worldIdentity.scaleTier} realm · ${world.coverage.representedFiles.toLocaleString()} files represented`;
 
   return (
     <div className={styles.hud}>
@@ -670,7 +749,10 @@ export function KingdomHud({
               <i aria-hidden="true">→</i>
             </button>
           </form>
-          <SeasonPicker season={season} onChange={onSeasonChange} />
+          <div className={styles.forgeOptions}>
+            <WorldThemePicker worldTheme={worldTheme} onChange={onWorldThemeChange} />
+            <SeasonPicker season={season} onChange={onSeasonChange} />
+          </div>
           <div className={styles.gatewayMeta}>
             <span>Public repositories only</span>
             <span>·</span>
@@ -692,7 +774,14 @@ export function KingdomHud({
           <h1>{title}</h1>
           <p>{subtitle}</p>
           {mode === "kingdom" ? (
-            <SeasonPicker season={season} onChange={onSeasonChange} compact />
+            <div className={styles.worldControlsCompact}>
+              <WorldThemePicker
+                worldTheme={world.worldTheme}
+                onChange={onWorldThemeChange}
+                compact
+              />
+              <SeasonPicker season={season} onChange={onSeasonChange} compact />
+            </div>
           ) : null}
         </section>
       )}

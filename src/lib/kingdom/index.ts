@@ -6,6 +6,7 @@ export { isKingdomSeason, kingdomSeasonOrDefault, KINGDOM_SEASON_LABELS } from "
 export { compileUniverse } from "./universe";
 export * from "./world-identity";
 export * from "./world-plan";
+export * from "./world-theme";
 export { kingdomWorldSchema, repositoryUniverseSchema } from "./schemas";
 export {
   DEFAULT_KINGDOM_SEASON,

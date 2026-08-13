@@ -3,9 +3,31 @@ import type { ProfileSnapshot } from "@/lib/github";
 import { KingdomError } from "./errors";
 import { stableFraction, stableHash } from "./hash";
 import { repositoryUniverseSchema } from "./schemas";
-import { KINGDOM_SEASONS, type RepositoryUniverse } from "./types";
+import {
+  KINGDOM_SEASONS,
+  type KingdomSeason,
+  type RepositoryPlanetClass,
+  type RepositoryUniverse,
+} from "./types";
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+export function deriveRepositoryPlanetClass(
+  repositoryId: number,
+  season: KingdomSeason,
+): RepositoryPlanetClass {
+  const variation = stableHash(`${repositoryId}:planet-class`) % 10;
+
+  // Seasons are deterministic repository metadata in the universe compiler.
+  // They establish a readable celestial family while the repository hash
+  // introduces rarer rocky and cross-season variants.
+  if (season === "autumn") return variation === 0 ? "rocky" : "gas-giant";
+  if (season === "winter") return variation === 0 ? "rocky" : "ice-giant";
+  if (variation <= 1) return "rocky";
+  if (variation === 2) return "gas-giant";
+  if (variation === 3) return "ice-giant";
+  return "terrestrial";
+}
 
 export function compileUniverse(snapshot: ProfileSnapshot): RepositoryUniverse {
   const repositories = [...snapshot.repositories]
@@ -36,6 +58,7 @@ export function compileUniverse(snapshot: ProfileSnapshot): RepositoryUniverse {
         radius: Math.min(8, 2.8 + Math.log2(repository.stars + repository.forks + 2) * 0.7),
         hue: stableHash(repository.language ?? repository.repository) % 360,
         season,
+        planetClass: deriveRepositoryPlanetClass(repository.id, season),
       };
     });
   const generatedAt =

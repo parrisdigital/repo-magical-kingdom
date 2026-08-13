@@ -195,11 +195,11 @@ export function buildPlannedEscarpmentGeometry(
   const { envelope, camera } = plan.topology;
   const columns = QUALITY_COLUMNS[quality];
   const rearRows = quality === "high" ? 12 : 8;
-  const bandCount = 4 + Math.floor(stableFraction(`${plan.topologyKey}:ribbon:bands`) * 3);
-  const wallWidthRatio = 0.68 + stableFraction(`${plan.topologyKey}:ribbon:width`) * 0.05;
+  const bandCount = 4 + Math.floor(stableFraction(`${plan.terrainKey}:ribbon:bands`) * 3);
+  const wallWidthRatio = 0.68 + stableFraction(`${plan.terrainKey}:ribbon:width`) * 0.05;
   const wallWidth = envelope.width * wallWidthRatio;
   const centerShift =
-    (stableFraction(`${plan.topologyKey}:ribbon:center`) - 0.5) * envelope.width * 0.035;
+    (stableFraction(`${plan.terrainKey}:ribbon:center`) - 0.5) * envelope.width * 0.035;
   const wallCenterX = clamp(
     envelope.center.x + centerShift,
     envelope.minX + envelope.safeMargin + wallWidth / 2,
@@ -214,16 +214,16 @@ export function buildPlannedEscarpmentGeometry(
   const notchWidth = clamp(wallWidth * 0.034, 4.2, 6.8);
   const notchDepth = clamp(envelope.depth * 0.061, 8.5, 12.5);
   const shelfDepth =
-    envelope.depth * (0.032 + stableFraction(`${plan.topologyKey}:ribbon:shelf-depth`) * 0.009);
+    envelope.depth * (0.032 + stableFraction(`${plan.terrainKey}:ribbon:shelf-depth`) * 0.009);
   const requestedRearConnectionDepth =
     envelope.depth *
-    (0.135 + stableFraction(`${plan.topologyKey}:ribbon:rear-connection-depth`) * 0.005);
+    (0.135 + stableFraction(`${plan.terrainKey}:ribbon:rear-connection-depth`) * 0.005);
   const nominalBaseZ = camera.horizonZ + envelope.depth * 0.045;
   const faceDepth =
-    envelope.depth * (0.044 + stableFraction(`${plan.topologyKey}:ribbon:face-depth`) * 0.01);
-  const phaseA = stableFraction(`${plan.topologyKey}:ribbon:phase:a`) * Math.PI * 2;
-  const phaseB = stableFraction(`${plan.topologyKey}:ribbon:phase:b`) * Math.PI * 2;
-  const phaseC = stableFraction(`${plan.topologyKey}:ribbon:phase:c`) * Math.PI * 2;
+    envelope.depth * (0.044 + stableFraction(`${plan.terrainKey}:ribbon:face-depth`) * 0.01);
+  const phaseA = stableFraction(`${plan.terrainKey}:ribbon:phase:a`) * Math.PI * 2;
+  const phaseB = stableFraction(`${plan.terrainKey}:ribbon:phase:b`) * Math.PI * 2;
+  const phaseC = stableFraction(`${plan.terrainKey}:ribbon:phase:c`) * Math.PI * 2;
 
   const crest: CrestSample[] = [];
   for (let column = 0; column <= columns; column += 1) {
@@ -256,11 +256,11 @@ export function buildPlannedEscarpmentGeometry(
       const peakCenter =
         0.1 +
         peak * 0.2 +
-        (stableFraction(`${plan.topologyKey}:ribbon:peak:${peak}:center`) - 0.5) * 0.055;
+        (stableFraction(`${plan.terrainKey}:ribbon:peak:${peak}:center`) - 0.5) * 0.055;
       const peakRadius =
-        0.075 + stableFraction(`${plan.topologyKey}:ribbon:peak:${peak}:radius`) * 0.045;
+        0.075 + stableFraction(`${plan.terrainKey}:ribbon:peak:${peak}:radius`) * 0.045;
       const peakAmplitude =
-        2.8 + stableFraction(`${plan.topologyKey}:ribbon:peak:${peak}:height`) * 4.8;
+        2.8 + stableFraction(`${plan.terrainKey}:ribbon:peak:${peak}:height`) * 4.8;
       const peakStrength = Math.max(0, 1 - Math.abs(progress - peakCenter) / peakRadius);
       spire = Math.max(spire, Math.pow(peakStrength, 1.55) * peakAmplitude);
     }
@@ -294,7 +294,7 @@ export function buildPlannedEscarpmentGeometry(
   const positions: number[] = [];
   const indices: number[] = [];
   const zones: number[] = [];
-  const faceRows = buildFaceRows(plan.topologyKey, bandCount);
+  const faceRows = buildFaceRows(plan.terrainKey, bandCount);
   const verticesPerRow = columns + 1;
 
   for (const row of faceRows) {

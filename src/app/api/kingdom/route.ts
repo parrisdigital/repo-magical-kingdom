@@ -35,7 +35,10 @@ export async function GET(request: Request): Promise<Response> {
     const worldPromise = inFlightKingdoms.run(canonical.requestKey, async () => {
       const github = createGithubClient({ token: process.env.GITHUB_TOKEN });
       const snapshot = await github.getRepositorySnapshot(canonical.reference, deadline?.signal);
-      return compileKingdom(snapshot, { season: canonical.season });
+      return compileKingdom(snapshot, {
+        season: canonical.season,
+        ...(canonical.worldTheme ? { worldTheme: canonical.worldTheme } : {}),
+      });
     });
     const world = await waitWithSignal(worldPromise, deadline.signal);
     const cacheableImmutableRequest = Boolean(

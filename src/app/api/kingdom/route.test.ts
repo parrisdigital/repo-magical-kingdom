@@ -36,8 +36,11 @@ function request(
   revision?: string,
   clientIp = "203.0.113.10",
   season = "spring",
+  worldTheme?: string,
 ): Request {
-  const parameters = new URLSearchParams({ repository, season });
+  const parameters = new URLSearchParams({ repository });
+  if (worldTheme !== undefined) parameters.set("world", worldTheme);
+  parameters.set("season", season);
   if (revision !== undefined) parameters.set("revision", revision);
   return new Request(`http://localhost/api/kingdom?${parameters.toString()}`, {
     headers: { "x-forwarded-for": clientIp },
@@ -133,6 +136,30 @@ describe("GET /api/kingdom", () => {
     await Promise.all([spring, winter]);
     expect(mocks.compileKingdom).toHaveBeenCalledWith({ snapshot: true }, { season: "spring" });
     expect(mocks.compileKingdom).toHaveBeenCalledWith({ snapshot: true }, { season: "winter" });
+  });
+
+  it("keeps explicit world themes in distinct compilation identities", async () => {
+    const snapshot = deferred<unknown>();
+    mocks.getRepositorySnapshot.mockReturnValue(snapshot.promise);
+
+    const valley = GET(request("owner/themed", "main", "203.0.113.18", "spring", "kingdom-valley"));
+    const forest = GET(
+      request("owner/themed", "main", "203.0.113.18", "spring", "enchanted-forest"),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mocks.getRepositorySnapshot).toHaveBeenCalledTimes(2);
+    snapshot.resolve({ snapshot: true });
+    await Promise.all([valley, forest]);
+    expect(mocks.compileKingdom).toHaveBeenCalledWith(
+      { snapshot: true },
+      { season: "spring", worldTheme: "kingdom-valley" },
+    );
+    expect(mocks.compileKingdom).toHaveBeenCalledWith(
+      { snapshot: true },
+      { season: "spring", worldTheme: "enchanted-forest" },
+    );
   });
 
   it("publicly caches only an exact full-commit request after the commit is validated", async () => {

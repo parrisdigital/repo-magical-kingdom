@@ -431,6 +431,16 @@
   letter-spacing: 0.025em;
 }
 
+.forgeOptions {
+  display: grid;
+  gap: 0.34rem;
+  margin-top: 0.48rem;
+}
+
+.forgeOptions .seasonPicker {
+  margin-top: 0;
+}
+
 .error {
   margin-top: 0.5rem !important;
   color: #a62e28 !important;
@@ -524,6 +534,114 @@
   letter-spacing: 0.04em;
 }
 
+.worldThemePicker,
+.worldThemePickerCompact {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.worldThemePicker legend,
+.worldThemePickerCompact legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.worldThemePicker > div,
+.worldThemePickerCompact > div {
+  display: flex;
+  gap: 0.28rem;
+}
+
+.worldThemePicker label,
+.worldThemePickerCompact label {
+  position: relative;
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  min-width: 0;
+  min-height: 1.78rem;
+  padding: 0.28rem 0.46rem;
+  overflow: hidden;
+  color: #53675c;
+  background: rgba(255, 255, 250, 0.68);
+  border: 1px solid rgba(42, 65, 49, 0.15);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worldThemePicker label[data-selected="true"],
+.worldThemePickerCompact label[data-selected="true"] {
+  color: #284b35;
+  background: rgba(198, 230, 187, 0.82);
+  border-color: rgba(63, 113, 73, 0.48);
+}
+
+.worldThemePicker input,
+.worldThemePickerCompact input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.worldThemePicker label:focus-within,
+.worldThemePickerCompact label:focus-within {
+  outline: 2px solid rgba(151, 204, 165, 0.88);
+  outline-offset: 2px;
+}
+
+.worldThemePicker label > span,
+.worldThemePickerCompact label > span {
+  flex: 0 0 auto;
+  width: 0.58rem;
+  height: 0.58rem;
+  background:
+    radial-gradient(circle at 63% 32%, #f5d477 0 15%, transparent 17%),
+    linear-gradient(145deg, #78a969 0 48%, #608fbd 50% 64%, #a3c977 66%);
+  border-radius: 50%;
+  box-shadow: 0 0 0.48rem rgba(72, 124, 84, 0.45);
+}
+
+.worldThemePicker label > span[data-world-theme="enchanted-forest"],
+.worldThemePickerCompact label > span[data-world-theme="enchanted-forest"] {
+  background:
+    radial-gradient(circle at 52% 28%, #a6f2ca 0 13%, transparent 15%),
+    conic-gradient(from 30deg, #255f43, #7bb06c, #3a7955, #b18ad0, #255f43);
+  box-shadow: 0 0 0.58rem rgba(96, 213, 155, 0.62);
+}
+
+.worldThemePicker label > span[data-world-theme="repository-choice"] {
+  background: conic-gradient(from 45deg, #6fa4be, #d7a44d, #739c62, #9173b5, #6fa4be);
+}
+
+.worldThemePickerCompact label {
+  min-height: 1.65rem;
+  padding: 0.25rem 0.48rem;
+}
+
+.worldControlsCompact {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.48rem;
+}
+
+.worldControlsCompact .seasonPickerCompact {
+  margin-top: 0;
+}
+
 .seasonPicker label[data-selected="true"],
 .seasonPickerCompact label[data-selected="true"] {
   color: #624714;
@@ -592,7 +710,7 @@
   position: absolute;
   top: clamp(4.15rem, 8.5vh, 5.25rem);
   left: clamp(0.85rem, 1.8vw, 1.5rem);
-  max-width: 20rem;
+  max-width: 22rem;
   padding: 0.62rem 0.75rem;
   background: linear-gradient(135deg, rgba(255, 253, 245, 0.86), rgba(247, 250, 239, 0.69));
   border: 1px solid rgba(46, 73, 52, 0.17);

@@ -7,6 +7,7 @@ import {
   type KingdomWorld,
   type RepositoryUniverse,
 } from "./types";
+import { DEFAULT_KINGDOM_WORLD_THEME, type KingdomWorldTheme } from "./world-theme";
 import { compileUniverse } from "./universe";
 
 const REPOSITORY_CITY_SHA = "0e61374af12387266c6fb13c273bee845b5f0864";
@@ -373,8 +374,11 @@ const demoProfileSnapshot: ProfileSnapshot = {
   ],
 };
 
-export function createDemoKingdom(season: KingdomSeason = DEFAULT_KINGDOM_SEASON): KingdomWorld {
-  return compileKingdom(repositoryCitySnapshot, { season });
+export function createDemoKingdom(
+  season: KingdomSeason = DEFAULT_KINGDOM_SEASON,
+  worldTheme: KingdomWorldTheme = DEFAULT_KINGDOM_WORLD_THEME,
+): KingdomWorld {
+  return compileKingdom(repositoryCitySnapshot, { season, worldTheme });
 }
 
 export function createDemoUniverse(): RepositoryUniverse {

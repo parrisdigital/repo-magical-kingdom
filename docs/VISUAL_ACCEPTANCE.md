@@ -14,7 +14,7 @@ WorldClaw's official material establishes the method-level standard:
 
 The paper is explicit about several failure modes relevant here: planar or weakly varying support is inadequate for mountains and other expressive landforms; a continuous composite height field should blend region-specific landforms and materials; rocks and vegetation should be scattered according to region, density, elevation, slope, and surface normal; and refinement should re-render predefined viewpoints to correct transitions, texture scale, distributions, lighting, and object–terrain contact.
 
-Some requirements below are deliberately more specific than the paper. The dominant rear escarpment, foreground water, two-to-four hamlets, four-season read, living motion, and restrained product HUD are this project's art direction. They must not be presented as WorldClaw paper claims.
+Some requirements below are deliberately more specific than the paper. The dominant rear escarpment, foreground water, two-to-four hamlets, selectable world-style read, seasonal read, living motion, and restrained product HUD are this project's art direction. They must not be presented as WorldClaw paper claims.
 
 ## Strict PASS / REVISE rubric
 
@@ -37,6 +37,19 @@ Overall status is binary and non-compensating:
 - Desktop overview, mobile overview, and desktop exploration evidence must come from the same candidate and season.
 - The clean route cannot prove the production HUD criterion. A production-surface capture is required before that row can pass.
 
+## Planetary-universe gate
+
+The profile overview has a separate acceptance gate because it is a navigation
+summary, not a compressed kingdom. A passing repository planet must have a
+spherical celestial silhouette, coherent lit and night hemispheres, a
+class-specific procedural surface, and a restrained atmosphere. Terrestrial
+worlds require readable oceans and continents; gas and ice giants require
+latitude-driven bands; rings must be layered, elliptical in perspective, and
+fully contained in overview and focus views. Literal houses, trees, fences, or
+roads mounted on the overview sphere are a failure. Desktop overview, desktop
+focus, 390×844 overview/focus, reduced-motion stability, and a 48-repository LOD
+capture are all required before promotion.
+
 ## Deterministic capture harness
 
 Start the development server in a separate terminal, then run:
@@ -46,17 +59,19 @@ pnpm dev
 node scripts/visual/capture-worldclaw-review.mjs
 ```
 
-The harness uses `http://localhost:3000` by default. Keep `localhost` for the Next.js development server; loopback-IP requests can be rejected for development chunks. It loads the fixed route `/visual-review?season=spring&clean=1`, hides the Next.js development badge, waits a fixed post-canvas interval, and writes:
+The harness uses `http://localhost:3000` by default. Keep `localhost` for the Next.js development server; loopback-IP requests can be rejected for development chunks. It loads `/visual-review?world=enchanted-forest&season=spring&clean=1` by default, hides the Next.js development badge, waits a fixed post-canvas interval, and writes theme-qualified artifacts.
 
-- `artifacts/visual-review/desktop-overview-spring.png` at 1440×900
-- `artifacts/visual-review/mobile-overview-spring.png` at 390×844
-- `artifacts/visual-review/desktop-exploration-spring.png` at 1440×900 after a fixed orbit-and-zoom gesture
+- `artifacts/visual-review/desktop-overview-enchanted-forest-spring.png` at 1440×900
+- `artifacts/visual-review/mobile-overview-enchanted-forest-spring.png` at 390×844
+- `artifacts/visual-review/desktop-exploration-enchanted-forest-spring.png` at 1440×900 after a fixed orbit-and-zoom gesture
 - `artifacts/visual-review/sanity-report.json`
 
 The artifact directory is intentionally gitignored. Optional controls are:
 
 ```sh
 VISUAL_REVIEW_BASE_URL=http://localhost:3000 \
+VISUAL_REVIEW_WORLD=enchanted-forest \
+VISUAL_REVIEW_SEASON=spring \
 VISUAL_REVIEW_SETTLE_MS=6500 \
 VISUAL_REVIEW_CAPTURE_IDS=desktop-overview,mobile-overview \
 VISUAL_REVIEW_ARTIFACT_DIR=/absolute/review/output \

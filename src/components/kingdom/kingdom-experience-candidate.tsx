@@ -570,6 +570,7 @@ export function KingdomExperienceCandidate({
         isDemo={isDemo}
         soundEnabled={soundEnabled}
         season={season}
+        worldTheme={world.worldTheme}
         onRepositoryInput={setRepositoryInput}
         onSubmit={submitRepository}
         onSelect={setSelection}
@@ -588,6 +589,7 @@ export function KingdomExperienceCandidate({
         onShowUniverse={() => void loadUniverse(world.source.owner)}
         onToggleSound={() => setSoundEnabled((enabled) => !enabled)}
         onSeasonChange={changeSeason}
+        onWorldThemeChange={() => undefined}
       />
     </main>
   );

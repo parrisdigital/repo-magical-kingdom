@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ProfileSnapshot } from "@/lib/github";
 
 import { KINGDOM_SEASONS } from "./types";
-import { compileUniverse } from "./universe";
+import { compileUniverse, deriveRepositoryPlanetClass } from "./universe";
 
 function profile(repositoryCount = 4): ProfileSnapshot {
   return {
@@ -41,10 +41,21 @@ describe("compileUniverse", () => {
       new Set(KINGDOM_SEASONS),
     );
     expect(
+      new Set(first.repositories.map((repository) => repository.planetClass)).size,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
       first.repositories.every(
         (repository) => Math.hypot(repository.position.x, repository.position.z) >= 23.9,
       ),
     ).toBe(true);
+  });
+
+  it("derives stable celestial classes with seasonal giant families", () => {
+    expect(deriveRepositoryPlanetClass(42, "autumn")).toBe(
+      deriveRepositoryPlanetClass(42, "autumn"),
+    );
+    expect(["gas-giant", "rocky"]).toContain(deriveRepositoryPlanetClass(42, "autumn"));
+    expect(["ice-giant", "rocky"]).toContain(deriveRepositoryPlanetClass(42, "winter"));
   });
 
   it("keeps large profiles spatially bounded while preserving every returned repository", () => {

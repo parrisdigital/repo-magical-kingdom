@@ -92,6 +92,8 @@ The initial `repo-kingdom/v1` contract contains:
 
 - Build identity and compiler version
 - Source identity and provenance
+- One deterministic or user-selected world style (`kingdom-valley` or
+  `enchanted-forest`)
 - One user-selected world season (`spring`, `summer`, `autumn`, or `winter`)
 - File-derived or aggregate entities
 - Root routes and repository portals
@@ -106,12 +108,12 @@ secrets.
 ### Repository universe
 
 The `repo-universe/v1` contract contains lightweight repository summaries and
-stable overview placement for a profile or organization. Every summary also
-has a deterministic seasonal identity used to render a small spherical world
-with terrain, a road, vegetation, and a settlement silhouette. It deliberately
-does not contain every repository tree. Full miniature detail is rendered only
-for a bounded nearest or selected set, and a kingdom is fetched or compiled
-only when the visitor enters it.
+stable overview placement for a profile or organization. Every summary has a
+deterministic season and celestial class: terrestrial, ringed gas giant, ice
+giant, or rocky. The overview renders procedural continents or atmospheric
+bands, clouds, limb atmosphere, rings, and bounded moons; it does not pretend
+that toy surface props are repository files. The full repository tree is fetched
+or compiled only when the visitor enters a planet.
 
 ## Determinism and compatibility
 
@@ -119,7 +121,7 @@ The conceptual build key combines:
 
 ```text
 provider + repository ID + commit SHA + compiler version
-+ style version + seed + quality tier
++ style version + world style + season + seed + quality tier
 ```
 
 Rules:
@@ -133,12 +135,14 @@ Rules:
 - Unchanged modules should retain their province and approximate location across
   nearby revisions.
 
-## Realm style
+## World style and season
 
-Each repository is one coherent world in one explicitly selected season. The
-same immutable repository revision can be forged as spring, summer, autumn, or
-winter; the season changes presentation and build identity without changing
-the repository-derived semantic geography.
+Each repository is one coherent world in one explicitly selected style and
+season. Repository evidence derives the default style, and an explorer can
+override it. The same immutable revision can be forged as Kingdom Valley or
+Enchanted Forest in spring, summer, autumn, or winter. Both selections change
+the build identity; season does not change structural placement, and a world
+style may enrich topology only through its versioned, bounded contract.
 
 `deriveRepositoryWorldIdentity()` separately classifies season-independent
 repository evidence into a Source Forge, Warden Reach, Archive Domain,
@@ -159,6 +163,17 @@ seasons.
   generic building extrusion.
 - Activity and analysis lenses may animate or recolor geography but do not
   silently redefine canonical placement.
+
+## Planetary universe
+
+The profile view is a bounded, progressive summary rather than a second kingdom
+renderer. Repository ID, language, scale, and deterministic season select a
+celestial class and shader seed. Terrestrial worlds receive ocean, continent,
+polar, cloud, and atmosphere layers; gas and ice giants receive latitude-driven
+bands and optional rings; rocky worlds receive cratered mineral fields. Large
+profiles cap geometry detail by rank while always promoting the selected planet
+to the highest tier. Planet selection changes only camera and presentation; it
+does not fetch the repository tree until entry.
 
 ## Runtime
 
