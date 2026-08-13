@@ -1,0 +1,51 @@
+CHANGELOG.md
+  s_57e29531c752a5::t_ba7f80d767e9c3 35-36
+  s_57e29531c752a5::t_2b3a864e0b0616 41-43
+src/app/manifest.ts
+  s_57e29531c752a5::t_be74e846505b73 12-25
+ACKNOWLEDGEMENTS.md
+  s_57e29531c752a5::t_2b3a864e0b0616 52-62
+attribution/registry.json
+  s_57e29531c752a5::t_f6aa301ce033c7 412,414-417,420-438,442-450,453,456-466,468-474,476-477,479-489,491,493-497,499,501-504,509-515,518,521-531,533-535,538-539,542-543,545-552
+  s_57e29531c752a5::t_181f2870160386 413,439-441,451-452,454-455,467,475,478,490,492,506,508,516-517,519-520,532,536-537,540-541,544
+docs/CREDITS.md
+  s_57e29531c752a5::t_2b3a864e0b0616 18-20
+NOTICE
+  s_57e29531c752a5::t_9a80633333a146 4-10
+docs/SOURCE_LINEAGE.md
+  s_57e29531c752a5::t_2b3a864e0b0616 73-82
+src/app/credits/page.tsx
+  s_57e29531c752a5::t_2b3a864e0b0616 29-33
+  s_57e29531c752a5::t_72d7d575248d92 28
+src/components/kingdom/kingdom-experience.module.css
+  s_57e29531c752a5::t_be74e846505b73 205-210,212-213,216-220,1340-1342
+  s_57e29531c752a5::t_b0e0ae4357c559 1188-1197
+  s_57e29531c752a5::t_4294609d9f7f45 223-225,228-230,233-238
+tests/e2e/kingdom.spec.ts
+  s_57e29531c752a5::t_b03cfd9edbf6ec 245-248
+  s_57e29531c752a5::t_fdfe9e49a20f1b 117,249-253
+README.md
+  s_57e29531c752a5::t_2b3a864e0b0616 199-203
+  s_57e29531c752a5::t_9a80633333a146 243-248
+  s_57e29531c752a5::t_a894d368cfebca 14-18,21
+src/components/kingdom/kingdom-hud.tsx
+  s_57e29531c752a5::t_be74e846505b73 3,261-263
+THIRD_PARTY_NOTICES.md
+  s_57e29531c752a5::t_9a80633333a146 72-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "2292c2eed38715fa6d6f41233ba3d0b0758dd5ba",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
