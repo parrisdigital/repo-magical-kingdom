@@ -11,6 +11,7 @@ import {
   createPlannedTerrainModel,
   getPlannedTerrainDefinition,
   isInsidePlannedTerrain,
+  queryPlannedWaterDistance,
   samplePlannedTerrainHeight,
   samplePlannedWatershedPoint,
   samplePlannedWaterSurface,
@@ -163,6 +164,8 @@ describe("planned global terrain", () => {
     ).toBeGreaterThan(1.4);
 
     for (const sample of samples) {
+      expect(Math.hypot(sample.tangentX, sample.tangentZ)).toBeCloseTo(1, 8);
+      expect(sample.tangentX * sample.normalX + sample.tangentZ * sample.normalZ).toBeCloseTo(0, 8);
       const waterHeight = samplePlannedWaterSurface(plan, sample.x, sample.z);
       expect(waterHeight).not.toBeNull();
       expect(samplePlannedTerrainHeight(plan, sample.x, sample.z)).toBeLessThanOrEqual(
@@ -182,6 +185,47 @@ describe("planned global terrain", () => {
     ).toBeLessThan(definition.envelope.width * 0.36);
   });
 
+  it("builds every river row on the shared local course normal with downward winding", () => {
+    const plan = createWorldPlan(createDemoKingdom());
+    const courseSegments = 48;
+    const crossSegments = 4;
+    const water = buildPlannedWaterGeometry(plan, {
+      courseSegments,
+      courseCrossSegments: crossSegments,
+      lakeSegments: 48,
+    });
+    const definition = getPlannedTerrainDefinition(plan);
+    const activeRows = Math.max(
+      2,
+      Math.floor(courseSegments * definition.water.course.basinEntryProgress),
+    );
+    for (let row = 0; row <= activeRows; row += 1) {
+      const progress = Math.min(
+        definition.water.course.basinEntryProgress - 0.008,
+        (row / activeRows) * definition.water.course.basinEntryProgress,
+      );
+      const sample = samplePlannedWatershedPoint(plan, progress);
+      const first = row * (crossSegments + 1);
+      const last = first + crossSegments;
+      const spanX = water.positions[last * 3]! - water.positions[first * 3]!;
+      const spanZ = water.positions[last * 3 + 2]! - water.positions[first * 3 + 2]!;
+      expect(Math.abs(spanX * sample.tangentX + spanZ * sample.tangentZ)).toBeLessThan(0.001);
+      expect(queryPlannedWaterDistance(plan, sample.x, sample.z).signedDistance).toBeLessThan(0);
+    }
+    for (let index = 0; index < water.ranges.courseTriangles * 3; index += 3) {
+      const a = water.indices[index]!;
+      const b = water.indices[index + 1]!;
+      const c = water.indices[index + 2]!;
+      const ax = water.positions[a * 3]!;
+      const az = water.positions[a * 3 + 2]!;
+      const bx = water.positions[b * 3]!;
+      const bz = water.positions[b * 3 + 2]!;
+      const cx = water.positions[c * 3]!;
+      const cz = water.positions[c * 3 + 2]!;
+      expect((bz - az) * (cx - ax) - (bx - ax) * (cz - az)).toBeLessThan(0);
+    }
+  });
+
   it("creates a substantial irregular foreground lake fully inside the landmass", () => {
     const plan = createWorldPlan(createDemoKingdom());
     const definition = getPlannedTerrainDefinition(plan);
@@ -189,6 +233,16 @@ describe("planned global terrain", () => {
     expect(lake.center.z).toBeGreaterThan(definition.envelope.center.z);
     expect(lake.footprintRatio).toBeGreaterThanOrEqual(0.12);
     expect(lake.footprintRatio).toBeLessThanOrEqual(0.22);
+
+    const water = buildPlannedWaterGeometry(plan, { lakeSegments: 72 });
+    const lakeStart = water.vertexCount - 73;
+    for (let index = 0; index < 73; index += 1) {
+      const vertex = lakeStart + index;
+      const x = water.positions[vertex * 3]!;
+      const z = water.positions[vertex * 3 + 2]!;
+      expect(queryPlannedWaterDistance(plan, x, z).lakeDistance).toBeCloseTo(0, 2);
+      expect(samplePlannedWaterSurface(plan, x, z)).not.toBeNull();
+    }
 
     for (let index = 0; index < 48; index += 1) {
       const angle = (index / 48) * Math.PI * 2;

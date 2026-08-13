@@ -1,11 +1,13 @@
 import { stableFraction, stableHash } from "@/lib/kingdom/hash";
-import type {
-  CorridorRegionMask,
-  EllipseRegionMask,
-  HamletRegion,
-  WorldPlan,
-  WorldPlanEnvelope,
-  WorldPlanPoint,
+import {
+  getHamletTerrainPlacementMask,
+  requiredHamletTerrainRadius,
+  type CorridorRegionMask,
+  type EllipseRegionMask,
+  type HamletRegion,
+  type WorldPlan,
+  type WorldPlanEnvelope,
+  type WorldPlanPoint,
 } from "@/lib/kingdom/world-plan";
 
 export type PlannedTerrainMaterialZone =
@@ -124,8 +126,7 @@ export type PlannedTerrainBuildOptions = Readonly<{
 
 /** Minimum level settlement radius needed for 3–6 final-scale building assemblies. */
 export function requiredHamletVisualRadius(hamlet: HamletRegion): number {
-  const buildingCount = Math.min(6, Math.max(3, hamlet.maxBuildings));
-  return Math.max(hamlet.mask.radiusX, hamlet.mask.radiusZ, 9.5 + buildingCount * 1.5);
+  return requiredHamletTerrainRadius(hamlet);
 }
 
 /**
@@ -136,32 +137,7 @@ export function getHamletVisualPlacementMask(
   plan: WorldPlan,
   hamlet: HamletRegion,
 ): EllipseRegionMask {
-  const radius = requiredHamletVisualRadius(hamlet);
-  const { envelope } = plan.topology;
-  const rearFaceZ = plan.topology.camera.horizonZ + envelope.depth * 0.025;
-  const minimumSmoothCenterZ = rearFaceZ + radius * 2.55;
-  const needsEscarpmentClearance = hamlet.mask.center.z < minimumSmoothCenterZ;
-  const lateralDirection = hamlet.mask.center.x <= envelope.center.x ? -1 : 1;
-  const center = needsEscarpmentClearance
-    ? point(
-        clamp(
-          hamlet.mask.center.x + lateralDirection * radius * 4.75,
-          envelope.minX + envelope.safeMargin + radius,
-          envelope.maxX - envelope.safeMargin - radius,
-        ),
-        clamp(
-          minimumSmoothCenterZ,
-          envelope.minZ + envelope.safeMargin + radius,
-          envelope.maxZ - envelope.safeMargin - radius,
-        ),
-      )
-    : hamlet.mask.center;
-  return {
-    ...hamlet.mask,
-    center,
-    radiusX: radius,
-    radiusZ: radius,
-  };
+  return getHamletTerrainPlacementMask(plan.topology.envelope, hamlet);
 }
 
 const MATERIAL_ZONE_CODE: Readonly<Record<PlannedTerrainMaterialZone, number>> = {
@@ -423,6 +399,24 @@ type CourseQuery = Readonly<{
   shoreHalfWidth: number;
 }>;
 
+export type PlannedWatershedSample = Readonly<
+  WorldPlanPoint & {
+    tangentX: number;
+    tangentZ: number;
+    normalX: number;
+    normalZ: number;
+    width: number;
+    surfaceHeight: number;
+  }
+>;
+
+export type PlannedWaterDistance = Readonly<{
+  signedDistance: number;
+  shoreDistance: number;
+  courseDistance: number;
+  lakeDistance: number;
+}>;
+
 function courseHalfWidth(definition: PlannedTerrainDefinition, progress: number): number {
   const phase = stableFraction(`${definition.key}:course-width`) * Math.PI * 2;
   const widening = 0.58 + progress * 0.71;
@@ -457,6 +451,7 @@ function queryCourse(definition: PlannedTerrainDefinition, x: number, z: number)
 
 type LakeShapeDefinition = Pick<PlannedTerrainDefinition, "key" | "terraces"> &
   Readonly<{ water: Readonly<{ lake: PlannedLake }> }>;
+type FittedLakeShapeDefinition = LakeShapeDefinition & Pick<PlannedTerrainDefinition, "outline">;
 
 function angularDistance(first: number, second: number): number {
   return Math.abs(Math.atan2(Math.sin(first - second), Math.cos(first - second)));
@@ -507,15 +502,15 @@ function lakeRadiusMultiplier(definition: LakeShapeDefinition, angle: number): n
   return clamp(multiplier, 0.36, 1.3);
 }
 
-function lakeNormalizedRadius(definition: LakeShapeDefinition, x: number, z: number): number {
+function lakeNormalizedRadius(definition: FittedLakeShapeDefinition, x: number, z: number): number {
   const lake = definition.water.lake;
   const normalizedX = (x - lake.center.x) / lake.radiusX;
   const normalizedZ = (z - lake.center.z) / lake.radiusZ;
   const angle = Math.atan2(normalizedZ, normalizedX);
-  return Math.hypot(normalizedX, normalizedZ) / lakeRadiusMultiplier(definition, angle);
+  return Math.hypot(normalizedX, normalizedZ) / fittedLakeRadiusMultiplier(definition, angle);
 }
 
-function fittedLakeRadiusMultiplier(definition: PlannedTerrainDefinition, angle: number): number {
+function fittedLakeRadiusMultiplier(definition: FittedLakeShapeDefinition, angle: number): number {
   const requested = lakeRadiusMultiplier(definition, angle);
   const lake = definition.water.lake;
   const pointAt = (multiplier: number) =>
@@ -536,6 +531,24 @@ function fittedLakeRadiusMultiplier(definition: PlannedTerrainDefinition, angle:
     else upper = middle;
   }
   return Math.max(0, lower * 0.995);
+}
+
+function fittedLakeSignedDistance(
+  definition: FittedLakeShapeDefinition,
+  x: number,
+  z: number,
+): number {
+  const lake = definition.water.lake;
+  const normalizedX = (x - lake.center.x) / lake.radiusX;
+  const normalizedZ = (z - lake.center.z) / lake.radiusZ;
+  const angle = Math.atan2(normalizedZ, normalizedX);
+  const normalizedRadius = Math.hypot(normalizedX, normalizedZ);
+  const boundaryRadius = fittedLakeRadiusMultiplier(definition, angle);
+  const worldUnitsPerNormalizedRadius = Math.hypot(
+    Math.cos(angle) * lake.radiusX,
+    Math.sin(angle) * lake.radiusZ,
+  );
+  return (normalizedRadius - boundaryRadius) * worldUnitsPerNormalizedRadius;
 }
 
 function courseWaterHeight(definition: PlannedTerrainDefinition, progress: number): number {
@@ -560,10 +573,36 @@ function sampleCoursePolyline(
   return point(mix(start.x, end.x, localProgress), mix(start.z, end.z, localProgress));
 }
 
+function sampleCourseContract(
+  definition: PlannedTerrainDefinition,
+  progress: number,
+): PlannedWatershedSample {
+  const points = definition.water.course.points;
+  const clampedProgress = clamp(progress, 0, 1);
+  const scaled = clampedProgress * Math.max(1, points.length - 1);
+  const segmentIndex = Math.min(Math.max(0, points.length - 2), Math.floor(scaled));
+  const start = points[segmentIndex] ?? points[0] ?? point(0, definition.envelope.minZ);
+  const end = points[segmentIndex + 1] ?? start;
+  const length = Math.hypot(end.x - start.x, end.z - start.z);
+  const tangentX = length > 0 ? (end.x - start.x) / length : 0;
+  const tangentZ = length > 0 ? (end.z - start.z) / length : 1;
+  const center = sampleCoursePolyline(points, clampedProgress);
+  return {
+    ...center,
+    tangentX,
+    tangentZ,
+    normalX: tangentZ,
+    normalZ: -tangentX,
+    width: courseHalfWidth(definition, clampedProgress) * 2,
+    surfaceHeight: courseWaterHeight(definition, clampedProgress),
+  };
+}
+
 function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   const { course: courseMask, lake: lakeMask } = getWaterMasks(plan);
   const envelope = plan.topology.envelope;
   const parameters = boundaryParameters(plan.terrainKey);
+  const outline = buildOutline(envelope, parameters);
   const rearFaceZ = plan.topology.camera.horizonZ + envelope.depth * 0.025;
   // A connected lateral chain creates one dominant rear escarpment rather than
   // a few isolated mound primitives. Repository identity still jitters every
@@ -666,9 +705,10 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   const provisionalLakeShape = {
     key: plan.terrainKey,
     terraces,
+    outline,
     water: { lake: provisionalLake },
-  } satisfies LakeShapeDefinition;
-  const inletRadius = lakeRadiusMultiplier(provisionalLakeShape, inletAngle);
+  } satisfies FittedLakeShapeDefinition;
+  const inletRadius = fittedLakeRadiusMultiplier(provisionalLakeShape, inletAngle);
   const inletPoint = point(
     lakeCenter.x + Math.cos(inletAngle) * radiusX * inletRadius * 1.01,
     lakeCenter.z + Math.sin(inletAngle) * radiusZ * inletRadius * 1.01,
@@ -763,8 +803,9 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   const temporaryDefinition = {
     key: plan.terrainKey,
     terraces,
+    outline,
     water: { lake: lakeDefinition },
-  } satisfies LakeShapeDefinition;
+  } satisfies FittedLakeShapeDefinition;
   const basinEntryProgress = (() => {
     const coarseSteps = 160;
     let previousProgress = 0;
@@ -815,7 +856,7 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   };
   return {
     ...partial,
-    outline: buildOutline(envelope, parameters),
+    outline,
   };
 }
 
@@ -982,7 +1023,10 @@ function waterQuery(
 }> {
   const course = queryCourse(definition, x, z);
   const lakeRadius = lakeNormalizedRadius(definition, x, z);
-  const inLake = lakeRadius <= 1;
+  // Float32 perimeter vertices can land a few microunits outside their source
+  // doubles. Keep the rendered shoreline and classifier identical at that
+  // numeric boundary without widening the authored basin perceptibly.
+  const inLake = fittedLakeSignedDistance(definition, x, z) <= 0.002;
   const inCourse = course.distance <= course.halfWidth;
   const lakeShoreWidth = 4 / Math.max(definition.water.lake.radiusX, definition.water.lake.radiusZ);
   const shore =
@@ -1058,6 +1102,27 @@ function pathSurfaceDistance(definition: PlannedTerrainDefinition, x: number, z:
 
 export function samplePlannedWaterSurface(plan: WorldPlan, x: number, z: number): number | null {
   return waterQuery(getPlannedTerrainDefinition(plan), x, z).surfaceHeight;
+}
+
+/**
+ * Returns signed world-space clearance from the authored wet surface and its
+ * deterministic outer shore. Negative values are inside that footprint.
+ */
+export function queryPlannedWaterDistance(
+  plan: WorldPlan,
+  x: number,
+  z: number,
+): PlannedWaterDistance {
+  const definition = getPlannedTerrainDefinition(plan);
+  const course = queryCourse(definition, x, z);
+  const courseDistance = course.distance - course.halfWidth;
+  const lakeDistance = fittedLakeSignedDistance(definition, x, z);
+  return {
+    signedDistance: Math.min(courseDistance, lakeDistance),
+    shoreDistance: Math.min(course.distance - course.shoreHalfWidth, lakeDistance - 4),
+    courseDistance,
+    lakeDistance,
+  };
 }
 
 /** Samples the continuous terrain, including the river cut and lake basin. */
@@ -1156,21 +1221,8 @@ export function classifyPlannedTerrainRegion(
 export function samplePlannedWatershedPoint(
   plan: WorldPlan,
   progress: number,
-): Readonly<WorldPlanPoint & { width: number; surfaceHeight: number }> {
-  const definition = getPlannedTerrainDefinition(plan);
-  const points = definition.water.course.points;
-  const clampedProgress = clamp(progress, 0, 1);
-  const scaled = clampedProgress * Math.max(1, points.length - 1);
-  const segmentIndex = Math.min(Math.max(0, points.length - 2), Math.floor(scaled));
-  const localProgress = scaled - segmentIndex;
-  const start = points[segmentIndex] ?? points[0] ?? point(0, definition.envelope.minZ);
-  const end = points[segmentIndex + 1] ?? start;
-  return {
-    x: mix(start.x, end.x, localProgress),
-    z: mix(start.z, end.z, localProgress),
-    width: courseHalfWidth(definition, clampedProgress) * 2,
-    surfaceHeight: courseWaterHeight(definition, clampedProgress),
-  };
+): PlannedWatershedSample {
+  return sampleCourseContract(getPlannedTerrainDefinition(plan), progress);
 }
 
 function geometryData(
@@ -1369,11 +1421,9 @@ export function buildPlannedWaterGeometry(
     const center = samplePlannedWatershedPoint(plan, progress);
     for (let column = 0; column <= crossSegments; column += 1) {
       const across = -1 + (column / crossSegments) * 2;
-      // The planned course is monotonic in Z. A stable right-to-left cross
-      // section guarantees consistent downward winding even through sharp
-      // repository-specific bends and cannot fold adjacent water quads.
-      const x = center.x - center.width * 0.5 * across;
-      const z = center.z;
+      // Columns run right-to-left across the local course normal.
+      const x = center.x - center.normalX * center.width * 0.5 * across;
+      const z = center.z - center.normalZ * center.width * 0.5 * across;
       const y = center.surfaceHeight + Math.sin(progress * Math.PI * 8 + across * 2) * 0.018;
       positions.push(x, y + 0.035, z);
       zones.push(MATERIAL_ZONE_CODE["river-bed"]);
@@ -1383,7 +1433,22 @@ export function buildPlannedWaterGeometry(
     for (let column = 0; column < crossSegments; column += 1) {
       const first = row * verticesPerCourseRow + column;
       const second = first + verticesPerCourseRow;
-      indices.push(first, second, first + 1, first + 1, second, second + 1);
+      const pushDownwardTriangle = (a: number, b: number, c: number) => {
+        const ax = positions[a * 3] ?? 0;
+        const az = positions[a * 3 + 2] ?? 0;
+        const abx = (positions[b * 3] ?? 0) - ax;
+        const abz = (positions[b * 3 + 2] ?? 0) - az;
+        const acx = (positions[c * 3] ?? 0) - ax;
+        const acz = (positions[c * 3 + 2] ?? 0) - az;
+        const normalY = abz * acx - abx * acz;
+        if (normalY < 0) indices.push(a, b, c);
+        else indices.push(a, c, b);
+      };
+      // Repository-driven bends can rotate neighboring cross sections enough
+      // to invert one projected quad. Keep every triangle consistently
+      // downward-wound for the BackSide water material.
+      pushDownwardTriangle(first, second, first + 1);
+      pushDownwardTriangle(first + 1, second, second + 1);
     }
   }
   const courseTriangles = indices.length / 3;

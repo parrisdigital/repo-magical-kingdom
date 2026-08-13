@@ -147,7 +147,16 @@ function useWebGlSupport(): boolean | null {
       try {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
-        setSupported(Boolean(context));
+        if (!context) {
+          setSupported(false);
+          return;
+        }
+        // Probe the same Three.js renderer construction used by R3F. A raw
+        // context can exist even when WebGLRenderer initialization fails.
+        const renderer = new THREE.WebGLRenderer({ canvas, context });
+        renderer.dispose();
+        renderer.forceContextLoss();
+        setSupported(true);
       } catch {
         setSupported(false);
       }
@@ -254,6 +263,25 @@ class SceneBoundary extends Component<SceneBoundaryProps, { failed: boolean }> {
 
   public override componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("The repository world failed to assemble.", error, info);
+    this.props.onError(error);
+  }
+
+  public override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+type CanvasBoundaryProps = Readonly<{ children: ReactNode; onError: (error: Error) => void }>;
+
+class CanvasBoundary extends Component<CanvasBoundaryProps, { failed: boolean }> {
+  public override state = { failed: false };
+
+  public static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  public override componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("The WebGL canvas failed before the repository scene mounted.", error, info);
     this.props.onError(error);
   }
 
@@ -401,6 +429,8 @@ export function KingdomExperience({
           await waitForTravel(360, controller.signal);
         }
         setSelection(null);
+        setFailedSceneKey(null);
+        setSceneAttempt((attempt) => attempt + 1);
         setWorld(nextWorld);
         setSeason(nextWorld.season);
         setWorldThemeChoice(nextWorld.worldTheme);
@@ -497,6 +527,8 @@ export function KingdomExperience({
           });
           await waitForTravel(320, controller.signal);
         }
+        setFailedSceneKey(null);
+        setSceneAttempt((attempt) => attempt + 1);
         setUniverse(nextUniverse);
         setMode("universe");
         setRepositoryInput(nextUniverse.owner);
@@ -691,9 +723,9 @@ export function KingdomExperience({
       aria-busy={travel !== null}
     >
       {webglSupported && contextFailureCount < 2 && !sceneFailure ? (
-        <SceneBoundary
-          key={`${sceneKey}:${sceneAttempt}`}
-          onError={() => setFailedSceneKey(sceneKey)}
+        <CanvasBoundary
+          key={`renderer:${sceneKey}:${sceneAttempt}`}
+          onError={() => setContextFailureCount(2)}
         >
           <div className={styles.canvasWrap} aria-hidden="true">
             <Canvas
@@ -720,44 +752,53 @@ export function KingdomExperience({
                 });
               }}
             >
-              {mode === "universe" ? (
-                <RepositoryUniverseScene
-                  key={sceneKey}
-                  universe={activeUniverse}
-                  selection={selection}
-                  onSelect={setSelection}
-                  onHover={setHovered}
-                  onEnterRepository={enterRepository}
-                  travelingRepositoryId={travel?.repositoryId ?? null}
-                  resetToken={resetToken}
-                  reducedMotion={reducedMotion}
-                  quality={quality}
-                />
-              ) : (
-                <KingdomScene
-                  key={sceneKey}
-                  world={world}
-                  season={season}
-                  selection={selection}
-                  onSelect={setSelection}
-                  onHover={setHovered}
-                  onEnterPortal={enterRepository}
-                  resetToken={resetToken}
-                  reducedMotion={reducedMotion}
-                  quality={quality}
-                />
-              )}
+              <SceneBoundary
+                key={`scene:${sceneKey}:${sceneAttempt}`}
+                onError={() => setFailedSceneKey(sceneKey)}
+              >
+                {mode === "universe" ? (
+                  <RepositoryUniverseScene
+                    key={sceneKey}
+                    universe={activeUniverse}
+                    selection={selection}
+                    onSelect={setSelection}
+                    onHover={setHovered}
+                    onEnterRepository={enterRepository}
+                    travelingRepositoryId={travel?.repositoryId ?? null}
+                    resetToken={resetToken}
+                    reducedMotion={reducedMotion}
+                    quality={quality}
+                  />
+                ) : (
+                  <KingdomScene
+                    key={sceneKey}
+                    world={world}
+                    season={season}
+                    selection={selection}
+                    onSelect={setSelection}
+                    onHover={setHovered}
+                    onEnterPortal={enterRepository}
+                    resetToken={resetToken}
+                    reducedMotion={reducedMotion}
+                    quality={quality}
+                  />
+                )}
+              </SceneBoundary>
             </Canvas>
           </div>
-        </SceneBoundary>
+        </CanvasBoundary>
       ) : sceneFailure ? (
         <div className={styles.sceneFallback} role="alert">
           <p className={styles.sceneFallbackEyebrow}>Repository world interrupted</p>
-          <h2>This kingdom could not be assembled.</h2>
+          <h2>
+            {mode === "universe"
+              ? "This repository universe could not be assembled."
+              : "This kingdom could not be assembled."}
+          </h2>
           <p>
-            The repository data loaded, but one generated placement could not be rendered safely.
-            Try the deterministic build again or choose another repository while the source remains
-            available in the explorer.
+            {mode === "universe"
+              ? "The profile data loaded, but the repository atlas could not be rendered safely. Try the deterministic atlas again or choose another profile."
+              : "The repository data loaded, but one generated placement could not be rendered safely. Try the deterministic build again or choose another repository while the source remains available in the explorer."}
           </p>
           <button
             type="button"
@@ -766,7 +807,7 @@ export function KingdomExperience({
               setSceneAttempt((attempt) => attempt + 1);
             }}
           >
-            Retry world
+            {mode === "universe" ? "Retry universe" : "Retry world"}
           </button>
         </div>
       ) : webglSupported === false || contextFailureCount >= 2 ? (

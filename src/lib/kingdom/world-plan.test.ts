@@ -4,6 +4,7 @@ import { createDemoKingdom } from "./demo-world";
 import { KINGDOM_SEASONS } from "./types";
 import {
   createWorldPlan,
+  getHamletTerrainPlacementMask,
   type CorridorRegionMask,
   type WorldPlanEnvelope,
   type WorldPlanPoint,
@@ -290,11 +291,79 @@ describe("createWorldPlan", () => {
     expect(buildingCount).toBeLessThan(massive.statistics.files / 1_000);
     expect(topology.visualBudgets.maxTrees).toBe(240);
     expect(identity.scaleTier).toBe("vast");
+    expect(topology.envelope.width).toBeGreaterThanOrEqual(256);
+    expect(topology.envelope.depth).toBeGreaterThanOrEqual(264);
     expect(wildlifeCount).toBe(topology.visualBudgets.maxWildlifeActors);
     expect(wildlifeCount).toBeGreaterThan(6);
     expect(wildlifeCount).toBeLessThanOrEqual(16);
     expect(topology.visualBudgets.maxVisibleTriangles).toBe(750_000);
     expect(topology.visualBudgets.maxDrawCalls).toBe(150);
+  });
+
+  it("gives a one-province vast repository a large envelope and separated positive satellites", () => {
+    const demo = createDemoKingdom();
+    const directory = demo.provinces.find((province) => province.role !== "nexus")!;
+    const nexus = demo.provinces.find((province) => province.role === "nexus")!;
+    const world = {
+      ...demo,
+      provinces: [nexus, directory],
+      entities: demo.entities.filter((entity) => entity.provinceId === directory.id),
+      routes: [],
+      portals: [],
+      statistics: { ...demo.statistics, files: 100_000 },
+    };
+    const first = createWorldPlan(world);
+    const repeated = createWorldPlan(world);
+    expect(repeated.topology).toEqual(first.topology);
+    expect(first.identity.scaleTier).toBe("vast");
+    expect(first.topology.envelope.width).toBeGreaterThanOrEqual(256);
+    expect(first.topology.envelope.depth).toBeGreaterThanOrEqual(264);
+    expect(first.topology.hamlets).toHaveLength(4);
+    for (const hamlet of first.topology.hamlets) {
+      expect(hamlet.mask.radiusX).toBeGreaterThan(0);
+      expectMaskInside(hamlet.mask, first.topology.envelope);
+      expect(hamlet.provinceId).toBe(directory.id);
+    }
+    for (let firstIndex = 0; firstIndex < first.topology.hamlets.length; firstIndex += 1) {
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < first.topology.hamlets.length;
+        secondIndex += 1
+      ) {
+        const firstHamlet = first.topology.hamlets[firstIndex]!;
+        const secondHamlet = first.topology.hamlets[secondIndex]!;
+        expect(distance(firstHamlet.mask.center, secondHamlet.mask.center)).toBeGreaterThanOrEqual(
+          firstHamlet.mask.radiusX + secondHamlet.mask.radiusX + 8 - EPSILON,
+        );
+      }
+    }
+    expect(new Set(first.topology.semanticZones.flatMap((zone) => zone.entityIds))).toEqual(
+      new Set(world.entities.map((entity) => entity.id)),
+    );
+  });
+
+  it("keys terrain from geometric terraces instead of unrelated visual budgets", () => {
+    const valley = createWorldPlan(createDemoKingdom("spring", "kingdom-valley"));
+    const forest = createWorldPlan(createDemoKingdom("spring", "enchanted-forest"));
+    expect(forest.topology.visualBudgets.maxTrees).not.toBe(valley.topology.visualBudgets.maxTrees);
+    expect(forest.terrainKey).toBe(valley.terrainKey);
+
+    const world = createDemoKingdom();
+    const expandedWorld = {
+      ...world,
+      statistics: { ...world.statistics, files: 4_096 },
+    };
+    const expanded = createWorldPlan(expandedWorld);
+    expect(
+      expanded.topology.hamlets.map(
+        (hamlet) => getHamletTerrainPlacementMask(expanded.topology.envelope, hamlet).radiusX,
+      ),
+    ).not.toEqual(
+      valley.topology.hamlets.map(
+        (hamlet) => getHamletTerrainPlacementMask(valley.topology.envelope, hamlet).radiusX,
+      ),
+    );
+    expect(expanded.terrainKey).not.toBe(valley.terrainKey);
   });
 
   it("keeps every repository entity traceable without creating a building for each file", () => {
@@ -304,7 +373,7 @@ describe("createWorldPlan", () => {
     const worldEntityIds = world.entities.map((entity) => entity.id).sort();
     const hamletProvinceIds = new Set(topology.hamlets.map((hamlet) => hamlet.provinceId));
 
-    expect(topology.semanticMapping.buildingRule).toContain("compact hamlets");
+    expect(topology.semanticMapping.buildingRule).toContain("fewer than 64 files");
     expect(topology.semanticZones).toHaveLength(world.provinces.length);
     expect(coveredEntityIds).toEqual(worldEntityIds);
     expect(

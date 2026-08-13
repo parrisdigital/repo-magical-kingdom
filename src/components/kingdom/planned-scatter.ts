@@ -13,6 +13,7 @@ import {
   classifyPlannedTerrainRegion,
   getHamletVisualPlacementMask,
   getPlannedTerrainDefinition,
+  queryPlannedWaterDistance,
   samplePlannedTerrainHeight,
 } from "./planned-terrain-model";
 
@@ -263,21 +264,7 @@ function distanceToCorridor(sample: Sample, corridor: CorridorRegionMask): numbe
 }
 
 function distanceToWater(sample: Sample, plan: WorldPlan): number {
-  const terrain = getPlannedTerrainDefinition(plan);
-  const courseMask: CorridorRegionMask = {
-    shape: "corridor",
-    points: terrain.water.course.points,
-    width: terrain.water.course.sourceWidth * 1.42,
-    feather: 4.8,
-  };
-  const courseClearance = distanceToCorridor(sample, courseMask) - courseMask.width / 2 - 4.8;
-  const lake = terrain.water.lake;
-  const normalizedLakeRadius = Math.hypot(
-    (sample.x - lake.center.x) / lake.radiusX,
-    (sample.z - lake.center.z) / lake.radiusZ,
-  );
-  const lakeClearance = (normalizedLakeRadius - 1) * Math.min(lake.radiusX, lake.radiusZ) - 4;
-  return Math.min(courseClearance, lakeClearance);
+  return queryPlannedWaterDistance(plan, sample.x, sample.z).shoreDistance;
 }
 
 function footprintSamples(sample: Sample, radius: number): ReadonlyArray<Sample> {

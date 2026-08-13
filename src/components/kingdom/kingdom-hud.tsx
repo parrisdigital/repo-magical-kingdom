@@ -259,7 +259,7 @@ function Brand({ mode, isDemo }: Readonly<{ mode: ExperienceMode; isDemo: boolea
   return (
     <div className={styles.brand}>
       <span className={styles.brandSigil} aria-hidden="true">
-        <Image src="/brand/app-logo-v2.png" alt="" width={112} height={112} sizes="56px" priority />
+        <Image src="/brand/app-logo-v2.png" alt="" width={112} height={112} sizes="56px" />
       </span>
       <div>
         <p>Repo Magical Kingdom</p>

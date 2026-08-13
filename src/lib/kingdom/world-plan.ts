@@ -300,6 +300,12 @@ type WaterSystem = Readonly<{
 
 const WATER_ZONE_IDS = ["water-course", "water-lake"] as const;
 const DEFAULT_SAFE_MARGIN = 10;
+const MINIMUM_ENVELOPE_BY_SCALE = {
+  compact: { width: 144, depth: 160 },
+  established: { width: 176, depth: 188 },
+  expansive: { width: 216, depth: 224 },
+  vast: { width: 256, depth: 264 },
+} as const;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -311,6 +317,43 @@ function round(value: number): number {
 
 function point(x: number, z: number): WorldPlanPoint {
   return { x: round(x), z: round(z) };
+}
+
+/** Physical terrace radius required by the final-scale 3–6 building assembly. */
+export function requiredHamletTerrainRadius(hamlet: HamletRegion): number {
+  return Math.max(
+    hamlet.mask.radiusX,
+    hamlet.mask.radiusZ,
+    9.5 + Math.min(6, Math.max(3, hamlet.maxBuildings)) * 1.5,
+  );
+}
+
+/** Canonical physical settlement mask shared by terrain identity and rendering. */
+export function getHamletTerrainPlacementMask(
+  envelope: WorldPlanEnvelope,
+  hamlet: HamletRegion,
+): EllipseRegionMask {
+  const radius = requiredHamletTerrainRadius(hamlet);
+  const horizonZ = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40);
+  const rearFaceZ = horizonZ + envelope.depth * 0.025;
+  const minimumSmoothCenterZ = rearFaceZ + radius * 2.55;
+  const needsEscarpmentClearance = hamlet.mask.center.z < minimumSmoothCenterZ;
+  const lateralDirection = hamlet.mask.center.x <= envelope.center.x ? -1 : 1;
+  const center = needsEscarpmentClearance
+    ? point(
+        clamp(
+          hamlet.mask.center.x + lateralDirection * radius * 4.75,
+          envelope.minX + envelope.safeMargin + radius,
+          envelope.maxX - envelope.safeMargin - radius,
+        ),
+        clamp(
+          minimumSmoothCenterZ,
+          envelope.minZ + envelope.safeMargin + radius,
+          envelope.maxZ - envelope.safeMargin - radius,
+        ),
+      )
+    : hamlet.mask.center;
+  return { ...hamlet.mask, center, radiusX: radius, radiusZ: radius };
 }
 
 function distance(first: WorldPlanPoint, second: WorldPlanPoint): number {
@@ -359,7 +402,7 @@ function categoryPriority(category: FileCategory): number {
   }[category];
 }
 
-function createEnvelope(world: KingdomWorld): WorldPlanEnvelope {
+function createEnvelope(world: KingdomWorld, identity: RepositoryWorldIdentity): WorldPlanEnvelope {
   let maximumAbsoluteX = 0;
   let minimumContentZ = 0;
   let maximumContentZ = 0;
@@ -386,10 +429,11 @@ function createEnvelope(world: KingdomWorld): WorldPlanEnvelope {
     maximumContentZ = Math.max(maximumContentZ, portal.position.z + 8);
   }
 
-  const halfWidth = Math.max(72, Math.ceil(maximumAbsoluteX + 44));
+  const minimum = MINIMUM_ENVELOPE_BY_SCALE[identity.scaleTier];
+  const halfWidth = Math.max(minimum.width / 2, Math.ceil(maximumAbsoluteX + 44));
   let minZ = Math.min(-92, Math.floor(minimumContentZ - 38));
-  const maxZ = Math.max(68, Math.ceil(maximumContentZ + 30));
-  if (maxZ - minZ < 160) minZ = maxZ - 160;
+  const maxZ = Math.max(minimum.depth * 0.425, Math.ceil(maximumContentZ + 30));
+  if (maxZ - minZ < minimum.depth) minZ = maxZ - minimum.depth;
 
   return {
     minX: -halfWidth,
@@ -462,18 +506,17 @@ function createHamlets(
   }));
   while (candidates.length < desiredCount) {
     const index = candidates.length;
-    const side = index % 2 === 0 ? -1 : 1;
-    const phase = stableFraction(`${world.seed}:satellite:${index}`) - 0.5;
+    const angle =
+      stableFraction(`${world.seed}:satellite:rotation`) * Math.PI * 2 +
+      ((index - selected.length) / Math.max(1, desiredCount - selected.length)) * Math.PI * 2;
+    const orbitX = Math.min(envelope.width * 0.29, 58);
+    const orbitZ = Math.min(envelope.depth * 0.25, 54);
     candidates.push({
       province: fallbackProvince,
       satellite: true,
       center: point(
-        clamp(
-          fallbackProvince.position.x + side * (30 + Math.abs(phase) * 8),
-          envelope.minX + 18,
-          envelope.maxX - 18,
-        ),
-        clamp(fallbackProvince.position.z - 8 + phase * 10, envelope.minZ + 18, envelope.maxZ - 18),
+        clamp(envelope.center.x + Math.cos(angle) * orbitX, envelope.minX + 18, envelope.maxX - 18),
+        clamp(envelope.center.z + Math.sin(angle) * orbitZ, envelope.minZ + 18, envelope.maxZ - 18),
       ),
     });
   }
@@ -517,7 +560,7 @@ function createHamlets(
     const preferredRadius = candidate.satellite
       ? 7
       : clamp(candidate.province.radius * 0.72 + 2, 7, 15);
-    const radius = round(Math.min(preferredRadius, (nearestDistance - 8) / 2));
+    const radius = round(Math.max(3, Math.min(preferredRadius, (nearestDistance - 8) / 2)));
     const allProvinceEntities = orderEntities(
       world.entities.filter((entity) => entity.provinceId === candidate.province.id),
     );
@@ -1591,12 +1634,10 @@ function createTerrainKey(
       archetype: identity.archetype,
       scaleTier: identity.scaleTier,
       envelope,
-      hamlets: hamlets.map((hamlet) => ({
-        id: hamlet.id,
-        role: hamlet.role,
-        mask: hamlet.mask,
-        maxBuildings: hamlet.maxBuildings,
-      })),
+      terraces: hamlets.map((hamlet) => {
+        const mask = getHamletTerrainPlacementMask(envelope, hamlet);
+        return { id: hamlet.id, center: mask.center, radiusX: mask.radiusX, radiusZ: mask.radiusZ };
+      }),
       terrainZones: terrainZones.map((zone) => ({
         id: zone.id,
         kind: zone.kind,
@@ -1614,7 +1655,7 @@ function createTerrainKey(
  */
 export function createWorldPlan(world: KingdomWorld): WorldPlan {
   const identity = deriveRepositoryWorldIdentity(world);
-  const envelope = createEnvelope(world);
+  const envelope = createEnvelope(world, identity);
   const hamlets = createHamlets(world, envelope, identity);
   const { zones: terrainZones, water } = createTerrainZones(world, envelope, hamlets, identity);
   const visualBudgets = createVisualBudgets(world, identity, hamlets);
@@ -1646,10 +1687,15 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
       id: "repository-semantics/v1",
       rationale:
         "Repository structure chooses spatial roles, while scenery expresses most code areas without turning every file or folder into a house.",
-      buildingRule:
-        world.statistics.files >= 128
-          ? "The strongest top-level directory provinces become two to six scale-aware hamlets; each is aggregated into three to six buildings, with twelve to thirty-two buildings total depending on repository scale."
-          : "The strongest top-level directory provinces become two or three compact hamlets; each is aggregated into three to six buildings, with twelve to eighteen buildings total.",
+      buildingRule: {
+        compact:
+          "Compact repositories (fewer than 64 files) use two or three hamlets and at most eighteen aggregated buildings.",
+        established:
+          "Established repositories (64–511 files) use three or four hamlets and at most twenty-four aggregated buildings.",
+        expansive:
+          "Expansive repositories (512–4,095 files) use four or five hamlets and at most twenty-eight aggregated buildings.",
+        vast: "Vast repositories (4,096 or more files) use four to six hamlets and at most thirty-two aggregated buildings.",
+      }[identity.scaleTier],
       traceabilityRule:
         "Every province has a semantic hit zone containing all of its entity IDs, including provinces represented only by nature, landform, or invisible selection coverage.",
     },

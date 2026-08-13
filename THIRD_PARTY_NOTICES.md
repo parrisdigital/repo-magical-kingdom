@@ -69,9 +69,19 @@ verbatim copying and distribution and has not been modified. Source:
 - Redistribution status: no source code, figures, imagery, meshes, website
   assets, or generated results are redistributed
 
+### Tiny World Builder
+
+- Source: <https://github.com/jasonkneen/tiny-world-builder>
+- Reviewed revision: `de89a516f7d08786436f3b63bf74942759e8d98b`
+- License: AGPL-3.0
+- Relationship: procedural-system research reference for explicit world scale,
+  deterministic terrain, chunk/LOD boundaries, and bounded animal movement
+- Redistribution status: no source code, assets, UI, generated worlds, or
+  visual style are copied, adapted, redistributed, or loaded at runtime
+
 ## Project-generated media
 
-The README hero, social preview, Seasonal Gateway application mark and
+The README hero, social preview, Four-Season Cycle application mark and
 installable icons, and Orbital Mountain favicon are original project media
 generated with OpenAI's image generation tool from this project's own reviewed
 application artwork. They are distributed under CC BY 4.0 rather than the

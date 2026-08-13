@@ -75,6 +75,32 @@
       "notes": "The reviewed repository default branch did not declare a software license."
     },
     {
+      "id": "tiny-world-builder",
+      "name": "Tiny World Builder",
+      "kind": "research-reference",
+      "relationship": "Procedural-system reference for explicit world scale, deterministic terrain, chunk and LOD boundaries, and bounded animal movement.",
+      "canonicalUrl": "https://github.com/jasonkneen/tiny-world-builder",
+      "distribution": "research-citation",
+      "commit": "de89a516f7d08786436f3b63bf74942759e8d98b",
+      "license": {
+        "spdx": "AGPL-3.0-only",
+        "status": "declared",
+        "url": "https://github.com/jasonkneen/tiny-world-builder/blob/de89a516f7d08786436f3b63bf74942759e8d98b/LICENSE"
+      },
+      "authors": ["Jason Kneen", "Tiny World Builder contributors"],
+      "usage": "General procedural-system patterns were reviewed and independently implemented; no upstream code, assets, UI, generated worlds, or visual style are used.",
+      "projectLocations": [
+        "README.md",
+        "ACKNOWLEDGEMENTS.md",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/SOURCE_LINEAGE.md",
+        "src/app/credits/page.tsx"
+      ],
+      "redistributedFiles": [],
+      "modifications": "No upstream source or asset is copied, adapted, bundled, or loaded at runtime."
+    },
+    {
       "id": "kenney-nature-kit-2-1",
       "name": "Kenney Nature Kit",
       "kind": "asset",

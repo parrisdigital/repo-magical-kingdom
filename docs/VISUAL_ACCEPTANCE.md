@@ -14,7 +14,7 @@ WorldClaw's official material establishes the method-level standard:
 
 The paper is explicit about several failure modes relevant here: planar or weakly varying support is inadequate for mountains and other expressive landforms; a continuous composite height field should blend region-specific landforms and materials; rocks and vegetation should be scattered according to region, density, elevation, slope, and surface normal; and refinement should re-render predefined viewpoints to correct transitions, texture scale, distributions, lighting, and object–terrain contact.
 
-Some requirements below are deliberately more specific than the paper. The dominant rear escarpment, foreground water, two-to-four hamlets, selectable world-style read, seasonal read, living motion, and restrained product HUD are this project's art direction. They must not be presented as WorldClaw paper claims.
+Some requirements below are deliberately more specific than the paper. The dominant rear escarpment, foreground water, two-to-four primary hamlets with up to two subordinate satellites in expansive or vast repositories, selectable world-style read, seasonal read, living motion, and restrained product HUD are this project's art direction. They must not be presented as WorldClaw paper claims.
 
 ## Strict PASS / REVISE rubric
 
@@ -101,7 +101,7 @@ Evidence: the fixed spring captures above, inspected at native resolution. Autom
 | Continuous terrain and hierarchy | REVISE        | The world is connected and non-flat, but its outline and dark vertical edge read as a rounded floating slab. Relief is mostly one smooth scale rather than a terrain hierarchy.                                         |
 | Dominant rear escarpment         | REVISE        | The rear landmark is a pair of smooth green hills. It lacks a dominant multi-peak/cliff silhouette, rock structure, and atmospheric separation.                                                                         |
 | Watershed and foreground water   | REVISE        | A rear-to-front river is present, but it remains a thin, nearly uniform strip with no legible banks, widening, shoreline, or foreground basin.                                                                          |
-| Two-to-four spaced hamlets       | REVISE        | Roughly six or more visually equal building sites are distributed across the island. They read as outposts and lone structures, not 2–4 deliberately composed hamlets.                                                  |
+| Scale-aware spaced hamlets       | REVISE        | Roughly six or more visually equal building sites are distributed across the island. They read as outposts and lone structures, not 2–4 deliberately composed primary hamlets with clearly subordinate satellites.      |
 | Scattered multi-species groves   | REVISE        | Trees are no longer in a single line and several silhouettes are present, which is a real improvement. Distribution is still broadly even and random, without convincing grove density, clearings, or ecological edges. |
 | Grass and surface detail         | REVISE        | The surface is overwhelmingly one green, streaked material. Small rocks and ground-cover assets exist, but soil, bank, cliff, and near-camera grass differentiation are not yet legible.                                |
 | Seasonal light and atmosphere    | REVISE        | Spring lighting is broad and flat, contact shadows are weak, and the saturated red/pink broadleaf canopy does not consistently read with the spring ground and sky.                                                     |
@@ -115,6 +115,6 @@ Current score: **0/9 visual criteria passed, 8/9 require revision, and 1/9 is no
 
 1. Replace the slab silhouette with a stronger continuous landform hierarchy and a dominant rear escarpment.
 2. Make the water a watershed composition: carved valley, banks, variable width, and a foreground water body.
-3. Recompose buildings into 2–4 separated hamlets before adding more props.
+3. Recompose buildings into 2–4 separated primary hamlets, adding at most two clearly subordinate satellites for expansive or vast repositories, before adding more props.
 4. Shape vegetation as ecological groves and clearings, then establish terrain-dependent grass/soil/rock/shore materials.
 5. Re-light spring, prove life in the exploration view, and review the actual product HUD separately.
