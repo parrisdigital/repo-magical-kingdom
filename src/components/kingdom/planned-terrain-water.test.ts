@@ -19,7 +19,6 @@ describe("planned watershed presentation", () => {
     const water = buildPlannedWaterGeometry(plan, {
       courseSegments: 28,
       courseCrossSegments: 5,
-      lakeSegments: 36,
     });
     const first = createPlannedWaterSurfaceAttributes(water, 5);
     const repeated = createPlannedWaterSurfaceAttributes(water, 5);
@@ -63,7 +62,6 @@ describe("planned watershed presentation", () => {
     const water = buildPlannedWaterGeometry(plan, {
       courseSegments: 20,
       courseCrossSegments: 5,
-      lakeSegments: 28,
     });
     let minimumMagnitude = Number.POSITIVE_INFINITY;
 

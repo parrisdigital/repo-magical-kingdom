@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createDemoKingdom } from "@/lib/kingdom/demo-world";
-import { KINGDOM_SEASONS } from "@/lib/kingdom/types";
+import { KINGDOM_SEASONS, type FileCategory, type KingdomWorld } from "@/lib/kingdom/types";
 import { createWorldPlan } from "@/lib/kingdom/world-plan";
 
 import { buildPlannedEscarpmentGeometry } from "./planned-escarpment";
 import { samplePlannedTerrainHeight } from "./planned-terrain-model";
+
+const REAR_SLOPE_CONTRACT_DEGREES = 60;
+const REAR_STEP_CONTRACT = 5;
 
 function values(array: ArrayLike<number>): number[] {
   return Array.from(array);
@@ -30,6 +33,84 @@ function triangleNormal(
   const y = abz * acx - abx * acz;
   const z = abx * acy - aby * acx;
   return { x, y, z, length: Math.hypot(x, y, z) };
+}
+
+function matrixWorld(category: FileCategory, files: number, seedIndex: number): KingdomWorld {
+  const demo = createDemoKingdom();
+  const secondaryCategory = category === "other" ? "source" : "other";
+  return {
+    ...demo,
+    seed: `escarpment-matrix:${category}:${files}:${seedIndex}`,
+    source: {
+      ...demo.source,
+      commitSha: `${category.length}${files}${seedIndex}`.padStart(40, "0"),
+    },
+    coverage: {
+      ...demo.coverage,
+      discoveredFiles: files,
+      eligibleFiles: files,
+      representedFiles: files,
+    },
+    statistics: {
+      ...demo.statistics,
+      files,
+      categories: [
+        { category, files: Math.ceil(files * 0.82), bytes: files * 820 },
+        { category: secondaryCategory, files: Math.floor(files * 0.18), bytes: files * 180 },
+      ],
+    },
+  };
+}
+
+function expectRearProfileContract(
+  plan: ReturnType<typeof createWorldPlan>,
+  quality: "low" | "high",
+  caseLabel: string,
+) {
+  const geometry = buildPlannedEscarpmentGeometry(plan, quality);
+  const verticesPerRow = geometry.columns + 1;
+  const faceRows = geometry.faceTriangleCount / (geometry.columns * 2) + 1;
+  const shelfRearStart = (faceRows + 1) * verticesPerRow;
+  const rearStart = shelfRearStart + verticesPerRow;
+  const maximumRiseRatio = Math.tan((REAR_SLOPE_CONTRACT_DEGREES * Math.PI) / 180);
+  let measuredMaximumStep = 0;
+
+  expect(geometry.maximumRearSlopeDegrees, `${caseLabel}:${quality}:slope`).toBeLessThan(
+    REAR_SLOPE_CONTRACT_DEGREES,
+  );
+  expect(geometry.maximumRearStep, `${caseLabel}:${quality}:step`).toBeLessThan(REAR_STEP_CONTRACT);
+
+  for (let column = 0; column <= geometry.columns; column += 1) {
+    const shelfVertex = shelfRearStart + column;
+    const rearShelfVertex = rearStart + column;
+    for (let axis = 0; axis < 3; axis += 1) {
+      expect(geometry.positions[rearShelfVertex * 3 + axis]).toBeCloseTo(
+        geometry.positions[shelfVertex * 3 + axis]!,
+        5,
+      );
+    }
+
+    const groundVertex = rearStart + geometry.rearRows * verticesPerRow + column;
+    const groundX = geometry.positions[groundVertex * 3]!;
+    const groundY = geometry.positions[groundVertex * 3 + 1]!;
+    const groundZ = geometry.positions[groundVertex * 3 + 2]!;
+    expect(groundY).toBeCloseTo(samplePlannedTerrainHeight(plan, groundX, groundZ) + 0.055, 4);
+
+    for (let row = 1; row <= geometry.rearRows; row += 1) {
+      const previousVertex = rearStart + (row - 1) * verticesPerRow + column;
+      const vertex = rearStart + row * verticesPerRow + column;
+      const rise = Math.abs(
+        geometry.positions[vertex * 3 + 1]! - geometry.positions[previousVertex * 3 + 1]!,
+      );
+      const run = Math.abs(
+        geometry.positions[vertex * 3 + 2]! - geometry.positions[previousVertex * 3 + 2]!,
+      );
+      measuredMaximumStep = Math.max(measuredMaximumStep, rise);
+      expect(rise).toBeLessThanOrEqual(run * maximumRiseRatio + 0.000_1);
+    }
+  }
+
+  expect(geometry.maximumRearStep).toBeCloseTo(measuredMaximumStep, 5);
 }
 
 describe("planned rear escarpment ribbon", () => {
@@ -130,6 +211,7 @@ describe("planned rear escarpment ribbon", () => {
     expect(high.rearRows).toBe(12);
     expect(low.rearTriangleCount).toBe(low.columns * low.rearRows * 2);
     expect(high.rearTriangleCount).toBe(high.columns * high.rearRows * 2);
+    expect(low.maximumRearSlopeDegrees).toBeLessThan(60);
     expect(high.maximumRearSlopeDegrees).toBeLessThan(60);
     expect(high.maximumRearStep).toBeLessThan(5);
 
@@ -145,6 +227,38 @@ describe("planned rear escarpment ribbon", () => {
       expect(y).toBeCloseTo(samplePlannedTerrainHeight(plan, x, z) + 0.055, 5);
     }
   });
+
+  it("constructs slope-bounded supported rear profiles across archetypes and scale tiers", () => {
+    const archetypes = [
+      ["source", "source-forge"],
+      ["test", "warden-reach"],
+      ["docs", "archive-domain"],
+      ["config", "observatory-frontier"],
+      ["asset", "garden-realm"],
+      ["other", "crossroads"],
+    ] as const;
+    const scaleTiers = [
+      [48, "compact"],
+      [120, "established"],
+      [900, "expansive"],
+      [8_000, "vast"],
+    ] as const;
+    const seedIndices = [0, 17] as const;
+
+    for (const [category, archetype] of archetypes) {
+      for (const [files, scaleTier] of scaleTiers) {
+        for (const seedIndex of seedIndices) {
+          const plan = createWorldPlan(matrixWorld(category, files, seedIndex));
+          const caseLabel = `${category}:${files}:${seedIndex}`;
+          expect(plan.identity.dominantCategory, caseLabel).toBe(category);
+          expect(plan.identity.archetype, caseLabel).toBe(archetype);
+          expect(plan.identity.scaleTier, caseLabel).toBe(scaleTier);
+          expectRearProfileContract(plan, "low", caseLabel);
+          expectRearProfileContract(plan, "high", caseLabel);
+        }
+      }
+    }
+  }, 30_000);
 
   it("tapers both wall ends into terrain and closes their visible volume", () => {
     const plan = createWorldPlan(createDemoKingdom());

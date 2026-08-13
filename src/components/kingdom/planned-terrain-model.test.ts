@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { createDemoKingdom } from "@/lib/kingdom/demo-world";
 import {
   createPhysicalWaterContract,
+  PHYSICAL_LAKE_PERIMETER_SEGMENTS,
   physicalWaterCircleHasClearance,
+  segmentToExpandedEllipseDistance,
 } from "@/lib/kingdom/physical-water-contract";
-import { KINGDOM_SEASONS } from "@/lib/kingdom/types";
+import { KINGDOM_SEASONS, type KingdomWorld } from "@/lib/kingdom/types";
 import { createHamletTerrainPlacementMasks, createWorldPlan } from "@/lib/kingdom/world-plan";
 
 import {
@@ -87,13 +89,11 @@ describe("planned global terrain", () => {
       segmentsX: 24,
       segmentsZ: 28,
       courseSegments: 16,
-      lakeSegments: 24,
     });
     const repeated = createPlannedTerrainModel(plans[0]!, {
       segmentsX: 24,
       segmentsZ: 28,
       courseSegments: 16,
-      lakeSegments: 24,
     });
     expect(numericArray(repeated.terrain.surface.positions)).toEqual(
       numericArray(first.terrain.surface.positions),
@@ -105,7 +105,6 @@ describe("planned global terrain", () => {
         segmentsX: 24,
         segmentsZ: 28,
         courseSegments: 16,
-        lakeSegments: 24,
       });
       expect(seasonal.key).toBe(first.key);
       expect(numericArray(seasonal.terrain.surface.positions)).toEqual(
@@ -251,7 +250,6 @@ describe("planned global terrain", () => {
     const water = buildPlannedWaterGeometry(plan, {
       courseSegments,
       courseCrossSegments: crossSegments,
-      lakeSegments: 48,
     });
     const definition = getPlannedTerrainDefinition(plan);
     const activeRows = Math.max(
@@ -295,14 +293,32 @@ describe("planned global terrain", () => {
     expect(lake.footprintRatio).toBeGreaterThanOrEqual(0.1);
     expect(lake.footprintRatio).toBeLessThanOrEqual(0.14);
 
-    const water = buildPlannedWaterGeometry(plan, { lakeSegments: 72 });
-    const lakeStart = water.vertexCount - 73;
-    for (let index = 0; index < 73; index += 1) {
-      const vertex = lakeStart + index;
+    const water = buildPlannedWaterGeometry(plan);
+    const firstLakeTriangleIndex = water.ranges.courseTriangles * 3;
+    const lakeCenterVertex = water.indices[firstLakeTriangleIndex]!;
+    const shorelineVertexCount = lake.perimeter.length + 1;
+    expect(lake.perimeter).toHaveLength(PHYSICAL_LAKE_PERIMETER_SEGMENTS);
+    expect(water.ranges.lakeTriangles).toBe(lake.perimeter.length);
+    expect(water.vertexCount - lakeCenterVertex).toBe(1 + shorelineVertexCount);
+    expect(water.positions[lakeCenterVertex * 3]).toBeCloseTo(lake.center.x, 5);
+    expect(water.positions[lakeCenterVertex * 3 + 2]).toBeCloseTo(lake.center.z, 5);
+    for (let index = 0; index < shorelineVertexCount; index += 1) {
+      const vertex = lakeCenterVertex + 1 + index;
       const x = water.positions[vertex * 3]!;
       const z = water.positions[vertex * 3 + 2]!;
+      const canonicalPoint = lake.perimeter[index % lake.perimeter.length]!;
+      expect(x).toBeCloseTo(canonicalPoint.x, 5);
+      expect(z).toBeCloseTo(canonicalPoint.z, 5);
       expect(queryPlannedWaterDistance(plan, x, z).lakeDistance).toBeCloseTo(0, 2);
       expect(samplePlannedWaterSurface(plan, x, z)).not.toBeNull();
+    }
+    for (let index = 0; index < lake.perimeter.length; index += 1) {
+      const triangleStart = firstLakeTriangleIndex + index * 3;
+      expect(Array.from(water.indices.slice(triangleStart, triangleStart + 3))).toEqual([
+        lakeCenterVertex,
+        lakeCenterVertex + 1 + index,
+        lakeCenterVertex + 2 + index,
+      ]);
     }
 
     for (let index = 0; index < 48; index += 1) {
@@ -332,7 +348,7 @@ describe("planned global terrain", () => {
   it("reports the actual fitted lake polygon area and keeps its visible footprint substantial", () => {
     const plan = createWorldPlan(createDemoKingdom());
     const definition = getPlannedTerrainDefinition(plan);
-    const water = buildPlannedWaterGeometry(plan, { lakeSegments: 96 });
+    const water = buildPlannedWaterGeometry(plan);
     const lakeIndexStart = water.ranges.courseTriangles * 3;
     let renderedArea = 0;
     for (let index = lakeIndexStart; index < water.indices.length; index += 3) {
@@ -377,7 +393,7 @@ describe("planned global terrain", () => {
         ],
       },
     });
-    expect(plan.terrainKey).toBe("ff956dae4c07c11d");
+    expect(plan.terrainKey).toBe("6b1e60878797bc0c");
     const definition = getPlannedTerrainDefinition(plan);
     const perimeter = definition.water.lake.perimeter;
     expect(perimeter).toHaveLength(96);
@@ -464,7 +480,7 @@ describe("planned global terrain", () => {
         ],
       },
     });
-    expect(plan.topology.groves.some((grove) => grove.id === "grove-f74e9edbf4")).toBe(true);
+    expect(plan.topology.groves.length).toBeGreaterThan(0);
     const definition = getPlannedTerrainDefinition(plan);
     const contract = {
       key: definition.key,
@@ -474,6 +490,7 @@ describe("planned global terrain", () => {
       course: definition.water.course,
       lake: definition.water.lake,
     };
+    let closestClearanceMargin = Number.POSITIVE_INFINITY;
     for (const grove of plan.topology.groves) {
       let minimum = Number.POSITIVE_INFINITY;
       const radius = Math.max(grove.mask.radiusX, grove.mask.radiusZ);
@@ -498,7 +515,15 @@ describe("planned global terrain", () => {
         );
       }
       expect(minimum, grove.id).toBeGreaterThanOrEqual(grove.exclusions.clearance - 0.002);
+      closestClearanceMargin = Math.min(
+        closestClearanceMargin,
+        minimum - grove.exclusions.clearance,
+      );
     }
+    // Preserve this seed as a meaningful near-boundary regression instead of
+    // coupling the test to a grove ID that changes with the terrain schema.
+    expect(closestClearanceMargin).toBeGreaterThanOrEqual(-0.002);
+    expect(closestClearanceMargin).toBeLessThanOrEqual(1);
   });
 
   it("truthfully bounds actual fitted lake footprints across archetypes and scale tiers", () => {
@@ -534,7 +559,7 @@ describe("planned global terrain", () => {
           const ratio = definition.water.lake.footprintRatio;
           expect(ratio, `${category}:${files}:${seedIndex}`).toBeGreaterThanOrEqual(0.1);
           expect(ratio, `${category}:${files}:${seedIndex}`).toBeLessThanOrEqual(0.14);
-          const water = buildPlannedWaterGeometry(plan, { lakeSegments: 96 });
+          const water = buildPlannedWaterGeometry(plan);
           let renderedArea = 0;
           for (
             let index = water.ranges.courseTriangles * 3;
@@ -555,6 +580,80 @@ describe("planned global terrain", () => {
         }
       }
     }
+  });
+
+  it("keeps every rendered course segment outside expanded settlement terraces", () => {
+    const demo = createDemoKingdom();
+    const categories = ["source", "test", "docs", "config", "asset", "other"] as const;
+    const seedIndices = [0, 1, 2, 5, 11, 17] as const;
+    let maximumCoursePoints = 0;
+    for (const [categoryIndex, category] of categories.entries()) {
+      for (const files of [48, 120, 900, 8_000] as const) {
+        for (const seedIndex of seedIndices) {
+          const world = {
+            ...demo,
+            seed: `outside:${category}:${files}:${seedIndex}`,
+            source: {
+              ...demo.source,
+              commitSha: String(categoryIndex * 100_000 + files + seedIndex).padStart(40, "0"),
+            },
+            coverage: {
+              ...demo.coverage,
+              discoveredFiles: files,
+              eligibleFiles: files,
+              representedFiles: files,
+            },
+            statistics: {
+              ...demo.statistics,
+              files,
+              categories: [
+                { category, files: Math.ceil(files * 0.82), bytes: files * 820 },
+                { category: "other", files: Math.floor(files * 0.18), bytes: files * 180 },
+              ],
+            },
+          } satisfies KingdomWorld;
+          expect(
+            () => createWorldPlan(world),
+            `${category}:${files}:${seedIndex}:world-plan`,
+          ).not.toThrow();
+          const plan = createWorldPlan(world);
+          const definition = getPlannedTerrainDefinition(plan);
+          maximumCoursePoints = Math.max(
+            maximumCoursePoints,
+            definition.water.course.points.length,
+          );
+          const clearance = definition.water.course.sourceWidth * 1.42 * 0.5 + 5.5;
+          for (let index = 1; index < definition.water.course.points.length; index += 1) {
+            const start = definition.water.course.points[index - 1]!;
+            const end = definition.water.course.points[index]!;
+            for (const progress of [0, 0.25, 0.5, 0.75, 1] as const) {
+              const x = start.x + (end.x - start.x) * progress;
+              const z = start.z + (end.z - start.z) * progress;
+              expect(
+                isInsidePlannedTerrain(plan, x, z),
+                `${category}:${files}:${seedIndex}:segment:${index}:land:${progress}`,
+              ).toBe(true);
+              const waterHeight = samplePlannedWaterSurface(plan, x, z);
+              expect(
+                waterHeight,
+                `${category}:${files}:${seedIndex}:segment:${index}:water:${progress}`,
+              ).not.toBeNull();
+              expect(
+                samplePlannedTerrainHeight(plan, x, z),
+                `${category}:${files}:${seedIndex}:segment:${index}:bed:${progress}`,
+              ).toBeLessThanOrEqual(waterHeight! - 0.6);
+            }
+            for (const terrace of definition.terraces) {
+              expect(
+                segmentToExpandedEllipseDistance(start, end, terrace, clearance),
+                `${category}:${files}:${seedIndex}:segment:${index}:${terrace.id}`,
+              ).toBeGreaterThanOrEqual(1 - 0.000_01);
+            }
+          }
+        }
+      }
+    }
+    expect(maximumCoursePoints).toBeLessThanOrEqual(16);
   });
 
   it("seats every hamlet on a smooth supported terrace, including rear hamlets", () => {
@@ -612,7 +711,6 @@ describe("planned global terrain", () => {
     const water = buildPlannedWaterGeometry(plan, {
       courseSegments: 48,
       courseCrossSegments: 4,
-      lakeSegments: 48,
     });
     const courseIndexCount = water.ranges.courseTriangles * 3;
     const courseVertexIndices = new Set<number>();
@@ -650,7 +748,7 @@ describe("planned global terrain", () => {
     expect(stoneSamples).toBeGreaterThan(8);
 
     const terrain = buildPlannedTerrainGeometry(plan, { segmentsX: 112, segmentsZ: 128 });
-    const water = buildPlannedWaterGeometry(plan, { courseSegments: 76, lakeSegments: 84 });
+    const water = buildPlannedWaterGeometry(plan, { courseSegments: 76 });
     for (const geometry of [terrain.surface, terrain.sideCliffs, water]) {
       expect([...geometry.positions].every(Number.isFinite)).toBe(true);
       expect([...geometry.indices].every(Number.isFinite)).toBe(true);

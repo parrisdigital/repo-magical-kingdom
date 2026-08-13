@@ -6,6 +6,8 @@ import {
   createHamletTerrainPlacementMasks,
   createWorldPlan,
   getHamletTerrainPlacementMask,
+  TERRAIN_SCHEMA,
+  WORLD_PLAN_VERSION,
   type CorridorRegionMask,
   type WorldPlanEnvelope,
   type WorldPlanPoint,
@@ -77,6 +79,20 @@ function expectMaskInside(mask: WorldRegionMask, envelope: WorldPlanEnvelope): v
 }
 
 describe("createWorldPlan", () => {
+  it("publishes the current planner and terrain identity versions", () => {
+    const world = createDemoKingdom();
+    expect(world).toMatchObject({
+      schema: "repo-kingdom/v1",
+      compilerVersion: "1.0.0",
+    });
+    expect(createWorldPlan(world)).toMatchObject({
+      schema: "repo-world-plan/v1",
+      version: WORLD_PLAN_VERSION,
+    });
+    expect(WORLD_PLAN_VERSION).toBe("1.1.0");
+    expect(TERRAIN_SCHEMA).toBe("repo-terrain/v3");
+  });
+
   it("is deterministic and isolates season changes to appearance", () => {
     const world = createDemoKingdom("spring");
     expect(createWorldPlan(world)).toEqual(createWorldPlan(world));

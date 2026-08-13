@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRetracedWildlifeMotion } from "./wildlife-motion";
+import { buildRetracedWildlifeMotion, wildlifeMotionStartDistance } from "./wildlife-motion";
 
 describe("buildRetracedWildlifeMotion", () => {
   it("uses only adjacent validated edges and retraces them to loop", () => {
@@ -24,5 +24,20 @@ describe("buildRetracedWildlifeMotion", () => {
     const point = [2, 0, 2] as const;
     expect(buildRetracedWildlifeMotion([])).toBeNull();
     expect(buildRetracedWildlifeMotion([point, point])).toBeNull();
+  });
+
+  it("derives a fresh deterministic distance when the route changes", () => {
+    const shortMotion = buildRetracedWildlifeMotion([
+      [0, 0, 0],
+      [3, 0, 4],
+    ]);
+    const longMotion = buildRetracedWildlifeMotion([
+      [0, 0, 0],
+      [6, 0, 8],
+    ]);
+
+    expect(wildlifeMotionStartDistance(shortMotion, 0.25)).toBe(2.5);
+    expect(wildlifeMotionStartDistance(longMotion, 0.25)).toBe(5);
+    expect(wildlifeMotionStartDistance(null, 0.25)).toBe(0);
   });
 });

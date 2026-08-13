@@ -39,14 +39,12 @@ const QUALITY_OPTIONS: Readonly<Record<PlannedTerrainQuality, PlannedTerrainBuil
     segmentsZ: 78,
     courseSegments: 42,
     courseCrossSegments: 3,
-    lakeSegments: 56,
   },
   high: {
     segmentsX: 112,
     segmentsZ: 128,
     courseSegments: 76,
     courseCrossSegments: 5,
-    lakeSegments: 84,
   },
 };
 

@@ -128,7 +128,6 @@ export type PlannedTerrainBuildOptions = Readonly<{
   segmentsZ?: number;
   courseSegments?: number;
   courseCrossSegments?: number;
-  lakeSegments?: number;
 }>;
 
 /** Minimum level settlement radius needed for 3–6 final-scale building assemblies. */
@@ -359,27 +358,6 @@ function parametricTerrainPoint(
   return point(x, mix(rearZ, frontZ, t) + zBow);
 }
 
-function buildOutline(
-  envelope: WorldPlanEnvelope,
-  parameters: BoundaryParameters,
-  samplesPerEdge = 32,
-): ReadonlyArray<WorldPlanPoint> {
-  const result: WorldPlanPoint[] = [];
-  for (let index = 0; index <= samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, -1 + (index / samplesPerEdge) * 2, 0));
-  }
-  for (let index = 1; index <= samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, 1, index / samplesPerEdge));
-  }
-  for (let index = 1; index <= samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, 1 - (index / samplesPerEdge) * 2, 1));
-  }
-  for (let index = 1; index < samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, -1, 1 - index / samplesPerEdge));
-  }
-  return result;
-}
-
 function polygonContains(
   pointToTest: WorldPlanPoint,
   polygon: ReadonlyArray<WorldPlanPoint>,
@@ -485,90 +463,6 @@ function queryCourse(definition: PlannedTerrainDefinition, x: number, z: number)
   };
 }
 
-type LakeShapeDefinition = Pick<PlannedTerrainDefinition, "key" | "terraces"> &
-  Readonly<{ water: Readonly<{ lake: PlannedLake }> }>;
-type FittedLakeShapeDefinition = LakeShapeDefinition & Pick<PlannedTerrainDefinition, "outline">;
-
-function angularDistance(first: number, second: number): number {
-  return Math.abs(Math.atan2(Math.sin(first - second), Math.cos(first - second)));
-}
-
-function lakeRadiusMultiplier(definition: LakeShapeDefinition, angle: number): number {
-  const phaseA = stableFraction(`${definition.key}:lake-edge:a`) * Math.PI * 2;
-  const phaseB = stableFraction(`${definition.key}:lake-edge:b`) * Math.PI * 2;
-  const inletDistance = angularDistance(angle, definition.water.lake.inletAngle);
-  const firstForkDistance = angularDistance(angle, definition.water.lake.inletAngle - 0.34);
-  const secondForkDistance = angularDistance(angle, definition.water.lake.inletAngle + 0.39);
-  const westernLobeDistance = angularDistance(angle, definition.water.lake.inletAngle - 2.05);
-  const easternCoveDistance = angularDistance(angle, definition.water.lake.inletAngle + 1.68);
-  let multiplier = clamp(
-    1 +
-      Math.sin(angle * 3 + phaseA) * 0.145 +
-      Math.sin(angle * 5 - phaseB) * 0.075 +
-      Math.sin(angle * 9 + phaseA * 0.7) * 0.032 +
-      Math.exp(-((inletDistance / 0.27) ** 2)) * 0.19 +
-      Math.exp(-((firstForkDistance / 0.17) ** 2)) * 0.09 +
-      Math.exp(-((secondForkDistance / 0.19) ** 2)) * 0.105 +
-      Math.exp(-((westernLobeDistance / 0.42) ** 2)) * 0.15 -
-      Math.exp(-((easternCoveDistance / 0.32) ** 2)) * 0.14,
-    0.67,
-    1.3,
-  );
-  const directionX = Math.cos(angle);
-  const directionZ = Math.sin(angle);
-  for (const terrace of definition.terraces ?? []) {
-    const lake = definition.water.lake;
-    const centerX = (terrace.center.x - lake.center.x) / lake.radiusX;
-    const centerZ = (terrace.center.z - lake.center.z) / lake.radiusZ;
-    const clearance = Math.max(8, Math.max(terrace.radiusX, terrace.radiusZ) * 1.65 + 5);
-    const radiusX = (terrace.radiusX + clearance) / lake.radiusX;
-    const radiusZ = (terrace.radiusZ + clearance) / lake.radiusZ;
-    const a = directionX ** 2 / radiusX ** 2 + directionZ ** 2 / radiusZ ** 2;
-    const b =
-      (-2 * directionX * centerX) / radiusX ** 2 + (-2 * directionZ * centerZ) / radiusZ ** 2;
-    const c = centerX ** 2 / radiusX ** 2 + centerZ ** 2 / radiusZ ** 2 - 1;
-    const discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) continue;
-    const nearIntersection = (-b - Math.sqrt(discriminant)) / (2 * a);
-    if (nearIntersection > 0) multiplier = Math.min(multiplier, nearIntersection);
-  }
-  // Terrace-clearance intersections must be allowed to carve a localized
-  // cove. A higher hard floor let the shore cross the outer settlement apron
-  // for some repository seeds, producing a one-sample erosion cliff.
-  return clamp(multiplier, 0.36, 1.3);
-}
-
-function lakeNormalizedRadius(definition: FittedLakeShapeDefinition, x: number, z: number): number {
-  const lake = definition.water.lake;
-  const normalizedX = (x - lake.center.x) / lake.radiusX;
-  const normalizedZ = (z - lake.center.z) / lake.radiusZ;
-  const angle = Math.atan2(normalizedZ, normalizedX);
-  return Math.hypot(normalizedX, normalizedZ) / fittedLakeRadiusMultiplier(definition, angle);
-}
-
-function fittedLakeRadiusMultiplier(definition: FittedLakeShapeDefinition, angle: number): number {
-  const requested = lakeRadiusMultiplier(definition, angle);
-  const lake = definition.water.lake;
-  const pointAt = (multiplier: number) =>
-    point(
-      lake.center.x + Math.cos(angle) * lake.radiusX * multiplier,
-      lake.center.z + Math.sin(angle) * lake.radiusZ * multiplier,
-    );
-  if (polygonContains(pointAt(requested), definition.outline)) return requested;
-
-  // Organic lobes may meet the authored delta coast. Fit just that radial
-  // sample to the land polygon instead of moving the entire lake (which can
-  // invalidate repository-derived settlement clearings).
-  let lower = 0;
-  let upper = requested;
-  for (let iteration = 0; iteration < 18; iteration += 1) {
-    const middle = (lower + upper) / 2;
-    if (polygonContains(pointAt(middle), definition.outline)) lower = middle;
-    else upper = middle;
-  }
-  return Math.max(0, lower * 0.995);
-}
-
 function courseWaterHeight(definition: PlannedTerrainDefinition, progress: number): number {
   const eased = smoothstep(0, definition.water.course.basinEntryProgress, progress);
   return mix(
@@ -619,8 +513,6 @@ function sampleCourseContract(
 function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
   const { course: courseMask, lake: lakeMask } = getWaterMasks(plan);
   const envelope = plan.topology.envelope;
-  const parameters = boundaryParameters(plan.terrainKey);
-  const outline = buildOutline(envelope, parameters);
   const rearFaceZ = plan.topology.camera.horizonZ + envelope.depth * 0.025;
   // A connected lateral chain creates one dominant rear escarpment rather than
   // a few isolated mound primitives. Repository identity still jitters every
@@ -675,206 +567,6 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     } satisfies PlannedHamletTerrace;
   });
 
-  const targetLakeArea =
-    envelope.width *
-    envelope.depth *
-    (0.135 + stableFraction(`${plan.terrainKey}:lake-area`) * 0.025);
-  const aspect = clamp(envelope.width / envelope.depth, 0.78, 1.12);
-  const radiusX = Math.sqrt((targetLakeArea * aspect) / Math.PI);
-  const radiusZ = targetLakeArea / (Math.PI * radiusX);
-  const preferredLakeCenter = point(
-    mix(lakeMask.center.x, envelope.center.x, 0.16),
-    clamp(
-      // Pull the semantic foreground seed inward before fitting the rendered
-      // basin. This preserves a visible delta rim instead of letting organic
-      // lake lobes cross the front coastline on unlucky repository seeds.
-      mix(lakeMask.center.z, envelope.center.z, 0.18),
-      // The basin remains clearly foreground, while leaving enough land in
-      // front of its irregular lobes for every deterministic terrain seed.
-      envelope.center.z + envelope.depth * 0.12,
-      envelope.maxZ - envelope.safeMargin - radiusZ - envelope.depth * 0.01,
-    ),
-  );
-  const lakeCenter = point(
-    clamp(
-      preferredLakeCenter.x,
-      envelope.minX + envelope.safeMargin + radiusX * 1.16,
-      envelope.maxX - envelope.safeMargin - radiusX * 1.16,
-    ),
-    preferredLakeCenter.z,
-  );
-  const inletAngle =
-    -Math.PI / 2 - 0.16 + (stableFraction(`${plan.terrainKey}:inlet-angle`) - 0.5) * 0.1;
-  const islet = {
-    center: point(lakeCenter.x + radiusX * 0.17, lakeCenter.z + radiusZ * 0.13),
-    radiusX: clamp(radiusX * 0.105, 3.4, 5.2),
-    radiusZ: clamp(radiusZ * 0.058, 2.6, 4.1),
-    rotation: -0.48 + stableFraction(`${plan.terrainKey}:islet-rotation`) * 0.34,
-  } as const;
-  const provisionalLake: PlannedLake = {
-    center: lakeCenter,
-    radiusX,
-    radiusZ,
-    surfaceHeight: 0,
-    area: 0,
-    footprintRatio: 0,
-    inletAngle,
-    perimeter: [],
-    islet,
-  };
-  const provisionalLakeShape = {
-    key: plan.terrainKey,
-    terraces,
-    outline,
-    water: { lake: provisionalLake },
-  } satisfies FittedLakeShapeDefinition;
-  const inletRadius = fittedLakeRadiusMultiplier(provisionalLakeShape, inletAngle);
-  const inletPoint = point(
-    lakeCenter.x + Math.cos(inletAngle) * radiusX * inletRadius * 1.01,
-    lakeCenter.z + Math.sin(inletAngle) * radiusZ * inletRadius * 1.01,
-  );
-  const headwaterX =
-    envelope.center.x +
-    envelope.width * (-0.055 + (stableFraction(`${plan.terrainKey}:headwater-x`) - 0.5) * 0.035);
-  // Begin the visible course at the toe of the rear wall. The escarpment owns
-  // the spring/waterfall above it; a single coplanar river strip must never
-  // climb through the mountain as a blue ramp.
-  const headwaterZ = rearFaceZ + envelope.depth * 0.035;
-  const coursePhase = stableFraction(`${plan.terrainKey}:course-meander`) * Math.PI * 2;
-  const semanticCourseSide =
-    courseMask.points.reduce((total, sample) => total + sample.x, 0) >=
-    envelope.center.x * Math.max(1, courseMask.points.length)
-      ? 1
-      : -1;
-  const routeXAroundTerraces = (candidateX: number, z: number): number => {
-    const routeLimit = envelope.width * 0.35;
-    let routedX = clamp(candidateX, envelope.center.x - routeLimit, envelope.center.x + routeLimit);
-    for (let iteration = 0; iteration < 3; iteration += 1) {
-      for (const terrace of terraces) {
-        const clearance = courseMask.width / 2 + 5.5;
-        const expandedX = terrace.radiusX + clearance;
-        const expandedZ = terrace.radiusZ + clearance;
-        const normalizedZ = Math.abs(z - terrace.center.z) / expandedZ;
-        if (normalizedZ >= 1) continue;
-        const forbiddenHalfWidth = expandedX * Math.sqrt(1 - normalizedZ * normalizedZ);
-        const minimum = terrace.center.x - forbiddenHalfWidth;
-        const maximum = terrace.center.x + forbiddenHalfWidth;
-        if (routedX <= minimum || routedX >= maximum) continue;
-        const options = [minimum - 0.25, maximum + 0.25]
-          .filter(
-            (option) =>
-              option >= envelope.center.x - routeLimit && option <= envelope.center.x + routeLimit,
-          )
-          .sort((first, second) => (semanticCourseSide > 0 ? second - first : first - second));
-        routedX = options[0] ?? routedX;
-      }
-    }
-    return routedX;
-  };
-  const plannedCoursePoints = Array.from({ length: 12 }, (_, index) => {
-    const progress = index / 11;
-    const meanderEnvelope = Math.sin(progress * Math.PI);
-    const meander =
-      Math.sin(progress * Math.PI * 3.4 + coursePhase) * envelope.width * 0.058 +
-      Math.sin(progress * Math.PI * 6.2 - coursePhase * 0.5) * envelope.width * 0.018;
-    const semanticGuide = sampleCoursePolyline(courseMask.points, progress);
-    const linearX = mix(headwaterX, inletPoint.x, progress);
-    const guidedX = mix(linearX, semanticGuide.x, Math.sin(progress * Math.PI) * 0.72);
-    const z = mix(headwaterZ, inletPoint.z, progress);
-    return point(routeXAroundTerraces(guidedX + meander * meanderEnvelope, z), z);
-  });
-  const lakeClosestProgress = (() => {
-    let minimum = Number.POSITIVE_INFINITY;
-    let progress = 0.76;
-    const segmentCount = Math.max(1, plannedCoursePoints.length - 1);
-    for (let index = 1; index < plannedCoursePoints.length; index += 1) {
-      const result = closestPointOnSegment(
-        lakeCenter,
-        plannedCoursePoints[index - 1]!,
-        plannedCoursePoints[index]!,
-      );
-      if (result.distance < minimum) {
-        minimum = result.distance;
-        progress = (index - 1 + result.segmentProgress) / segmentCount;
-      }
-    }
-    return progress;
-  })();
-  const headwaterSurfaceHeight = 4.25;
-  const outletSurfaceHeight = -0.35;
-  const surfaceHeight = mix(
-    headwaterSurfaceHeight,
-    outletSurfaceHeight,
-    smoothstep(0, 1, lakeClosestProgress),
-  );
-  const averageEdgeAreaFactor = 1.004;
-  const lakeArea = Math.PI * radiusX * radiusZ * averageEdgeAreaFactor;
-
-  const lakeDefinition: PlannedLake = {
-    center: lakeCenter,
-    radiusX,
-    radiusZ,
-    surfaceHeight,
-    area: lakeArea,
-    footprintRatio: lakeArea / (envelope.width * envelope.depth),
-    inletAngle,
-    perimeter: [],
-    islet,
-  };
-  const temporaryDefinition = {
-    key: plan.terrainKey,
-    terraces,
-    outline,
-    water: { lake: lakeDefinition },
-  } satisfies FittedLakeShapeDefinition;
-  const basinEntryProgress = (() => {
-    const coarseSteps = 160;
-    let previousProgress = 0;
-    let previousRadius = Number.POSITIVE_INFINITY;
-    for (let step = 1; step <= coarseSteps; step += 1) {
-      const progress = step / coarseSteps;
-      const coursePoint = sampleCoursePolyline(plannedCoursePoints, progress);
-      const radius = lakeNormalizedRadius(temporaryDefinition, coursePoint.x, coursePoint.z);
-      if (radius <= 1.16 && previousRadius > 1.16) {
-        let lower = previousProgress;
-        let upper = progress;
-        for (let iteration = 0; iteration < 14; iteration += 1) {
-          const middle = (lower + upper) / 2;
-          const middlePoint = sampleCoursePolyline(plannedCoursePoints, middle);
-          const middleRadius = lakeNormalizedRadius(
-            temporaryDefinition,
-            middlePoint.x,
-            middlePoint.z,
-          );
-          if (middleRadius <= 1.16) upper = middle;
-          else lower = middle;
-        }
-        return lower;
-      }
-      previousProgress = progress;
-      previousRadius = radius;
-    }
-    return clamp(lakeClosestProgress - 0.08, 0.35, 0.88);
-  })();
-
-  const partial: Omit<PlannedTerrainDefinition, "outline"> = {
-    key: plan.terrainKey,
-    envelope,
-    rearFaceZ,
-    ordinaryHouseHeight: 7.5,
-    peaks,
-    terraces,
-    water: {
-      course: {
-        points: plannedCoursePoints,
-        sourceWidth: courseMask.width,
-        headwaterSurfaceHeight,
-        outletSurfaceHeight,
-        basinEntryProgress,
-      },
-      lake: lakeDefinition,
-    },
-  };
   const physicalWater = createPhysicalWaterContract({
     key: plan.terrainKey,
     envelope,
@@ -884,8 +576,13 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     terraces,
   });
   return {
-    ...partial,
+    key: plan.terrainKey,
+    envelope,
     outline: physicalWater.outline,
+    rearFaceZ,
+    ordinaryHouseHeight: 7.5,
+    peaks,
+    terraces,
     water: {
       course: physicalWater.course,
       lake: physicalWater.lake,
@@ -1163,6 +860,12 @@ export function queryPlannedWaterDistance(
   return queryPhysicalWaterDistance(asPhysicalWaterContract(definition), x, z);
 }
 
+function courseBedHeight(definition: PlannedTerrainDefinition, course: CourseQuery): number {
+  const channelCenter = 1 - clamp(course.distance / course.halfWidth, 0, 1);
+  const centerDepth = 0.14 + Math.pow(channelCenter, 1.45) * 1.28;
+  return courseWaterHeight(definition, course.progress) - centerDepth;
+}
+
 /** Samples the continuous terrain, including the river cut and lake basin. */
 export function samplePlannedTerrainHeight(plan: WorldPlan, x: number, z: number): number {
   const definition = getPlannedTerrainDefinition(plan);
@@ -1171,12 +874,17 @@ export function samplePlannedTerrainHeight(plan: WorldPlan, x: number, z: number
   if (query.water === "lake") {
     const deepWater = 1 - smoothstep(0.18, 0.94, clamp(query.lakeRadius, 0, 1));
     const basinDepth = 0.16 + deepWater * 2.05;
-    return Math.min(rawHeight, definition.water.lake.surfaceHeight - basinDepth);
+    let bedHeight = definition.water.lake.surfaceHeight - basinDepth;
+    // The course terminates inside the canonical lake polygon. Keep its
+    // channel carve through that overlap so the inlet cannot jump from a deep
+    // river bed to the lake's intentionally shallow shoreline shelf.
+    if (query.course.distance <= query.course.halfWidth) {
+      bedHeight = Math.min(bedHeight, courseBedHeight(definition, query.course));
+    }
+    return Math.min(rawHeight, bedHeight);
   }
   if (query.water === "river" && query.surfaceHeight !== null) {
-    const channelCenter = 1 - clamp(query.course.distance / query.course.halfWidth, 0, 1);
-    const centerDepth = 0.14 + Math.pow(channelCenter, 1.45) * 1.28;
-    return Math.min(rawHeight, query.surfaceHeight - centerDepth);
+    return Math.min(rawHeight, courseBedHeight(definition, query.course));
   }
   if (query.shore) {
     const lakeBank = query.lakeRadius > 1 ? smoothstep(1, 1.18, query.lakeRadius) : 1;
@@ -1498,18 +1206,18 @@ export function buildPlannedWaterGeometry(
   );
   zones.push(MATERIAL_ZONE_CODE["lake-bed"]);
   const perimeterStart = positions.length / 3;
-  const lakeSegments = definition.water.lake.perimeter.length;
-  for (let index = 0; index <= lakeSegments; index += 1) {
-    const perimeterPoint = definition.water.lake.perimeter[index % lakeSegments]!;
+  const perimeterSegmentCount = definition.water.lake.perimeter.length;
+  for (let index = 0; index <= perimeterSegmentCount; index += 1) {
+    const perimeterPoint = definition.water.lake.perimeter[index % perimeterSegmentCount]!;
     positions.push(perimeterPoint.x, definition.water.lake.surfaceHeight + 0.045, perimeterPoint.z);
     zones.push(MATERIAL_ZONE_CODE["lake-bed"]);
   }
-  for (let index = 0; index < lakeSegments; index += 1) {
+  for (let index = 0; index < perimeterSegmentCount; index += 1) {
     indices.push(lakeCenterIndex, perimeterStart + index, perimeterStart + index + 1);
   }
   return {
     ...geometryData(positions, indices, zones),
-    ranges: { courseTriangles, lakeTriangles: lakeSegments },
+    ranges: { courseTriangles, lakeTriangles: perimeterSegmentCount },
   };
 }
 

@@ -45,7 +45,7 @@ import {
   createPlannedWorldThemeLayer,
   type PlannedWorldThemeLayer,
 } from "./planned-world-theme-model";
-import { buildRetracedWildlifeMotion } from "./wildlife-motion";
+import { buildRetracedWildlifeMotion, wildlifeMotionStartDistance } from "./wildlife-motion";
 
 type Quality = "low" | "high";
 type VecTuple = readonly [number, number, number];
@@ -155,6 +155,7 @@ const ANIMAL_TARGET_HEIGHT: Readonly<Record<keyof typeof ANIMAL_URLS, number>> =
   fox: 1.15,
   stag: 2.65,
 };
+const WILDLIFE_GROUND_OFFSET = 0.06;
 
 const KENNEY_SEASONAL_URLS = [
   ...new Set(
@@ -1477,6 +1478,7 @@ function AnimalActor({
   emphasis,
   wanderPath,
   motionOffset,
+  plan,
   reducedMotion,
 }: Readonly<{
   role: PlannedScatter["wildlife"][number]["assetRole"];
@@ -1487,6 +1489,7 @@ function AnimalActor({
   emphasis: number;
   wanderPath: ReadonlyArray<VecTuple>;
   motionOffset: number;
+  plan: WorldPlan;
   reducedMotion: boolean;
 }>) {
   const root = useRef<THREE.Group>(null);
@@ -1516,7 +1519,10 @@ function AnimalActor({
   const { actions } = useAnimations(gltf.animations, root);
   const collection = role === "deer" ? "Deer" : role === "fox" ? "Fox" : "Stag";
   const motion = useMemo(() => buildRetracedWildlifeMotion(wanderPath), [wanderPath]);
-  const travelled = useRef((motion?.totalLength ?? 0) * motionOffset);
+  const travelled = useRef(wildlifeMotionStartDistance(motion, motionOffset));
+  useLayoutEffect(() => {
+    travelled.current = wildlifeMotionStartDistance(motion, motionOffset);
+  }, [motion, motionOffset]);
   useEffect(() => {
     if (reducedMotion) return;
     const clip = behavior === "wander" && motion ? "walk" : behavior === "graze" ? "graze" : "idle";
@@ -1531,17 +1537,22 @@ function AnimalActor({
     const speed = role === "fox" ? 1.05 : role === "stag" ? 0.72 : 0.82;
     travelled.current = (travelled.current + Math.min(delta, 0.05) * speed) % motion.totalLength;
     let remaining = travelled.current;
-    const segment =
-      motion.segments.find((candidate) => {
-        if (remaining <= candidate.length) return true;
-        remaining -= candidate.length;
-        return false;
-      }) ?? motion.segments.at(-1)!;
+    let segment = motion.segments[motion.segments.length - 1]!;
+    for (let index = 0; index < motion.segments.length; index += 1) {
+      const candidate = motion.segments[index]!;
+      if (remaining <= candidate.length) {
+        segment = candidate;
+        break;
+      }
+      remaining -= candidate.length;
+    }
     const progress = THREE.MathUtils.clamp(remaining / segment.length, 0, 1);
+    const x = THREE.MathUtils.lerp(segment.start[0], segment.end[0], progress);
+    const z = THREE.MathUtils.lerp(segment.start[2], segment.end[2], progress);
     root.current.position.set(
-      THREE.MathUtils.lerp(segment.start[0], segment.end[0], progress),
-      THREE.MathUtils.lerp(segment.start[1], segment.end[1], progress),
-      THREE.MathUtils.lerp(segment.start[2], segment.end[2], progress),
+      x,
+      samplePlannedTerrainHeight(plan, x, z) + WILDLIFE_GROUND_OFFSET,
+      z,
     );
     root.current.rotation.y = Math.atan2(
       segment.end[0] - segment.start[0],
@@ -1573,12 +1584,16 @@ function WildlifeLayer({
         return {
           animal,
           emphasis: index < 3 ? 1.32 : 1.16,
-          position: [x, samplePlannedTerrainHeight(plan, x, z) + 0.06, z] as const,
+          position: [
+            x,
+            samplePlannedTerrainHeight(plan, x, z) + WILDLIFE_GROUND_OFFSET,
+            z,
+          ] as const,
           wanderPath: animal.wanderPath.map(
             (waypoint) =>
               [
                 waypoint.x,
-                samplePlannedTerrainHeight(plan, waypoint.x, waypoint.z) + 0.06,
+                samplePlannedTerrainHeight(plan, waypoint.x, waypoint.z) + WILDLIFE_GROUND_OFFSET,
                 waypoint.z,
               ] as const,
           ),
@@ -1600,6 +1615,7 @@ function WildlifeLayer({
           emphasis={emphasis}
           wanderPath={wanderPath}
           motionOffset={motionOffset}
+          plan={plan}
           reducedMotion={reducedMotion}
         />
       ))}

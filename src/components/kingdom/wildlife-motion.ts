@@ -11,6 +11,14 @@ export type WildlifeMotion = Readonly<{
   totalLength: number;
 }>;
 
+/** Returns the deterministic route distance used whenever an actor receives new motion. */
+export function wildlifeMotionStartDistance(
+  motion: WildlifeMotion | null,
+  motionOffset: number,
+): number {
+  return (motion?.totalLength ?? 0) * motionOffset;
+}
+
 /**
  * Converts the planner's validated adjacent waypoints into a continuous
  * out-and-back route. The return leg retraces those same safe segments instead

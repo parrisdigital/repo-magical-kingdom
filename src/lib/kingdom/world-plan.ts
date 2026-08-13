@@ -12,6 +12,9 @@ import {
 } from "./world-identity";
 import type { KingdomWorldTheme } from "./world-theme";
 
+export const WORLD_PLAN_VERSION = "1.1.0" as const;
+export const TERRAIN_SCHEMA = "repo-terrain/v3" as const;
+
 export type WorldPlanPoint = Readonly<{ x: number; z: number }>;
 
 export type WorldPlanEnvelope = Readonly<{
@@ -279,7 +282,7 @@ export type WorldPlanAppearance = Readonly<{
 
 export type WorldPlan = Readonly<{
   schema: "repo-world-plan/v1";
-  version: "1.0.0";
+  version: typeof WORLD_PLAN_VERSION;
   topologyKey: string;
   /** Stable repository terrain identity, intentionally independent of world styling. */
   terrainKey: string;
@@ -338,6 +341,10 @@ export function requiredHamletTerrainRadius(hamlet: HamletRegion): number {
 }
 
 const PHYSICAL_HAMLET_CLEARANCE = 4;
+const hamletTerrainPlacementCache = new WeakMap<
+  WorldPlanEnvelope,
+  WeakMap<ReadonlyArray<HamletRegion>, ReadonlyMap<string, EllipseRegionMask>>
+>();
 
 /**
  * Resolves every physical settlement terrace as one collision-safe layout.
@@ -348,6 +355,8 @@ export function createHamletTerrainPlacementMasks(
   envelope: WorldPlanEnvelope,
   hamlets: ReadonlyArray<HamletRegion>,
 ): ReadonlyMap<string, EllipseRegionMask> {
+  const cached = hamletTerrainPlacementCache.get(envelope)?.get(hamlets);
+  if (cached) return cached;
   const resolved = new Map<string, EllipseRegionMask>();
   const descriptors = hamlets
     .map((hamlet) => {
@@ -429,6 +438,12 @@ export function createHamletTerrainPlacementMasks(
       radiusZ: descriptor.radius,
     });
   }
+  let cacheForEnvelope = hamletTerrainPlacementCache.get(envelope);
+  if (!cacheForEnvelope) {
+    cacheForEnvelope = new WeakMap();
+    hamletTerrainPlacementCache.set(envelope, cacheForEnvelope);
+  }
+  cacheForEnvelope.set(hamlets, resolved);
   return resolved;
 }
 
@@ -759,7 +774,7 @@ function waterClearance(
 function createWaterSystem(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
-  hamlets: ReadonlyArray<HamletRegion>,
+  placementMasks: ReadonlyMap<string, EllipseRegionMask>,
   identity: RepositoryWorldIdentity,
 ): WaterSystem {
   const archetypeWater = {
@@ -774,10 +789,10 @@ function createWaterSystem(
   const candidates = archetypeWater.ratios.map((ratio) =>
     waterCandidate(world, envelope, ratio, waterWidth),
   );
-  const placementMasks = [...createHamletTerrainPlacementMasks(envelope, hamlets).values()];
+  const physicalMasks = [...placementMasks.values()];
   return candidates.sort(
     (first, second) =>
-      waterClearance(second, placementMasks) - waterClearance(first, placementMasks) ||
+      waterClearance(second, physicalMasks) - waterClearance(first, physicalMasks) ||
       second.side - first.side,
   )[0]!;
 }
@@ -785,10 +800,10 @@ function createWaterSystem(
 function createTerrainZones(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
-  hamlets: ReadonlyArray<HamletRegion>,
+  placementMasks: ReadonlyMap<string, EllipseRegionMask>,
   identity: RepositoryWorldIdentity,
 ): Readonly<{ zones: ReadonlyArray<TerrainZone>; water: WaterSystem }> {
-  const water = createWaterSystem(world, envelope, hamlets, identity);
+  const water = createWaterSystem(world, envelope, placementMasks, identity);
   const inset = envelope.safeMargin * 0.65;
   const rearDepth = clamp(envelope.depth * 0.18, 24, 40);
   const rearFrontZ = Math.min(-18, envelope.minZ + inset + rearDepth);
@@ -961,6 +976,7 @@ function createGroves(
   hamlets: ReadonlyArray<HamletRegion>,
   water: WaterSystem,
   physicalWater: PhysicalWaterContract,
+  physicalHamlets: ReadonlyMap<string, EllipseRegionMask>,
   maxTrees: number,
   maxGroves: number,
 ): ReadonlyArray<ForestGroveRegion> {
@@ -969,7 +985,7 @@ function createGroves(
     3,
     maxGroves,
   );
-  const placementMasks = [...createHamletTerrainPlacementMasks(envelope, hamlets).values()];
+  const placementMasks = [...physicalHamlets.values()];
   const rearLimit = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40) + 7;
   const candidates = Array.from({ length: 56 }, (_, index) => {
     const column = index % 8;
@@ -1709,6 +1725,7 @@ function createAppearance(world: KingdomWorld): WorldPlanAppearance {
 function createTopologyKey(world: KingdomWorld, topology: WorldPlanTopology): string {
   const identity = [
     "repo-world-plan/v1",
+    WORLD_PLAN_VERSION,
     world.source.repositoryId,
     world.source.commitSha,
     world.seed,
@@ -1724,14 +1741,14 @@ function createTerrainKey(
   envelope: WorldPlanEnvelope,
   hamlets: ReadonlyArray<HamletRegion>,
   terrainZones: ReadonlyArray<TerrainZone>,
+  placementMasks: ReadonlyMap<string, EllipseRegionMask>,
 ): string {
   // Terrain identity deliberately excludes visual budgets, grove populations,
   // wildlife, and selected world style. Raising an instance budget must never
   // reshape a coastline or invalidate a settlement terrace.
-  const placementMasks = createHamletTerrainPlacementMasks(envelope, hamlets);
   return stableDigest(
     JSON.stringify({
-      schema: "repo-terrain/v2",
+      schema: TERRAIN_SCHEMA,
       repositoryId: world.source.repositoryId,
       commitSha: world.source.commitSha,
       seed: world.seed,
@@ -1761,10 +1778,22 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
   const identity = deriveRepositoryWorldIdentity(world);
   const envelope = createEnvelope(world, identity);
   const hamlets = createHamlets(world, envelope, identity);
-  const { zones: terrainZones, water } = createTerrainZones(world, envelope, hamlets, identity);
-  const terrainKey = createTerrainKey(world, identity, envelope, hamlets, terrainZones);
-  const camera = createCamera(envelope, hamlets, world.bounds.height);
   const physicalHamlets = createHamletTerrainPlacementMasks(envelope, hamlets);
+  const { zones: terrainZones, water } = createTerrainZones(
+    world,
+    envelope,
+    physicalHamlets,
+    identity,
+  );
+  const terrainKey = createTerrainKey(
+    world,
+    identity,
+    envelope,
+    hamlets,
+    terrainZones,
+    physicalHamlets,
+  );
+  const camera = createCamera(envelope, hamlets, world.bounds.height);
   const physicalWater = createPhysicalWaterContract({
     key: terrainKey,
     envelope,
@@ -1783,6 +1812,7 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
     hamlets,
     water,
     physicalWater,
+    physicalHamlets,
     visualBudgets.maxTrees,
     visualBudgets.maxGroves,
   );
@@ -1827,7 +1857,7 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
 
   return {
     schema: "repo-world-plan/v1",
-    version: "1.0.0",
+    version: WORLD_PLAN_VERSION,
     topologyKey,
     terrainKey,
     placementKey: terrainKey,

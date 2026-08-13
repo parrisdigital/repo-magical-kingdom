@@ -135,6 +135,13 @@ Rules:
 - Unchanged modules should retain their province and approximate location across
   nearby revisions.
 
+The serialized repository package remains `repo-kingdom/v1` with compiler
+version `1.0.0`. The renderer-agnostic scene planner is currently
+`repo-world-plan/v1` version `1.1.0`, and physical terrain identity uses
+`repo-terrain/v3`. Planner-version changes invalidate topology-derived output;
+terrain-schema changes invalidate terrain, shoreline, water-routing, and
+placement caches without claiming a breaking repository-package schema change.
+
 ## World style and season
 
 Each repository is one coherent world in one explicitly selected style and

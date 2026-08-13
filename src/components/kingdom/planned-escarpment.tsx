@@ -50,6 +50,11 @@ export type PlannedEscarpmentGeometryData = Readonly<{
 const MATERIAL_STONE = 0;
 const MATERIAL_LEDGE = 1;
 const MATERIAL_GRASS = 2;
+// Keep a small margin below the public 60-degree contract while retaining the
+// maximum possible amount of the sampled terrain profile in every rear column.
+const REAR_MAXIMUM_SLOPE_DEGREES = 58;
+const REAR_MAXIMUM_SLOPE = Math.tan((REAR_MAXIMUM_SLOPE_DEGREES * Math.PI) / 180);
+const REAR_MAXIMUM_STEP = 4.8;
 
 const QUALITY_COLUMNS: Readonly<Record<PlannedEscarpmentQuality, number>> = {
   low: 48,
@@ -95,6 +100,43 @@ type FaceRow = Readonly<{
   projection: number;
   material: 0 | 1;
 }>;
+
+type RearProfile = Readonly<{
+  heights: ReadonlyArray<number>;
+}>;
+
+function maximumRearRise(rowRun: number): number {
+  return Math.min(rowRun * REAR_MAXIMUM_SLOPE, REAR_MAXIMUM_STEP);
+}
+
+/**
+ * Projects the terrain-following target onto a fixed-endpoint Lipschitz
+ * profile. At each row, the feasible interval is the intersection of the
+ * previous row's rise bound and the heights that can still reach the exact
+ * ground endpoint. Choosing inside that interval preserves the invariant for
+ * both the completed prefix and the remaining suffix.
+ */
+function buildSlopeBoundedRearProfile(
+  terrainFollowing: ReadonlyArray<number>,
+  rowRun: number,
+): ReadonlyArray<number> {
+  const lastRow = terrainFollowing.length - 1;
+  if (lastRow <= 0) return [...terrainFollowing];
+
+  const riseLimit = maximumRearRise(rowRun);
+  const start = terrainFollowing[0]!;
+  const end = terrainFollowing[lastRow]!;
+  const heights = [start];
+  for (let row = 1; row < lastRow; row += 1) {
+    const previous = heights[row - 1]!;
+    const remainingRows = lastRow - row;
+    const minimum = Math.max(previous - riseLimit, end - remainingRows * riseLimit);
+    const maximum = Math.min(previous + riseLimit, end + remainingRows * riseLimit);
+    heights.push(clamp(terrainFollowing[row]!, minimum, maximum));
+  }
+  heights.push(end);
+  return heights;
+}
 
 function buildFaceRows(topologyKey: string, bandCount: number): ReadonlyArray<FaceRow> {
   const rows: FaceRow[] = [
@@ -281,12 +323,26 @@ export function buildPlannedEscarpmentGeometry(
       coreCrestY - 1.45,
       coreCrestY + 0.32 + Math.sin(progress * Math.PI * 5 + phaseB) * 0.1,
     );
-    const shelfY = mix(shelfTerrain, coreShelfY, edgeStrength);
+    const requestedShelfY = mix(shelfTerrain, coreShelfY, edgeStrength);
     const groundZ = Math.max(
       envelope.minZ + envelope.safeMargin * 0.42,
       shelfZ - requestedRearConnectionDepth,
     );
     const groundY = samplePlannedTerrainHeight(plan, x, groundZ) + 0.055;
+    // A fixed-endpoint bounded profile exists exactly when the endpoint rise is
+    // no greater than the accumulated per-row budget. Constrain the authored
+    // shelf surface to the available row budget so every later profile is
+    // feasible by construction.
+    const maximumConnectionRise = Math.min(
+      (shelfZ - groundZ) * REAR_MAXIMUM_SLOPE,
+      rearRows * REAR_MAXIMUM_STEP,
+    );
+    const shelfY =
+      clamp(
+        requestedShelfY + 0.025,
+        groundY - maximumConnectionRise,
+        groundY + maximumConnectionRise,
+      ) - 0.025;
     crest.push({ x, y: crestY, z: crestZ, baseY, baseZ, shelfY, shelfZ, groundY, groundZ });
   }
   const rearConnectionDepth = Math.min(...crest.map((sample) => sample.shelfZ - sample.groundZ));
@@ -350,15 +406,30 @@ export function buildPlannedEscarpmentGeometry(
   const rearStart = positions.length / 3;
   let maximumRearSlopeDegrees = 0;
   let maximumRearStep = 0;
-  for (let row = 0; row <= rearRows; row += 1) {
-    const progress = row / rearRows;
-    const eased = mix(progress, smoothstep(0, 1, progress), 0.18);
-    for (let column = 0; column <= columns; column += 1) {
-      const sample = crest[column]!;
+  const rearProfiles: ReadonlyArray<RearProfile> = crest.map((sample) => {
+    const terrainFollowing: number[] = [];
+    for (let row = 0; row <= rearRows; row += 1) {
+      const progress = row / rearRows;
+      const eased = mix(progress, smoothstep(0, 1, progress), 0.18);
       const z = mix(sample.shelfZ, sample.groundZ, progress);
       const terrainY = samplePlannedTerrainHeight(plan, sample.x, z) + 0.055;
       const shelfY = sample.shelfY + 0.025;
-      const y = mix(shelfY, terrainY, eased);
+      terrainFollowing.push(mix(shelfY, terrainY, eased));
+    }
+    return {
+      heights: buildSlopeBoundedRearProfile(
+        terrainFollowing,
+        (sample.shelfZ - sample.groundZ) / rearRows,
+      ),
+    };
+  });
+  for (let row = 0; row <= rearRows; row += 1) {
+    const progress = row / rearRows;
+    for (let column = 0; column <= columns; column += 1) {
+      const sample = crest[column]!;
+      const profile = rearProfiles[column]!;
+      const z = mix(sample.shelfZ, sample.groundZ, progress);
+      const y = profile.heights[row]!;
       positions.push(sample.x, y, z);
       zones.push(MATERIAL_GRASS);
       if (row > 0) {

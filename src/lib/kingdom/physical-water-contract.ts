@@ -1,4 +1,5 @@
 import { stableFraction } from "./hash";
+import { KingdomError } from "./errors";
 import type {
   CorridorRegionMask,
   EllipseRegionMask,
@@ -65,6 +66,12 @@ export type CreatePhysicalWaterContractInput = Readonly<{
 
 export const PHYSICAL_LAKE_PERIMETER_SEGMENTS = 96;
 
+// Preserve the semantic target-area distribution while reserving a small
+// fitting margin for the irregular shoreline lobes. Without this calibration,
+// a small but repeatable tail of terrain/v3 identities exceeded the public
+// fourteen-percent visible-footprint contract after polygon fitting.
+const PHYSICAL_LAKE_BASE_RADIUS_SCALE = 0.988;
+
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
@@ -105,6 +112,284 @@ function closestPointOnSegment(
     segmentProgress,
     point: closest,
   };
+}
+
+/** Minimum normalized distance between a segment and an axis-aligned ellipse. */
+export function segmentToExpandedEllipseDistance(
+  start: WorldPlanPoint,
+  end: WorldPlanPoint,
+  terrace: PhysicalWaterTerrace,
+  clearance: number,
+): number {
+  const radiusX = terrace.radiusX + clearance;
+  const radiusZ = terrace.radiusZ + clearance;
+  const normalizedStart = point(
+    (start.x - terrace.center.x) / radiusX,
+    (start.z - terrace.center.z) / radiusZ,
+  );
+  const normalizedEnd = point(
+    (end.x - terrace.center.x) / radiusX,
+    (end.z - terrace.center.z) / radiusZ,
+  );
+  return closestPointOnSegment(point(0, 0), normalizedStart, normalizedEnd).distance;
+}
+
+export function routePhysicalCourseSegmentsAroundTerraces(
+  points: ReadonlyArray<WorldPlanPoint>,
+  terraces: ReadonlyArray<PhysicalWaterTerrace>,
+  sourceWidth: number,
+  envelope: WorldPlanEnvelope,
+  outline: ReadonlyArray<WorldPlanPoint>,
+  preferredSide: -1 | 1,
+): ReadonlyArray<WorldPlanPoint> {
+  const clearance = sourceWidth * 1.42 * 0.5 + 5.5;
+  const clearsEveryTerrace = (start: WorldPlanPoint, end: WorldPlanPoint): boolean =>
+    terraces.every(
+      (terrace) => segmentToExpandedEllipseDistance(start, end, terrace, clearance) >= 1,
+    );
+  const pointClearsEveryTerrace = (sample: WorldPlanPoint): boolean =>
+    clearsEveryTerrace(sample, sample);
+
+  const orientation = (first: WorldPlanPoint, second: WorldPlanPoint, third: WorldPlanPoint) =>
+    (second.x - first.x) * (third.z - first.z) - (second.z - first.z) * (third.x - first.x);
+  const segmentsProperlyIntersect = (
+    firstStart: WorldPlanPoint,
+    firstEnd: WorldPlanPoint,
+    secondStart: WorldPlanPoint,
+    secondEnd: WorldPlanPoint,
+  ): boolean => {
+    const firstSideStart = orientation(firstStart, firstEnd, secondStart);
+    const firstSideEnd = orientation(firstStart, firstEnd, secondEnd);
+    const secondSideStart = orientation(secondStart, secondEnd, firstStart);
+    const secondSideEnd = orientation(secondStart, secondEnd, firstEnd);
+    return (
+      firstSideStart * firstSideEnd < -0.000_001 && secondSideStart * secondSideEnd < -0.000_001
+    );
+  };
+  const segmentStaysOnLand = (start: WorldPlanPoint, end: WorldPlanPoint): boolean => {
+    if (!polygonContains(start, outline) || !polygonContains(end, outline)) return false;
+    return outline.every(
+      (boundaryStart, index) =>
+        !segmentsProperlyIntersect(
+          start,
+          end,
+          boundaryStart,
+          outline[(index + 1) % outline.length]!,
+        ),
+    );
+  };
+  const validEdge = (start: WorldPlanPoint, end: WorldPlanPoint): boolean =>
+    clearsEveryTerrace(start, end) && segmentStaysOnLand(start, end);
+  const invalidRoute = (
+    reason: string,
+    details: Readonly<Record<string, string | number | boolean | null>>,
+  ): KingdomError => {
+    return new KingdomError(
+      "WORLD_INVALID",
+      "The generated world could not place a valid water course.",
+      {
+        retryable: false,
+        details: { reason, ...details },
+      },
+    );
+  };
+
+  const requestedStart = points[0];
+  const requestedTarget = points.at(-1);
+  if (!requestedStart || !requestedTarget || points.length < 2) {
+    throw invalidRoute("course-input", { pointCount: points.length });
+  }
+  const uniqueSorted = (values: ReadonlyArray<number>): ReadonlyArray<number> =>
+    [...new Set(values.map((value) => Math.round(value * 100_000) / 100_000))].sort(
+      (first, second) => first - second,
+    );
+  const normalizeEndpoint = (requested: WorldPlanPoint, endpoint: "start" | "target") => {
+    if (pointClearsEveryTerrace(requested) && polygonContains(requested, outline)) return requested;
+    const candidates = uniqueSorted([
+      requested.x,
+      envelope.center.x,
+      envelope.minX + envelope.safeMargin * 1.25,
+      envelope.maxX - envelope.safeMargin * 1.25,
+      ...terraces.flatMap((terrace) => {
+        const radiusX = terrace.radiusX + clearance;
+        const radiusZ = terrace.radiusZ + clearance;
+        const normalizedZ = Math.abs(requested.z - terrace.center.z) / radiusZ;
+        if (normalizedZ >= 1) return [];
+        const forbiddenHalfWidth = radiusX * Math.sqrt(1 - normalizedZ * normalizedZ);
+        return [
+          terrace.center.x - forbiddenHalfWidth - 0.5,
+          terrace.center.x + forbiddenHalfWidth + 0.5,
+        ];
+      }),
+    ])
+      .filter((x) => x >= envelope.minX + 1 && x <= envelope.maxX - 1)
+      .map((x) => point(x, requested.z))
+      .filter(
+        (candidate) => pointClearsEveryTerrace(candidate) && polygonContains(candidate, outline),
+      )
+      .sort((first, second) => {
+        const firstSide = Math.sign(first.x - envelope.center.x) === preferredSide ? 0 : 1;
+        const secondSide = Math.sign(second.x - envelope.center.x) === preferredSide ? 0 : 1;
+        return (
+          firstSide - secondSide ||
+          Math.abs(first.x - requested.x) - Math.abs(second.x - requested.x) ||
+          first.x - second.x
+        );
+      });
+    const chosen = candidates[0];
+    if (!chosen) {
+      throw invalidRoute("course-endpoint-normalization", {
+        endpoint,
+        terraceCount: terraces.length,
+      });
+    }
+    return chosen;
+  };
+  const start = normalizeEndpoint(requestedStart, "start");
+  const target = normalizeEndpoint(requestedTarget, "target");
+  const normalizedGuide = [start, ...points.slice(1, -1), target];
+  // Overlapping expanded terraces can form a coast-to-coast wall whose only
+  // valid route passes around the front of an obstacle and briefly reverses Z,
+  // so this must remain a general visibility graph rather than a monotonic DAG.
+  // Sixteen samples at 1.04 scale are analytically chord-safe because
+  // 1.04 * cos(pi / 16) > 1 in each ellipse's normalized coordinate space.
+  const safetyScale = 1.04;
+  const boundaryCandidates = terraces.flatMap((terrace) =>
+    Array.from({ length: 16 }, (_, index) => {
+      const angle = (index / 16) * Math.PI * 2;
+      return point(
+        terrace.center.x + Math.cos(angle) * (terrace.radiusX + clearance) * safetyScale,
+        terrace.center.z + Math.sin(angle) * (terrace.radiusZ + clearance) * safetyScale,
+      );
+    }),
+  );
+  const candidates = [start, target, ...normalizedGuide.slice(1, -1), ...boundaryCandidates];
+  const nodes = candidates.filter((candidate, index) => {
+    if (index < 2) return true;
+    return (
+      candidate.x >= envelope.minX + 1 &&
+      candidate.x <= envelope.maxX - 1 &&
+      pointClearsEveryTerrace(candidate) &&
+      polygonContains(candidate, outline) &&
+      candidates.findIndex(
+        (other) =>
+          Math.abs(other.x - candidate.x) <= 0.000_01 &&
+          Math.abs(other.z - candidate.z) <= 0.000_01,
+      ) === index
+    );
+  });
+
+  const distances = nodes.map(() => Number.POSITIVE_INFINITY);
+  const previous = nodes.map(() => -1);
+  const visited = nodes.map(() => false);
+  distances[0] = 0;
+  for (let visit = 0; visit < nodes.length; visit += 1) {
+    let currentIndex = -1;
+    for (let index = 0; index < nodes.length; index += 1) {
+      if (visited[index]) continue;
+      if (
+        currentIndex < 0 ||
+        distances[index]! < distances[currentIndex]! - 0.000_001 ||
+        (Math.abs(distances[index]! - distances[currentIndex]!) <= 0.000_001 &&
+          index < currentIndex)
+      ) {
+        currentIndex = index;
+      }
+    }
+    if (currentIndex < 0 || !Number.isFinite(distances[currentIndex]!)) break;
+    if (currentIndex === 1) break;
+    visited[currentIndex] = true;
+    const current = nodes[currentIndex]!;
+    for (let nextIndex = 1; nextIndex < nodes.length; nextIndex += 1) {
+      if (visited[nextIndex] || nextIndex === currentIndex) continue;
+      const next = nodes[nextIndex]!;
+      if (!validEdge(current, next)) continue;
+      const sidePenalty =
+        Math.sign(next.x - envelope.center.x) === preferredSide ? 0 : envelope.width * 0.000_1;
+      const candidateDistance =
+        distances[currentIndex]! + Math.hypot(next.x - current.x, next.z - current.z) + sidePenalty;
+      if (
+        candidateDistance < distances[nextIndex]! - 0.000_001 ||
+        (Math.abs(candidateDistance - distances[nextIndex]!) <= 0.000_001 &&
+          currentIndex < previous[nextIndex]!)
+      ) {
+        distances[nextIndex] = candidateDistance;
+        previous[nextIndex] = currentIndex;
+      }
+    }
+  }
+  if (!Number.isFinite(distances[1]!)) {
+    throw invalidRoute("course-visibility-graph", {
+      candidateCount: nodes.length,
+      terraceCount: terraces.length,
+    });
+  }
+
+  const resolved: WorldPlanPoint[] = [];
+  let routeIndex = 1;
+  for (let step = 0; step <= nodes.length; step += 1) {
+    const routePoint = nodes[routeIndex];
+    if (!routePoint) {
+      throw invalidRoute("course-route-reconstruction", {
+        candidateCount: nodes.length,
+        routeIndex,
+      });
+    }
+    resolved.push(routePoint);
+    if (routeIndex === 0) break;
+    routeIndex = previous[routeIndex]!;
+  }
+  if (resolved.at(-1) !== start) {
+    throw invalidRoute("course-route-reconstruction", {
+      candidateCount: nodes.length,
+      routeIndex,
+    });
+  }
+  resolved.reverse();
+
+  const requiredMeanderSpan = envelope.width * 0.09;
+  const resolvedSpan =
+    Math.max(...resolved.map(({ x }) => x)) - Math.min(...resolved.map(({ x }) => x));
+  if (resolvedSpan + 0.000_01 < requiredMeanderSpan) {
+    const guideAnchor = normalizedGuide
+      .slice(1, -1)
+      .filter((candidate) => validEdge(start, candidate) && validEdge(candidate, target))
+      .sort((first, second) => {
+        const firstSpan =
+          Math.max(start.x, first.x, target.x) - Math.min(start.x, first.x, target.x);
+        const secondSpan =
+          Math.max(start.x, second.x, target.x) - Math.min(start.x, second.x, target.x);
+        return secondSpan - firstSpan || first.z - second.z || first.x - second.x;
+      })[0];
+    if (guideAnchor) {
+      resolved.splice(1, Math.max(0, resolved.length - 2), guideAnchor);
+    }
+  }
+  for (let index = 1; index < resolved.length; index += 1) {
+    if (!validEdge(resolved[index - 1]!, resolved[index]!)) {
+      throw invalidRoute("course-returned-edge", {
+        pointCount: resolved.length,
+        segmentIndex: index - 1,
+      });
+    }
+  }
+  const resolvedStart = resolved[0];
+  const resolvedTarget = resolved.at(-1);
+  if (
+    !resolvedStart ||
+    !resolvedTarget ||
+    resolvedStart.x !== start.x ||
+    resolvedStart.z !== start.z ||
+    resolvedTarget.x !== target.x ||
+    resolvedTarget.z !== target.z
+  ) {
+    throw invalidRoute("course-endpoint-contract", {
+      pointCount: resolved.length,
+      startPreserved: resolvedStart?.x === start.x && resolvedStart?.z === start.z,
+      targetPreserved: resolvedTarget?.x === target.x && resolvedTarget?.z === target.z,
+    });
+  }
+  return resolved;
 }
 
 export function samplePhysicalCoursePolyline(
@@ -402,7 +687,11 @@ export function canonicalLakeNormalizedRadius(
   if (subjectRadius <= Number.EPSILON || lake.perimeter.length === 0) return 0;
   const directionX = deltaX / subjectRadius;
   const directionZ = deltaZ / subjectRadius;
-  const angle = Math.atan2(deltaZ, deltaX);
+  // The perimeter fan is sampled at equal angles in the lake's normalized
+  // ellipse space, not at equal world-space angles. Recover that same
+  // parameter before selecting the shoreline chord; world-space angles pick
+  // the wrong edge whenever radiusX and radiusZ differ substantially.
+  const angle = Math.atan2(deltaZ / lake.radiusZ, deltaX / lake.radiusX);
   const normalizedAngle = angle < 0 ? angle + Math.PI * 2 : angle;
   const index =
     Math.floor((normalizedAngle / (Math.PI * 2)) * lake.perimeter.length) % lake.perimeter.length;
@@ -521,8 +810,10 @@ export function createPhysicalWaterContract(
   const inletAngle = -Math.PI / 2 - 0.16 + (stableFraction(`${key}:inlet-angle`) - 0.5) * 0.1;
   const headwaterSurfaceHeight = 4.25;
   const outletSurfaceHeight = -0.35;
-  const baseRadiusX = Math.sqrt((targetLakeArea * aspect) / Math.PI);
-  const baseRadiusZ = targetLakeArea / (Math.PI * baseRadiusX);
+  const targetRadiusX = Math.sqrt((targetLakeArea * aspect) / Math.PI);
+  const targetRadiusZ = targetLakeArea / (Math.PI * targetRadiusX);
+  const baseRadiusX = targetRadiusX * PHYSICAL_LAKE_BASE_RADIUS_SCALE;
+  const baseRadiusZ = targetRadiusZ * PHYSICAL_LAKE_BASE_RADIUS_SCALE;
   const course: PhysicalWaterCourseContract = {
     points: [],
     sourceWidth: courseMask.width,
@@ -617,7 +908,7 @@ export function createPhysicalWaterContract(
     }
     return routedX;
   };
-  const plannedCoursePoints = Array.from({ length: 12 }, (_, index) => {
+  const guidedCoursePoints = Array.from({ length: 12 }, (_, index) => {
     const progress = index / 11;
     const meanderEnvelope = Math.sin(progress * Math.PI);
     const meander =
@@ -629,6 +920,14 @@ export function createPhysicalWaterContract(
     const z = mix(headwaterZ, inletPoint.z, progress);
     return point(routeXAroundTerraces(guidedX + meander * meanderEnvelope, z), z);
   });
+  const plannedCoursePoints = routePhysicalCourseSegmentsAroundTerraces(
+    guidedCoursePoints,
+    terraces,
+    courseMask.width,
+    envelope,
+    outline,
+    semanticCourseSide,
+  );
   let lakeClosestProgress = 0.76;
   let minimum = Number.POSITIVE_INFINITY;
   const segmentCount = Math.max(1, plannedCoursePoints.length - 1);
