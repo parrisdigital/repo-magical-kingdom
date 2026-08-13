@@ -410,11 +410,11 @@
     },
     {
       "id": "repo-magical-kingdom-app-logo",
-      "name": "Repo Magical Kingdom Seasonal Gateway brand mark",
+      "name": "Repo Magical Kingdom Four-Season Cycle brand mark",
       "kind": "generated-media",
       "relationship": "Original generated project identity selected for the in-application brand and installable app icons.",
-      "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/brand/app-logo.png",
-      "version": "1.0, generated 2026-08-13",
+      "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/brand/app-logo-v2.png",
+      "version": "2.0, generated 2026-08-13",
       "distribution": "bundled-runtime",
       "license": {
         "spdx": "CC-BY-4.0",
@@ -424,23 +424,23 @@
       "authors": ["Parris Digital", "OpenAI image generation tool"],
       "usage": "Application HUD brand mark and 192/512-pixel installable web-app icons.",
       "projectLocations": [
-        "public/brand/app-logo.png",
+        "public/brand/app-logo-v2.png",
         "public/icons/app-icon-192.png",
         "public/icons/app-icon-512.png",
         "src/app/manifest.ts",
         "src/components/kingdom/kingdom-hud.tsx"
       ],
       "redistributedFiles": [
-        "public/brand/app-logo.png",
+        "public/brand/app-logo-v2.png",
         "public/icons/app-icon-192.png",
         "public/icons/app-icon-512.png"
       ],
       "contentHashes": {
-        "public/brand/app-logo.png": "sha256:2668f22bc6b8f7c3dee87c3c3af67bae2076ea83d29ff463005cf31a7ff1948d",
-        "public/icons/app-icon-192.png": "sha256:fc5a99b31a1e72628cd0ad9bd39e868761657b89ec292ac8c221d852b0d8acf5",
-        "public/icons/app-icon-512.png": "sha256:c9dec556923c3dc31e14bd5d6c39fe51642c59e92907552c47d3e3ea921d3980"
+        "public/brand/app-logo-v2.png": "sha256:94ee570a5c39bf75053396f7a17209ad2fca16958f50d283a454a1266021250f",
+        "public/icons/app-icon-192.png": "sha256:711902894272cc14e0336406000ac6a5c3b24c983166df68f9bf3884fde71f8d",
+        "public/icons/app-icon-512.png": "sha256:aa91c84f5b87cd22304dd527744e33e762ad367f64ec4307dc0df9440439ab7c"
       },
-      "modifications": "The selected 1254-pixel generated PNG was resized without generative alteration to 256, 192, and 512 pixels with macOS sips.",
+      "modifications": "The previously selected Seasonal Gateway mark was edited with OpenAI image generation to remove the central crystal and dark tile, enlarge the four-season ring, and place it on a controlled chroma background. The chroma background was removed locally to true alpha, then the approved transparent master was resized to 256, 192, and 512 pixels with macOS sips.",
       "generatedMediaProvenance": {
         "generator": {
           "tool": "OpenAI image_gen built-in tool",
@@ -448,8 +448,8 @@
           "version": "Built-in service accessed 2026-08-13",
           "canonicalUrl": "https://openai.com/"
         },
-        "generatedAt": "2026-08-13T01:41:21Z",
-        "prompt": "Use case: logo-brand\nAsset type: square application icon and browser favicon concept, Option C — Seasonal Gateway\nReference image: use only the project's crystalline gateway and four-season palette. Do not reproduce the scene.\nPrimary request: create an elegant professional symbol for selectable repository worlds and seasons.\nSubject: one central faceted ivory crystal portal shaped as a clean vertical diamond. Four broad rounded terrain petals orbit it as a compact circular world: spring blush pink, summer fresh green, autumn amber, winter ice blue. A dark navy circular core behind the crystal creates strong contrast. The overall silhouette must remain one simple disc, not four separated icons.\nStyle: modern minimal 3D app icon, subtle soft PBR bevels, restrained and mature, precise geometry, strong small-size recognition.\nComposition: centered on a deep midnight rounded-square background with generous padding; symmetrical; readable at 16px.\nPalette: midnight navy, ivory, blush, green, amber, ice blue.\nConstraints: no words, letters, code symbols, GitHub logo, buildings, trees, mountains, stars, literal crown, thin lines, micro-detail, excessive glow, watermark, or franchise imagery.",
+        "generatedAt": "2026-08-13T02:47:07Z",
+        "prompt": "Use case: precise brand-mark edit and background extraction.\n\nInput Image 1 is the edit target. Preserve the same polished, sculpted, modern four-season visual language and the same four seasonal lobes: spring blush pink petals with a cherry blossom; summer fresh green leaves with a small leaf sprout; autumn warm amber-orange foliage with a maple leaf; winter icy pale blue with a snowflake.\n\nRequired changes: remove the entire vertical diamond, gem, and compass object from the center, including its glow and every remnant; leave a clean open circular negative-space center and do not replace the diamond with any icon, letter, jewel, portal, star, or object; remove the navy rounded-square tile and all environmental background; make the four-season circular ring itself larger and bolder, occupying roughly 90 percent of the square canvas with even padding; keep the four lobes connected in a smooth circular cycle and make each seasonal symbol legible around 48 pixels; preserve dimensional beveled material and soft highlights on the mark itself without a cast shadow outside the mark; place the isolated mark on a perfectly flat uniform #7F00FF chroma-key background without violet or purple in the mark. No text, border, watermark, or extra objects.",
         "negativeConstraints": [
           "No words, letters, code symbols, GitHub logo, or literal crown",
           "No buildings, trees, mountains, stars, thin lines, or micro-detail",
@@ -457,31 +457,31 @@
         ],
         "referenceAssets": [
           {
-            "description": "The project's approved release hero supplied only as a palette and visual-language reference.",
-            "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/readme-hero.png",
-            "localFile": "public/readme-hero.png",
-            "rights": "Original Repo Magical Kingdom generated release artwork controlled by Parris Digital and already registered in this attribution registry."
+            "description": "The project's previously approved Seasonal Gateway application mark used as the sole edit target.",
+            "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/214dec451d66358af7be4df42ad44c9bdf0a8cb8/public/brand/app-logo.png",
+            "rights": "Original Repo Magical Kingdom generated application artwork controlled by Parris Digital and already registered in this attribution registry."
           }
         ],
         "humanEdits": [
-          "Selected Option C after 16/32/64-pixel, trademark, logo, text, and franchise review.",
-          "No pixel-level or generative retouching was applied to the selected source output."
+          "Reviewed the edited ring at full resolution and at 64 pixels for symbol recognition, clean negative space, and absence of the removed crystal.",
+          "Removed the controlled chroma background locally with a soft alpha matte, two-pixel edge contraction, and spill cleanup; no subject pixels were painted or composited."
         ],
         "conversionSteps": [
-          "Resized the selected 1254 × 1254 source to 256 × 256 for the HUD brand mark with macOS sips.",
-          "Resized the same source to 192 × 192 and 512 × 512 for the web app manifest with macOS sips."
+          "Removed the generated #7F00FF chroma field from the 1254 × 1254 source with the project ImageGen skill's remove_chroma_key.py helper.",
+          "Resized the approved transparent master to 256 × 256 for the HUD brand mark and 192 × 192 and 512 × 512 for the web app manifest with macOS sips."
         ],
         "sourceContentHashes": {
-          "built-in-generated-source": "sha256:cd1fdc1e1ca25360d2878dd9274ef66c7ffd473ea095d8b3805528ee4d507b5b",
-          "project-readme-hero-reference": "sha256:f1d849bbbde2218ee465bd6dcb22a3eed7dba4c27d2150fed5c706c987d97535"
+          "prior-approved-mark-reference": "sha256:cd1fdc1e1ca25360d2878dd9274ef66c7ffd473ea095d8b3805528ee4d507b5b",
+          "built-in-generated-edit-source": "sha256:32501f9ddd916f3cf807233495be5407787614e89b18b128d88101c0183b15c9",
+          "transparent-master": "sha256:7e7fbb07be9d12ac50725e3c1ffcf0521d8f1b44db071a131d62e6d1540fccef"
         },
-        "attributionText": "Seasonal Gateway application mark generated with OpenAI image generation from Repo Magical Kingdom's own release artwork and selected by Parris Digital.",
+        "attributionText": "Four-Season Cycle application mark edited with OpenAI image generation from Repo Magical Kingdom's own prior mark and selected by Parris Digital.",
         "review": {
           "reviewer": "OpenAI Codex open-source release review",
-          "reviewedAt": "2026-08-13T02:11:28Z",
+          "reviewedAt": "2026-08-13T02:47:07Z",
           "confirmsNoProtectedProjectImitation": true,
           "confirmsNoThirdPartyLogosOrCharacters": true,
-          "notes": "The only supplied image was the project's own registered release hero. The selected mark contains no readable text, third-party logo, character, franchise imagery, or Tencent/WorldClaw media."
+          "notes": "The only supplied image was the project's own registered prior application mark. The revised mark contains no center crystal, readable text, third-party logo, character, franchise imagery, or Tencent/WorldClaw media."
         }
       }
     },

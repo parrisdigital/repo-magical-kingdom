@@ -11,6 +11,7 @@ contributors understand which obligations follow each file.
 | [Repository City](https://github.com/parrisdigital/repository-city)                                   | `0e61374af12387266c6fb13c273bee845b5f0864` | Product and architectural predecessor | No                            |
 | [ShieldCN](https://github.com/jal-co/shieldcn)                                                        | `af169e6c6030d289142546df7300acfe0eba7468` | External README badge service         | No                            |
 | [WorldClaw](https://github.com/Tencent-Hunyuan/Hunyuan3D-WorldClaw)                                   | `d9901019f561c32921e38d0f0f5cabc8f9f2ce48` | Research reference                    | No                            |
+| [Tiny World Builder](https://github.com/jasonkneen/tiny-world-builder)                                | `de89a516f7d08786436f3b63bf74942759e8d98b` | Procedural-system reference           | No                            |
 | [Quaternius Medieval Village MegaKit](https://quaternius.com/packs/medievalvillagemegakit.html)       | Standard free edition, 2026-08-12          | CC0 runtime asset source              | Yes, modified subset          |
 | [Quaternius Stylized Nature MegaKit](https://quaternius.com/packs/stylizednaturemegakit.html)         | Standard free edition, 2026-08-12          | CC0 runtime asset source              | Yes, modified subset          |
 | [Quaternius Ultimate Animated Animal Pack](https://quaternius.com/packs/ultimateanimatedanimals.html) | July 2021 edition, 2026-08-12              | CC0 runtime asset source              | Yes, modified subset          |
@@ -72,13 +73,14 @@ must be reassessed and the local files registered.
 
 ## Generated project identity
 
-The bundled Seasonal Gateway application mark and Orbital Mountain favicon are
+The bundled Four-Season Cycle application mark and Orbital Mountain favicon are
 original generated media, not adaptations of WorldClaw, Tencent, a game, a
-franchise, or another project's branding. The only image supplied to OpenAI's
-image generation tool was this repository's registered release hero. The
-machine-readable registry preserves both complete prompts, the original
-generated-output hashes, the favicon's center-crop hash, every final file hash,
-human selection notes, rights review, and CC BY 4.0 distribution terms.
+franchise, or another project's branding. The current transparent cycle mark
+was edited from this repository's own previously registered application mark;
+the favicon used the project's registered release hero. The machine-readable
+registry preserves the complete prompts, original generated-output hashes,
+favicon center-crop hash, final file hashes, human selection notes, rights
+review, and CC BY 4.0 distribution terms.
 
 ## WorldClaw
 
@@ -97,6 +99,18 @@ The reviewed default branch did not declare a software license. Therefore:
 
 Future explicit licensing may change what is technically possible, but any
 change to this policy requires legal review and a documented pull request.
+
+## Tiny World Builder
+
+Tiny World Builder was reviewed as a procedural-system reference for explicit
+world sizing, deterministic seeded terrain, weighted environmental archetypes,
+chunk/LOD separation, and bounded local animal movement. Repo Magical Kingdom
+implements those general patterns independently inside its existing
+repository-semantic planner and React Three Fiber renderer.
+
+The reviewed revision is licensed under AGPL-3.0. No Tiny World Builder source,
+models, textures, UI, or generated worlds are copied, adapted, redistributed,
+or loaded at runtime. Its visual style is not a target for this project.
 
 ## Quaternius
 

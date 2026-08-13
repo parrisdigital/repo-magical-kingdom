@@ -196,7 +196,7 @@ describe("planned global terrain", () => {
       // the remaining narrow band at the organic terrain edge.
       const x = lake.center.x + Math.cos(angle) * lake.radiusX * 0.94;
       const z = lake.center.z + Math.sin(angle) * lake.radiusZ * 0.94;
-      expect(isInsidePlannedTerrain(plan, x, z)).toBe(true);
+      expect(isInsidePlannedTerrain(plan, x, z), `lake inset angle ${index}`).toBe(true);
       const waterHeight = samplePlannedWaterSurface(plan, x, z);
       if (waterHeight !== null) {
         expect(samplePlannedTerrainHeight(plan, x, z)).toBeLessThan(waterHeight);

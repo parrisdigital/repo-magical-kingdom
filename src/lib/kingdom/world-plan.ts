@@ -1,6 +1,10 @@
 import { stableDigest, stableFraction, stableHash } from "./hash";
 import type { FileCategory, KingdomEntity, KingdomSeason, KingdomWorld, Province } from "./types";
-import { deriveRepositoryWorldIdentity, type RepositoryWorldIdentity } from "./world-identity";
+import {
+  deriveRepositoryWorldIdentity,
+  REPOSITORY_SCALE_PROFILES,
+  type RepositoryWorldIdentity,
+} from "./world-identity";
 import type { KingdomWorldTheme } from "./world-theme";
 
 export type WorldPlanPoint = Readonly<{ x: number; z: number }>;
@@ -425,6 +429,7 @@ function orderEntities(entities: ReadonlyArray<KingdomEntity>): ReadonlyArray<Ki
 function createHamlets(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
+  identity: RepositoryWorldIdentity,
 ): ReadonlyArray<HamletRegion> {
   const orderedProvinces = [...world.provinces].sort(
     (first, second) =>
@@ -434,7 +439,18 @@ function createHamlets(
       first.id.localeCompare(second.id),
   );
   const directoryProvinces = orderedProvinces.filter((province) => province.role !== "nexus");
-  const desiredCount = clamp(Math.ceil(Math.sqrt(Math.max(1, directoryProvinces.length))), 2, 4);
+  const scaleProfile = REPOSITORY_SCALE_PROFILES[identity.scaleTier];
+  const scaleAwareMinimum =
+    identity.scaleTier === "vast" && directoryProvinces.length >= 10
+      ? 5
+      : identity.scaleTier === "expansive" && directoryProvinces.length >= 9
+        ? 5
+        : scaleProfile.minHamlets;
+  const desiredCount = clamp(
+    Math.ceil(Math.sqrt(Math.max(1, directoryProvinces.length))),
+    scaleAwareMinimum,
+    scaleProfile.maxHamlets,
+  );
   const selected = directoryProvinces.slice(0, desiredCount);
   const fallbackProvince = selected[0] ?? orderedProvinces[0];
   if (!fallbackProvince) return [];
@@ -475,13 +491,19 @@ function createHamlets(
     world.statistics.files < 128
       ? 0
       : Math.min(6, Math.floor(Math.log2(world.statistics.files / 128 + 1) * 2));
+  const scaleBuildingBonus =
+    identity.scaleTier === "vast" ? 8 : identity.scaleTier === "expansive" ? 4 : 0;
+  const repositorySettlementAdjustment =
+    identity.scaleTier === "compact" ? 0 : Math.round((identity.signals.settlementDensity - 1) * 6);
   const targetBuildingCount = Math.round(
     clamp(
       12 +
         Math.floor(Math.log2(Math.max(1, world.statistics.files)) / 2) +
-        largeRepositoryBuildingBonus,
+        largeRepositoryBuildingBonus +
+        scaleBuildingBonus +
+        repositorySettlementAdjustment,
       candidates.length * 3,
-      Math.min(24, candidates.length * 6),
+      Math.min(scaleProfile.maxBuildings, candidates.length * 6),
     ),
   );
   let remainingBuildings = targetBuildingCount;
@@ -607,9 +629,18 @@ function createWaterSystem(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
   hamlets: ReadonlyArray<HamletRegion>,
+  identity: RepositoryWorldIdentity,
 ): WaterSystem {
-  const waterWidth = round(clamp(envelope.width * 0.036, 5, 8));
-  const candidates = [0.7, -0.7, 0.56, -0.56].map((ratio) =>
+  const archetypeWater = {
+    "source-forge": { width: 1, ratios: [0.7, -0.7, 0.56, -0.56] },
+    "warden-reach": { width: 0.9, ratios: [0.7, -0.7, 0.56, -0.56] },
+    "archive-domain": { width: 0.78, ratios: [0.34, -0.34, 0.58, -0.58] },
+    "observatory-frontier": { width: 0.82, ratios: [0.8, -0.8, 0.64, -0.64] },
+    "garden-realm": { width: 1.12, ratios: [0.52, -0.52, 0.34, -0.34] },
+    crossroads: { width: 1, ratios: [0.62, -0.62, 0.18, -0.18] },
+  }[identity.archetype];
+  const waterWidth = round(clamp(envelope.width * 0.036 * archetypeWater.width, 4.5, 9));
+  const candidates = archetypeWater.ratios.map((ratio) =>
     waterCandidate(world, envelope, ratio, waterWidth),
   );
   return candidates.sort(
@@ -622,8 +653,9 @@ function createTerrainZones(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
   hamlets: ReadonlyArray<HamletRegion>,
+  identity: RepositoryWorldIdentity,
 ): Readonly<{ zones: ReadonlyArray<TerrainZone>; water: WaterSystem }> {
-  const water = createWaterSystem(world, envelope, hamlets);
+  const water = createWaterSystem(world, envelope, hamlets, identity);
   const inset = envelope.safeMargin * 0.65;
   const rearDepth = clamp(envelope.depth * 0.18, 24, 40);
   const rearFrontZ = Math.min(-18, envelope.minZ + inset + rearDepth);
@@ -786,11 +818,12 @@ function createGroves(
   hamlets: ReadonlyArray<HamletRegion>,
   water: WaterSystem,
   maxTrees: number,
+  maxGroves: number,
 ): ReadonlyArray<ForestGroveRegion> {
   const desiredCount = clamp(
     3 + Math.floor(world.provinces.length / 4) + (world.worldTheme === "enchanted-forest" ? 1 : 0),
     3,
-    7,
+    maxGroves,
   );
   const rearLimit = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40) + 7;
   const candidates = Array.from({ length: 56 }, (_, index) => {
@@ -957,7 +990,7 @@ function createWildlifeZones(
   hamlets: ReadonlyArray<HamletRegion>,
   maxActors: number,
 ): ReadonlyArray<WildlifeZone> {
-  const desiredCount = Math.min(3, groves.length);
+  const desiredCount = Math.min(groves.length, maxActors >= 14 ? 5 : maxActors >= 10 ? 4 : 3);
   const baseActorCount = desiredCount === 0 ? 0 : Math.floor(maxActors / desiredCount);
   const extraActors = desiredCount === 0 ? 0 : maxActors % desiredCount;
   const actorCounts = Array.from(
@@ -965,7 +998,7 @@ function createWildlifeZones(
     (_, index) => baseActorCount + (index < extraActors ? 1 : 0),
   );
   const roles: ReadonlyArray<WildlifeRole> = ["deer", "fox", "stag"];
-  const behaviors: ReadonlyArray<WildlifeZone["behavior"]> = ["graze", "wander", "rest"];
+  const behaviors: ReadonlyArray<WildlifeZone["behavior"]> = ["wander", "graze", "rest"];
   const offset = Math.floor(stableFraction(`${world.seed}:wildlife`) * roles.length);
   return groves.slice(0, desiredCount).map((grove, index) => ({
     id: `wildlife-${grove.id.slice("grove-".length)}`,
@@ -988,32 +1021,38 @@ function createWildlifeZones(
 
 function createVisualBudgets(
   world: KingdomWorld,
+  identity: RepositoryWorldIdentity,
   hamlets: ReadonlyArray<HamletRegion>,
 ): WorldVisualBudgets {
   const complexity = Math.sqrt(Math.max(1, world.statistics.files));
+  const scaleProfile = REPOSITORY_SCALE_PROFILES[identity.scaleTier];
   const largeRepositoryActorBonus =
     world.statistics.files < 128
       ? 0
       : Math.min(4, Math.floor(Math.log2(world.statistics.files / 128 + 1) * 1.5));
   return {
     maxTerrainZones: 10,
-    maxHamlets: 4,
+    maxHamlets: scaleProfile.maxHamlets,
     maxBuildings: hamlets.reduce((total, hamlet) => total + hamlet.maxBuildings, 0),
-    maxGroves: 7,
+    maxGroves: scaleProfile.maxGroves,
     maxTrees: Math.round(
       clamp(
-        (world.worldTheme === "enchanted-forest" ? 155 : 90) +
-          world.provinces.length * (world.worldTheme === "enchanted-forest" ? 11 : 10) +
-          complexity * (world.worldTheme === "enchanted-forest" ? 6 : 5),
-        world.worldTheme === "enchanted-forest" ? 190 : 120,
-        240,
+        (scaleProfile.minTrees + world.provinces.length * 2.4 + complexity * 0.55) *
+          identity.signals.woodlandDensity *
+          (world.worldTheme === "enchanted-forest" ? 1.14 : 1),
+        scaleProfile.minTrees,
+        scaleProfile.maxTrees,
       ),
     ),
-    maxLandmarks: 6,
+    maxLandmarks: Math.min(6, Math.max(3, Math.round(3 * identity.signals.landmarkDensity))),
     maxWildlifeActors: Math.round(
-      clamp(4 + world.provinces.length / 4 + largeRepositoryActorBonus, 4, 12),
+      clamp(
+        4 + world.provinces.length / 4 + largeRepositoryActorBonus,
+        4,
+        scaleProfile.maxWildlifeActors,
+      ),
     ),
-    maxSurfaceScatter: Math.round(clamp(210 + complexity * 7, 240, 360)),
+    maxSurfaceScatter: Math.round(clamp(210 + complexity * 7, 240, scaleProfile.maxSurfaceScatter)),
     maxDrawCalls: 150,
     maxVisibleTriangles: 750_000,
   };
@@ -1533,6 +1572,40 @@ function createTopologyKey(world: KingdomWorld, topology: WorldPlanTopology): st
   return stableDigest(identity.join(":"));
 }
 
+function createTerrainKey(
+  world: KingdomWorld,
+  identity: RepositoryWorldIdentity,
+  envelope: WorldPlanEnvelope,
+  hamlets: ReadonlyArray<HamletRegion>,
+  terrainZones: ReadonlyArray<TerrainZone>,
+): string {
+  // Terrain identity deliberately excludes visual budgets, grove populations,
+  // wildlife, and selected world style. Raising an instance budget must never
+  // reshape a coastline or invalidate a settlement terrace.
+  return stableDigest(
+    JSON.stringify({
+      schema: "repo-terrain/v2",
+      repositoryId: world.source.repositoryId,
+      commitSha: world.source.commitSha,
+      seed: world.seed,
+      archetype: identity.archetype,
+      scaleTier: identity.scaleTier,
+      envelope,
+      hamlets: hamlets.map((hamlet) => ({
+        id: hamlet.id,
+        role: hamlet.role,
+        mask: hamlet.mask,
+        maxBuildings: hamlet.maxBuildings,
+      })),
+      terrainZones: terrainZones.map((zone) => ({
+        id: zone.id,
+        kind: zone.kind,
+        mask: zone.mask,
+      })),
+    }),
+  );
+}
+
 /**
  * Converts compiler output into a deterministic, renderer-agnostic scene plan.
  * Repository semantics and the selected world theme choose spatial roles. The
@@ -1542,10 +1615,17 @@ function createTopologyKey(world: KingdomWorld, topology: WorldPlanTopology): st
 export function createWorldPlan(world: KingdomWorld): WorldPlan {
   const identity = deriveRepositoryWorldIdentity(world);
   const envelope = createEnvelope(world);
-  const hamlets = createHamlets(world, envelope);
-  const { zones: terrainZones, water } = createTerrainZones(world, envelope, hamlets);
-  const visualBudgets = createVisualBudgets(world, hamlets);
-  const groves = createGroves(world, envelope, hamlets, water, visualBudgets.maxTrees);
+  const hamlets = createHamlets(world, envelope, identity);
+  const { zones: terrainZones, water } = createTerrainZones(world, envelope, hamlets, identity);
+  const visualBudgets = createVisualBudgets(world, identity, hamlets);
+  const groves = createGroves(
+    world,
+    envelope,
+    hamlets,
+    water,
+    visualBudgets.maxTrees,
+    visualBudgets.maxGroves,
+  );
   const landmarks = createLandmarks(world, hamlets);
   const wildlifeZones = createWildlifeZones(
     world,
@@ -1568,8 +1648,8 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
         "Repository structure chooses spatial roles, while scenery expresses most code areas without turning every file or folder into a house.",
       buildingRule:
         world.statistics.files >= 128
-          ? "Only two to four strongest top-level directory provinces become hamlets; each is aggregated into three to six buildings, with twelve to twenty-four buildings total depending on repository scale."
-          : "Only two to four strongest top-level directory provinces become hamlets; each is aggregated into three to six buildings, with twelve to twenty buildings total.",
+          ? "The strongest top-level directory provinces become two to six scale-aware hamlets; each is aggregated into three to six buildings, with twelve to thirty-two buildings total depending on repository scale."
+          : "The strongest top-level directory provinces become two or three compact hamlets; each is aggregated into three to six buildings, with twelve to eighteen buildings total.",
       traceabilityRule:
         "Every province has a semantic hit zone containing all of its entity IDs, including provinces represented only by nature, landform, or invisible selection coverage.",
     },
@@ -1579,33 +1659,7 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
     visualBudgets,
   };
   const topologyKey = createTopologyKey(world, topology);
-  const terrainKey =
-    world.worldTheme === "kingdom-valley"
-      ? topologyKey
-      : (() => {
-          const valleyWorld: KingdomWorld = { ...world, worldTheme: "kingdom-valley" };
-          const valleyBudgets = createVisualBudgets(valleyWorld, hamlets);
-          const valleyGroves = createGroves(
-            valleyWorld,
-            envelope,
-            hamlets,
-            water,
-            valleyBudgets.maxTrees,
-          );
-          const valleyTopology: WorldPlanTopology = {
-            ...topology,
-            groves: valleyGroves,
-            wildlifeZones: createWildlifeZones(
-              valleyWorld,
-              valleyGroves,
-              hamlets,
-              valleyBudgets.maxWildlifeActors,
-            ),
-            scatterConstraints: createScatterConstraints(valleyGroves, hamlets, valleyBudgets),
-            visualBudgets: valleyBudgets,
-          };
-          return createTopologyKey(valleyWorld, valleyTopology);
-        })();
+  const terrainKey = createTerrainKey(world, identity, envelope, hamlets, terrainZones);
 
   return {
     schema: "repo-world-plan/v1",

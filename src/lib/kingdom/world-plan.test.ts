@@ -101,7 +101,7 @@ describe("createWorldPlan", () => {
     expect(valley.appearance.worldTheme).toBe("kingdom-valley");
     expect(forest.appearance.worldTheme).toBe("enchanted-forest");
     expect(forest.topologyKey).not.toBe(valley.topologyKey);
-    expect(forest.terrainKey).toBe(valley.topologyKey);
+    expect(forest.terrainKey).toBe(valley.terrainKey);
     expect(forest.placementKey).toBe(valley.placementKey);
     expect(forest.topology).not.toEqual(valley.topology);
 
@@ -249,7 +249,7 @@ describe("createWorldPlan", () => {
     expect(topology.terrainZones.length).toBeLessThanOrEqual(budgets.maxTerrainZones);
     expect(topology.hamlets.length).toBeLessThanOrEqual(budgets.maxHamlets);
     expect(buildingCount).toBeGreaterThanOrEqual(12);
-    expect(buildingCount).toBeLessThanOrEqual(24);
+    expect(buildingCount).toBeLessThanOrEqual(32);
     expect(buildingCount).toBe(budgets.maxBuildings);
     expect(topology.groves.length).toBeLessThanOrEqual(budgets.maxGroves);
     expect(treeCount).toBeLessThanOrEqual(budgets.maxTrees);
@@ -284,15 +284,15 @@ describe("createWorldPlan", () => {
     );
     const wildlifeCount = topology.wildlifeZones.reduce((total, zone) => total + zone.maxActors, 0);
 
-    expect(topology.hamlets).toHaveLength(3);
-    expect(buildingCount).toBe(18);
+    expect(topology.hamlets).toHaveLength(4);
+    expect(buildingCount).toBe(24);
     expect(buildingCount).toBe(topology.visualBudgets.maxBuildings);
     expect(buildingCount).toBeLessThan(massive.statistics.files / 1_000);
     expect(topology.visualBudgets.maxTrees).toBe(240);
     expect(identity.scaleTier).toBe("vast");
     expect(wildlifeCount).toBe(topology.visualBudgets.maxWildlifeActors);
     expect(wildlifeCount).toBeGreaterThan(6);
-    expect(wildlifeCount).toBeLessThanOrEqual(12);
+    expect(wildlifeCount).toBeLessThanOrEqual(16);
     expect(topology.visualBudgets.maxVisibleTriangles).toBe(750_000);
     expect(topology.visualBudgets.maxDrawCalls).toBe(150);
   });
@@ -304,7 +304,7 @@ describe("createWorldPlan", () => {
     const worldEntityIds = world.entities.map((entity) => entity.id).sort();
     const hamletProvinceIds = new Set(topology.hamlets.map((hamlet) => hamlet.provinceId));
 
-    expect(topology.semanticMapping.buildingRule).toContain("two to four");
+    expect(topology.semanticMapping.buildingRule).toContain("compact hamlets");
     expect(topology.semanticZones).toHaveLength(world.provinces.length);
     expect(coveredEntityIds).toEqual(worldEntityIds);
     expect(

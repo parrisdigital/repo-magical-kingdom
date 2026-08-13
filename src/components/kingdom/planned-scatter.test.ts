@@ -113,7 +113,7 @@ describe("createPlannedScatter", () => {
     clearPlannedScatterTopologyCacheForTests();
   }, 60_000);
 
-  it("renders a massive repository as a bounded eighteen-building world", () => {
+  it("renders a massive repository as a bounded multi-settlement world", () => {
     const demo = createDemoKingdom("spring");
     const massive = {
       ...demo,
@@ -133,9 +133,9 @@ describe("createPlannedScatter", () => {
     const plan = createWorldPlan(massive);
     const scatter = createPlannedScatter(massive, plan);
 
-    expect(plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)).toEqual([6, 6, 6]);
-    expect(scatter.buildings).toHaveLength(18);
-    expect(scatter.wildlife.length).toBeLessThanOrEqual(12);
+    expect(plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)).toEqual([6, 6, 6, 6]);
+    expect(scatter.buildings).toHaveLength(24);
+    expect(scatter.wildlife.length).toBeLessThanOrEqual(16);
     expect(scatter.trees.length).toBeLessThanOrEqual(240);
     expect(scatter.semanticHitZones.flatMap((zone) => zone.entityIds).sort()).toEqual(
       massive.entities.map((entity) => entity.id).sort(),
@@ -280,8 +280,14 @@ describe("createPlannedScatter", () => {
     const sourceGrove = plan.topology.groves[0]!;
     const scaledPlan: WorldPlan = {
       ...plan,
+      identity: { ...plan.identity, scaleTier: "vast" },
       topology: {
         ...plan.topology,
+        visualBudgets: {
+          ...plan.topology.visualBudgets,
+          maxGroves: 8,
+          maxTrees: 240,
+        },
         groves: [
           ...plan.topology.groves,
           {
@@ -303,7 +309,7 @@ describe("createPlannedScatter", () => {
     const scatter = createPlannedScatter(world, scaledPlan);
     const edgeTrees = scatter.trees.filter((tree) => tree.placementRole === "edge-tree");
 
-    expect(edgeTrees).toHaveLength(7);
+    expect(edgeTrees.length).toBeGreaterThanOrEqual(7);
     expect(edgeTrees.every((tree) => typeof tree.assetRole === "string")).toBe(true);
     expect(edgeTrees[6]?.assetRole).toBe(edgeTrees[0]?.assetRole);
     clearPlannedScatterTopologyCacheForTests();
@@ -483,8 +489,18 @@ describe("createPlannedScatter", () => {
       plan.topology.visualBudgets.maxWildlifeActors,
     );
     for (const animal of scatter.wildlife) {
-      const zone = plan.topology.wildlifeZones.find((candidate) => candidate.id === animal.zoneId)!;
-      expect(ellipseContains(zone.mask, animal.transform.position, 0.5)).toBe(true);
+      const habitatTrees = scatter.trees.filter((tree) => tree.groveId === animal.habitatGroveId);
+      expect(habitatTrees.length).toBeGreaterThan(0);
+      expect(
+        Math.min(
+          ...habitatTrees.map((tree) =>
+            Math.hypot(
+              tree.transform.position.x - animal.transform.position.x,
+              tree.transform.position.z - animal.transform.position.z,
+            ),
+          ),
+        ),
+      ).toBeLessThan(22);
     }
   });
 

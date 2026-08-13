@@ -122,7 +122,11 @@ export function createPlannedWorldThemeLayer(
   );
 
   const rockDetails = scatter.ambientDetails
-    .filter((detail) => detail.assetRole.startsWith("medium-rock"))
+    .filter(
+      (detail) =>
+        detail.assetRole.startsWith("medium-rock") &&
+        validDecorativeSurface(plan, detail.transform.position.x, detail.transform.position.z),
+    )
     .sort(
       (first, second) =>
         stableHash(`${plan.topologyKey}:runestone:${first.id}`) -

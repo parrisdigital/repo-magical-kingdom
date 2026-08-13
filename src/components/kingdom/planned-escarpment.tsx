@@ -218,7 +218,7 @@ export function buildPlannedEscarpmentGeometry(
   const requestedRearConnectionDepth =
     envelope.depth *
     (0.135 + stableFraction(`${plan.terrainKey}:ribbon:rear-connection-depth`) * 0.005);
-  const nominalBaseZ = camera.horizonZ + envelope.depth * 0.045;
+  const nominalBaseZ = camera.horizonZ + envelope.depth * 0.055;
   const faceDepth =
     envelope.depth * (0.044 + stableFraction(`${plan.terrainKey}:ribbon:face-depth`) * 0.01);
   const phaseA = stableFraction(`${plan.terrainKey}:ribbon:phase:a`) * Math.PI * 2;

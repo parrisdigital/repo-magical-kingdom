@@ -243,7 +243,7 @@ function useProceduralAmbience(enabled: boolean) {
   }, [enabled]);
 }
 
-type SceneBoundaryProps = Readonly<{ children: ReactNode; onError: () => void }>;
+type SceneBoundaryProps = Readonly<{ children: ReactNode; onError: (error: Error) => void }>;
 
 class SceneBoundary extends Component<SceneBoundaryProps, { failed: boolean }> {
   public override state = { failed: false };
@@ -253,8 +253,8 @@ class SceneBoundary extends Component<SceneBoundaryProps, { failed: boolean }> {
   }
 
   public override componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("The WebGL kingdom scene failed to render.", error, info);
-    this.props.onError();
+    console.error("The repository world failed to assemble.", error, info);
+    this.props.onError(error);
   }
 
   public override render() {
@@ -282,6 +282,8 @@ export function KingdomExperience({
   const webglSupported = useWebGlSupport();
   const quality = useQualityTier(reducedMotion);
   const [contextFailureCount, setContextFailureCount] = useState(0);
+  const [failedSceneKey, setFailedSceneKey] = useState<string | null>(null);
+  const [sceneAttempt, setSceneAttempt] = useState(0);
   const [mode, setMode] = useState<ExperienceMode>(initialMode);
   const [season, setSeason] = useState<KingdomSeason>(initialSeason);
   const [worldThemeChoice, setWorldThemeChoice] = useState<KingdomWorldTheme | null>(
@@ -674,6 +676,7 @@ export function KingdomExperience({
   const activeUniverse = universe ?? DEMO_UNIVERSE;
   const sceneKey =
     mode === "universe" ? `universe:${activeUniverse.owner}` : `kingdom:${world.buildKey}`;
+  const sceneFailure = failedSceneKey === sceneKey;
   const dpr = useMemo<[number, number]>(
     () => (quality === "high" ? [1, 1.75] : [0.85, 1.25]),
     [quality],
@@ -687,8 +690,11 @@ export function KingdomExperience({
       data-travel-phase={travel?.phase ?? "idle"}
       aria-busy={travel !== null}
     >
-      {webglSupported && contextFailureCount < 2 ? (
-        <SceneBoundary onError={() => setContextFailureCount(2)}>
+      {webglSupported && contextFailureCount < 2 && !sceneFailure ? (
+        <SceneBoundary
+          key={`${sceneKey}:${sceneAttempt}`}
+          onError={() => setFailedSceneKey(sceneKey)}
+        >
           <div className={styles.canvasWrap} aria-hidden="true">
             <Canvas
               dpr={dpr}
@@ -744,6 +750,25 @@ export function KingdomExperience({
             </Canvas>
           </div>
         </SceneBoundary>
+      ) : sceneFailure ? (
+        <div className={styles.sceneFallback} role="alert">
+          <p className={styles.sceneFallbackEyebrow}>Repository world interrupted</p>
+          <h2>This kingdom could not be assembled.</h2>
+          <p>
+            The repository data loaded, but one generated placement could not be rendered safely.
+            Try the deterministic build again or choose another repository while the source remains
+            available in the explorer.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setFailedSceneKey(null);
+              setSceneAttempt((attempt) => attempt + 1);
+            }}
+          >
+            Retry world
+          </button>
+        </div>
       ) : webglSupported === false || contextFailureCount >= 2 ? (
         <div className={styles.webglFallback} role="status">
           <h2>The kingdom needs WebGL.</h2>

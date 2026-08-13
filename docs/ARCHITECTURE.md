@@ -248,10 +248,14 @@ Large worlds use hierarchy: universe summaries, kingdom provinces, settlement
 clusters, and close-range landmarks. Repeated geometry is instanced and direct
 interactive entities are budgeted by quality tier.
 
-The world planner scales repository richness logarithmically. A large fixture
-may grow to four hamlets, twenty-four aggregated buildings, 240 canopy
-instances, twelve wildlife actors, 360 surface details, 150 draw calls, and
-750,000 visible triangles, but never one mesh per file. Semantic hit zones keep
+The world planner assigns compact, established, expansive, or vast scale from
+repository evidence and scales both physical geography and bounded visual
+budgets. A vast fixture may grow to six hamlets, thirty-two aggregated
+buildings, 240 canopy instances, sixteen wildlife actors, 480 surface details,
+150 draw calls, and 750,000 visible triangles, but never one mesh per file.
+Envelope area, watershed routing, coastline shape, ridge character, settlement
+placement, grove locations, and wildlife habitats remain deterministic for the
+repository revision; season changes appearance only. Semantic hit zones keep
 all eligible entities traceable even when most files share visual aggregates.
 The universe applies the same rule: every returned repository stays selectable,
 while only a bounded six low-quality or twelve high-quality planets receive the

@@ -1474,6 +1474,8 @@ function AnimalActor({
   rotationY,
   scale,
   emphasis,
+  wanderPath,
+  motionOffset,
   reducedMotion,
 }: Readonly<{
   role: PlannedScatter["wildlife"][number]["assetRole"];
@@ -1482,6 +1484,8 @@ function AnimalActor({
   rotationY: number;
   scale: number;
   emphasis: number;
+  wanderPath: ReadonlyArray<VecTuple>;
+  motionOffset: number;
   reducedMotion: boolean;
 }>) {
   const root = useRef<THREE.Group>(null);
@@ -1510,15 +1514,53 @@ function AnimalActor({
   }, [gltf.scene, role]);
   const { actions } = useAnimations(gltf.animations, root);
   const collection = role === "deer" ? "Deer" : role === "fox" ? "Fox" : "Stag";
+  const motion = useMemo(() => {
+    if (wanderPath.length < 2) return null;
+    const segments = wanderPath.map((start, index) => {
+      const end = wanderPath[(index + 1) % wanderPath.length]!;
+      return {
+        start,
+        end,
+        length: Math.max(0.001, Math.hypot(end[0] - start[0], end[2] - start[2])),
+      };
+    });
+    return {
+      segments,
+      totalLength: segments.reduce((total, segment) => total + segment.length, 0),
+    };
+  }, [wanderPath]);
+  const travelled = useRef((motion?.totalLength ?? 0) * motionOffset);
   useEffect(() => {
     if (reducedMotion) return;
-    const clip = behavior === "graze" ? "graze" : "idle";
+    const clip = behavior === "wander" && motion ? "walk" : behavior === "graze" ? "graze" : "idle";
     const action = actions[QUATERNIUS_ANIMAL_CLIPS[collection][clip]];
     action?.reset().fadeIn(0.35).play();
     return () => {
       action?.fadeOut(0.2);
     };
-  }, [actions, behavior, collection, reducedMotion]);
+  }, [actions, behavior, collection, motion, reducedMotion]);
+  useFrame((_, delta) => {
+    if (reducedMotion || behavior !== "wander" || !motion || !root.current) return;
+    const speed = role === "fox" ? 1.05 : role === "stag" ? 0.72 : 0.82;
+    travelled.current = (travelled.current + Math.min(delta, 0.05) * speed) % motion.totalLength;
+    let remaining = travelled.current;
+    const segment =
+      motion.segments.find((candidate) => {
+        if (remaining <= candidate.length) return true;
+        remaining -= candidate.length;
+        return false;
+      }) ?? motion.segments.at(-1)!;
+    const progress = THREE.MathUtils.clamp(remaining / segment.length, 0, 1);
+    root.current.position.set(
+      THREE.MathUtils.lerp(segment.start[0], segment.end[0], progress),
+      THREE.MathUtils.lerp(segment.start[1], segment.end[1], progress),
+      THREE.MathUtils.lerp(segment.start[2], segment.end[2], progress),
+    );
+    root.current.rotation.y = Math.atan2(
+      segment.end[0] - segment.start[0],
+      segment.end[2] - segment.start[2],
+    );
+  });
   return (
     <group
       ref={root}
@@ -1550,6 +1592,12 @@ function WildlifeLayer({
             rotationY={animal.transform.rotationY}
             scale={animal.transform.scale.y}
             emphasis={index < 3 ? 1.32 : 1.16}
+            wanderPath={animal.wanderPath.map((waypoint) => [
+              waypoint.x,
+              samplePlannedTerrainHeight(plan, waypoint.x, waypoint.z) + 0.06,
+              waypoint.z,
+            ])}
+            motionOffset={stableFraction(`${animal.id}:motion`)}
             reducedMotion={reducedMotion}
           />
         );

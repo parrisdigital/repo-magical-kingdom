@@ -35,6 +35,17 @@ That revision did not include a software license. Repo Magical Kingdom cites
 the research but does not copy or redistribute WorldClaw code, figures,
 imagery, meshes, website assets, or generated results.
 
+### Tiny World Builder
+
+[Tiny World Builder](https://github.com/jasonkneen/tiny-world-builder), created
+by Jason Kneen, was reviewed at
+[`de89a516f7d08786436f3b63bf74942759e8d98b`](https://github.com/jasonkneen/tiny-world-builder/commit/de89a516f7d08786436f3b63bf74942759e8d98b)
+as a reference for deterministic terrain sizing, environmental archetypes,
+chunk/LOD boundaries, and bounded animal wandering. That project is
+AGPL-3.0-licensed. Repo Magical Kingdom independently implements the relevant
+general techniques and does not copy or redistribute its code, assets, UI, or
+visual style.
+
 ## Living project identity
 
 ### ShieldCN
@@ -51,13 +62,14 @@ runtime dependency of the application.
 
 ### Generated project identity
 
-The Seasonal Gateway application mark and Orbital Mountain favicon were
+The Four-Season Cycle application mark and Orbital Mountain favicon were
 generated with OpenAI's image generation tool using only Repo Magical
-Kingdom's own registered release hero as a visual-language reference. Parris
-Digital selected the final B/C directions after small-size, text, logo,
+Kingdom's own registered artwork. The current cycle mark keeps four seasonal
+lobes around open negative space, with no center crystal or background tile.
+Parris Digital selected the final directions after small-size, text, logo,
 trademark, franchise, and protected-project review. No WorldClaw, Tencent, or
 other third-party media was supplied or reproduced. Full prompts, source and
-output hashes, crop/resize steps, review records, and CC BY 4.0 licensing are
+output hashes, conversion steps, review records, and CC BY 4.0 licensing are
 maintained in `attribution/registry.json`.
 
 ## World art and living systems

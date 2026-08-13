@@ -11,12 +11,16 @@ open-source community.
 - [WorldClaw](https://github.com/Tencent-Hunyuan/Hunyuan3D-WorldClaw) — research
   inspiration for structured, coarse-to-fine 3D world planning. Cited as
   research only; no code or assets are redistributed.
+- [Tiny World Builder](https://github.com/jasonkneen/tiny-world-builder) —
+  procedural-system reference for explicit world scale, deterministic terrain,
+  LOD boundaries, and bounded animal wandering, AGPL-3.0. No code or assets are
+  redistributed.
 
 ## Project identity
 
 - [ShieldCN](https://shieldcn.dev/) — live, theme-aware README badges, MIT.
-- OpenAI image generation — project-owned Seasonal Gateway application mark
-  and Orbital Mountain favicon, generated from the project's own release
+- OpenAI image generation — project-owned Four-Season Cycle application mark
+  and Orbital Mountain favicon, generated from the project's own registered
   artwork and distributed under CC BY 4.0 with full prompt/hash provenance.
 
 ## World art and wildlife

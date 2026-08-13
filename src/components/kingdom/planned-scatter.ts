@@ -7,6 +7,7 @@ import type {
   WildlifeRole,
   WorldPlan,
 } from "@/lib/kingdom/world-plan";
+import { REPOSITORY_SCALE_PROFILES } from "@/lib/kingdom/world-identity";
 
 import {
   classifyPlannedTerrainRegion,
@@ -115,6 +116,7 @@ export type PlannedWildlife = Readonly<{
   habitatGroveId: string;
   assetRole: WildlifeRole;
   behavior: "graze" | "wander" | "rest";
+  wanderPath: ReadonlyArray<Vec3>;
   transform: ScatterTransform;
   terrain: TerrainPlacementHint;
 }>;
@@ -756,6 +758,16 @@ type RuntimeGrove = Readonly<{
   runtimeCapacity: number;
 }>;
 
+function baseCanopyBudget(plan: WorldPlan): number {
+  const total = plan.topology.visualBudgets.maxTrees;
+  // Keep a bounded slice for the later edge-woodland enrichment pass. Dense
+  // grove masses and dispersed forest belts are separate compositional jobs;
+  // letting the first consume the whole budget erased the second on compact
+  // repositories.
+  const enrichmentReserve = Math.min(48, Math.max(30, Math.round(total * 0.22)));
+  return Math.max(0, total - enrichmentReserve);
+}
+
 function validTreeCandidate(candidate: Sample, plan: WorldPlan, footprintRadius: number): boolean {
   const watershed = plan.topology.terrainZones.find(
     (zone) => zone.kind === "watershed" && zone.mask.shape === "corridor",
@@ -771,7 +783,14 @@ function validTreeCandidate(candidate: Sample, plan: WorldPlan, footprintRadius:
 }
 
 function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
-  const desiredCount = Math.min(6, Math.max(4, plan.topology.groves.length));
+  const scaleProfile = REPOSITORY_SCALE_PROFILES[plan.identity.scaleTier];
+  const desiredCount = Math.min(scaleProfile.maxGroves, plan.topology.groves.length);
+  const groveScale = {
+    compact: 1,
+    established: 1.08,
+    expansive: 1.17,
+    vast: 1.26,
+  }[plan.identity.scaleTier];
   const envelope = plan.topology.envelope;
   const candidates: Array<Readonly<{ sample: Sample; score: number }>> = [];
   const columns = 10;
@@ -806,7 +825,9 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
   const chosen: Sample[] = [];
   while (chosen.length < desiredCount) {
     const next = candidates
-      .filter((candidate) => chosen.every((center) => distance(center, candidate.sample) >= 22))
+      .filter((candidate) =>
+        chosen.every((center) => distance(center, candidate.sample) >= 22 * groveScale),
+      )
       .sort((first, second) => {
         const firstSemanticDistance = Math.min(
           ...plan.topology.groves.map((grove) => distance(first.sample, grove.mask.center)),
@@ -837,9 +858,11 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
     "mixed",
     "flowering",
     "broadleaf",
+    "pine",
+    "twisted",
   ];
-  const globalCanopyBudget = Math.min(120, plan.topology.visualBudgets.maxTrees);
-  const edgeTreeBudget = Math.min(8, desiredCount + 2);
+  const globalCanopyBudget = baseCanopyBudget(plan);
+  const edgeTreeBudget = Math.min(12, desiredCount + 3);
   const primaryBudget = Math.max(0, globalCanopyBudget - edgeTreeBudget);
   const baseRuntimeCapacity = Math.floor(primaryBudget / Math.max(1, chosen.length));
   const extraRuntimeCapacity = primaryBudget % Math.max(1, chosen.length);
@@ -862,7 +885,7 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
         ? 2
         : 0;
     const runtimeCapacity = Math.min(
-      24,
+      30,
       baseRuntimeCapacity + (index < extraRuntimeCapacity ? 1 : 0) + rearDensityBoost,
     );
     return {
@@ -871,17 +894,24 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
       mask: {
         shape: "ellipse",
         center,
-        radiusX: round(13.5 + rng() * 3.5),
-        radiusZ: round(12 + rng() * 4),
+        radiusX: round((13.5 + rng() * 3.5) * groveScale),
+        radiusZ: round((12 + rng() * 4) * groveScale),
         rotation: round((rng() - 0.5) * 0.8),
         feather: 3.5,
       },
-      palette: palettes[index]!,
+      palette: palettes[index % palettes.length]!,
       target: Math.max(
         12,
         Math.min(
           runtimeCapacity,
-          17 + rearDensityBoost + (hash(`${plan.placementKey}:runtime-grove-count:${index}`) % 5),
+          {
+            compact: 17,
+            established: 20,
+            expansive: 24,
+            vast: 27,
+          }[plan.identity.scaleTier] +
+            rearDensityBoost +
+            (hash(`${plan.placementKey}:runtime-grove-count:${index}`) % 5),
         ),
       ),
       runtimeCapacity,
@@ -890,14 +920,14 @@ function findRuntimeGroves(plan: WorldPlan): ReadonlyArray<RuntimeGrove> {
 }
 
 function createTrees(plan: WorldPlan): ReadonlyArray<PlannedTree> {
-  const canopyBudget = Math.min(120, plan.topology.visualBudgets.maxTrees);
+  const canopyBudget = baseCanopyBudget(plan);
   const trees: PlannedTree[] = [];
   let remainingBudget = canopyBudget;
   const runtimeGroves = findRuntimeGroves(plan);
   const globalPlacements: Placement[] = [];
   for (const [groveIndex, grove] of runtimeGroves.entries()) {
     const rng = random(`${plan.placementKey}:${grove.id}:trees`);
-    const target = Math.min(grove.target, grove.runtimeCapacity, 24, remainingBudget);
+    const target = Math.min(grove.target, grove.runtimeCapacity, 30, remainingBudget);
     const placements: Placement[] = [];
     const roles = TREE_ROLES[grove.palette];
     const clearingAngle = rng() * TAU;
@@ -937,7 +967,7 @@ function createTrees(plan: WorldPlan): ReadonlyArray<PlannedTree> {
     remainingBudget -= placements.length;
   }
 
-  const edgeTarget = Math.min(8, runtimeGroves.length + 2, Math.max(4, remainingBudget));
+  const edgeTarget = Math.min(12, runtimeGroves.length + 3, Math.max(0, remainingBudget));
   const edgeRoles: ReadonlyArray<PlannedTree["assetRole"]> = [
     "twisted-tree-1",
     "pine-2",
@@ -1288,13 +1318,48 @@ function createAmbientDetails(
   return { details, omittedMicroclusterIds, targetInstances: detailBudget };
 }
 
-function createWildlife(plan: WorldPlan): ReadonlyArray<PlannedWildlife> {
+function createWildlife(
+  plan: WorldPlan,
+  trees: ReadonlyArray<PlannedTree>,
+): ReadonlyArray<PlannedWildlife> {
   return plan.topology.wildlifeZones.flatMap((zone) => {
+    const habitatTrees = trees.filter((tree) => tree.groveId === zone.habitatGroveId);
+    if (habitatTrees.length === 0) return [];
+    const center = {
+      x:
+        habitatTrees.reduce((total, tree) => total + tree.transform.position.x, 0) /
+        habitatTrees.length,
+      z:
+        habitatTrees.reduce((total, tree) => total + tree.transform.position.z, 0) /
+        habitatTrees.length,
+    };
+    const habitatMask: EllipseRegionMask = {
+      shape: "ellipse",
+      center,
+      radiusX: Math.min(
+        20,
+        Math.max(
+          6,
+          Math.max(...habitatTrees.map((tree) => Math.abs(tree.transform.position.x - center.x))) +
+            4,
+        ),
+      ),
+      radiusZ: Math.min(
+        20,
+        Math.max(
+          6,
+          Math.max(...habitatTrees.map((tree) => Math.abs(tree.transform.position.z - center.z))) +
+            4,
+        ),
+      ),
+      rotation: 0,
+      feather: 2,
+    };
     const rng = random(`${plan.placementKey}:${zone.id}:wildlife`);
     const placements: Placement[] = [];
     return Array.from({ length: zone.maxActors }, (_, index): PlannedWildlife | null => {
-      const sample = bestCandidate(zone.mask, rng, placements, 0.8, {
-        attempts: 48,
+      const sample = bestCandidate(habitatMask, rng, placements, 0.8, {
+        attempts: 96,
         accepts: (candidate) =>
           distanceToWater(candidate, plan) >= 3 &&
           clearsHamlets(candidate, 0.8, plan, 4) &&
@@ -1303,12 +1368,48 @@ function createWildlife(plan: WorldPlan): ReadonlyArray<PlannedWildlife> {
       if (!sample) return null;
       placements.push({ sample, radius: 0.8 });
       const scale = round(0.86 + rng() * 0.22);
+      const wanderPath: Vec3[] = [{ x: sample.x, y: 0, z: sample.z }];
+      if (zone.behavior === "wander") {
+        const maximumStep = Math.max(4.5, Math.min(zone.mask.radiusX, zone.mask.radiusZ) * 0.62);
+        for (let waypointIndex = 0; waypointIndex < 3; waypointIndex += 1) {
+          const previous = wanderPath.at(-1)!;
+          let waypoint: Sample | null = null;
+          // Sample around the animal's current location instead of throwing
+          // darts across the whole habitat ellipse. This produces a real,
+          // locally connected walk even in large irregular worlds where only
+          // one side of a grove may be clear of water or a settlement.
+          for (let attempt = 0; attempt < 128 && !waypoint; attempt += 1) {
+            const angle = rng() * TAU;
+            const step = 1.1 + rng() * (maximumStep - 1.1);
+            const candidate = {
+              x: round(previous.x + Math.cos(angle) * step),
+              z: round(previous.z + Math.sin(angle) * step),
+            };
+            const segmentIsValid = [0.25, 0.5, 0.75, 1].every((progress) => {
+              const sampleAlongSegment = {
+                x: previous.x + (candidate.x - previous.x) * progress,
+                z: previous.z + (candidate.z - previous.z) * progress,
+              };
+              return (
+                ellipseContains(habitatMask, sampleAlongSegment, 0.8) &&
+                distanceToWater(sampleAlongSegment, plan) >= 3 &&
+                clearsHamlets(sampleAlongSegment, 0.8, plan, 4) &&
+                isBuildableTerrain(sampleAlongSegment, plan, 18, 0.8)
+              );
+            });
+            if (segmentIsValid) waypoint = candidate;
+          }
+          if (!waypoint) break;
+          wanderPath.push({ x: waypoint.x, y: 0, z: waypoint.z });
+        }
+      }
       return {
         id: `${zone.id}-actor-${index}`,
         zoneId: zone.id,
         habitatGroveId: zone.habitatGroveId,
         assetRole: zone.animal,
         behavior: zone.behavior,
+        wanderPath,
         transform: {
           position: { x: sample.x, y: 0, z: sample.z },
           rotationY: round(rng() * TAU),
@@ -1378,7 +1479,7 @@ function createScatterTopology(world: KingdomWorld, plan: WorldPlan): PlannedSca
       semanticSuggestedMaxTrees: grove.maxTrees,
       runtimeMaxTrees: treeCountsByGrove.get(grove.id) ?? 0,
     })),
-    wildlife: createWildlife(plan),
+    wildlife: createWildlife(plan, trees),
     semanticHitZones: createSemanticHitZones(plan),
   };
 }

@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+
 import { expect, test, type Page } from "@playwright/test";
 
 import { createDemoKingdom, createDemoUniverse } from "../../src/lib/kingdom/demo-world";
+import type { KingdomWorld } from "../../src/lib/kingdom/types";
 
 const selectedSeason = "autumn" as const;
 const selectedWorldTheme = "enchanted-forest" as const;
@@ -21,6 +24,12 @@ const universeFixture = {
 const canonicalKingdomPath = `/kingdom/${kingdomFixture.source.owner}/${kingdomFixture.source.repository}/${kingdomFixture.source.commitSha}?world=${selectedWorldTheme}&season=${selectedSeason}`;
 const requestedRepository = "parrisdigital/repo-magical-kingdom";
 const explorerSourcePath = "components/city/city-scene.tsx";
+const largeKingdomFixture = JSON.parse(
+  readFileSync(
+    new URL("../../src/components/kingdom/test-fixtures/nextjs-large-world.json", import.meta.url),
+    "utf8",
+  ),
+) as KingdomWorld;
 
 // Next.js 16 protects development chunks by hostname. `next dev` defaults to
 // localhost, while the web-server health check may safely continue using the
@@ -232,6 +241,34 @@ test.describe("Repo Magical Kingdom journeys", () => {
     await expect(sourceLink).toHaveAttribute("rel", "noreferrer");
   });
 
+  test("renders a captured vast repository as a living world without a false WebGL error", async ({
+    page,
+  }) => {
+    const failures = watchBrowserFailures(page);
+    await page.route(/\/api\/kingdom(?:\?|$)/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ world: largeKingdomFixture }),
+      });
+    });
+
+    await page.goto(
+      `/kingdom/${largeKingdomFixture.source.owner}/${largeKingdomFixture.source.repository}/${largeKingdomFixture.source.commitSha}?season=spring`,
+    );
+
+    await expectWebGlKingdom(page);
+    await expect(page.locator('main[data-mode="kingdom"]')).toBeVisible();
+    await expect(page.getByRole("heading", { name: largeKingdomFixture.title })).toBeVisible();
+    await expect(page.getByText(/vast realm/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The kingdom needs WebGL." })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "This kingdom could not be assembled." }),
+    ).toHaveCount(0);
+    expect(failures.pageErrors).toEqual([]);
+    expect(failures.consoleErrors).toEqual([]);
+  });
+
   test("charts a mocked profile universe and lets explorers inspect a repository world", async ({
     page,
   }) => {
@@ -250,7 +287,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
       page
         .getByRole("button", { name: "Return to the Repo Magical Kingdom gateway" })
         .locator("img"),
-    ).toHaveAttribute("src", /app-logo\.png/);
+    ).toHaveAttribute("src", /app-logo-v2\.png/);
     await expect.poll(() => apiRequests.length, { timeout: 15_000 }).toBeGreaterThan(0);
     await expect(page.getByRole("heading", { name: universeFixture.displayName })).toBeVisible();
     await expect(
