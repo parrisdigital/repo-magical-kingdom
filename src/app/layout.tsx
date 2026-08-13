@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const socialImageAlt =
+  "A realistic repository universe of terrestrial and ringed planets opening through a crystalline gateway into a living seasonal mountain kingdom";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
         url: "/social-preview.png",
         width: 1280,
         height: 640,
-        alt: "A living spring repository kingdom shaped by settlements, paths, mountains, and water",
+        alt: socialImageAlt,
       },
     ],
   },
@@ -29,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Repo Magical Kingdom",
     description: "Turn a public GitHub repository into a living, explorable 3D world.",
-    images: ["/social-preview.png"],
+    images: [{ url: "/social-preview.png", alt: socialImageAlt }],
   },
   robots: { index: true, follow: true },
 };
