@@ -1,0 +1,27 @@
+src/components/kingdom/planned-terrain-model.test.ts
+  s_57e29531c752a5::t_2c0cfa133ef0fa 25-33
+src/components/kingdom/planned-visual-enrichment.test.ts
+  s_57e29531c752a5::t_c9ec287f50fd37 39
+src/components/kingdom/planned-terrain-model.ts
+  s_57e29531c752a5::t_2c0cfa133ef0fa 158-159,868-872,875-879
+src/components/kingdom/planned-world-theme-model.test.ts
+  s_57e29531c752a5::t_c9ec287f50fd37 38
+src/components/kingdom/planned-scatter.test.ts
+  s_57e29531c752a5::t_c9ec287f50fd37 114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b74d27115cd611ec3c33e4c0bc1aecaf008b0362",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
