@@ -630,9 +630,9 @@
       "id": "repo-magical-kingdom-release-artwork",
       "name": "Repo Magical Kingdom README hero and social preview",
       "kind": "generated-media",
-      "relationship": "Original release artwork derived exclusively from a final application capture.",
+      "relationship": "Original release artwork derived exclusively from two final production application captures.",
       "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/readme-hero.png",
-      "version": "1.0, generated 2026-08-12",
+      "version": "2.0, generated 2026-08-13",
       "distribution": "standalone-files",
       "license": {
         "spdx": "CC-BY-4.0",
@@ -650,32 +650,37 @@
       ],
       "redistributedFiles": ["public/readme-hero.png", "public/social-preview.png"],
       "contentHashes": {
-        "public/readme-hero.png": "sha256:439d30f534a46337b52116959d2e05d1ee71a7c7ead5e38fb4abadaee87f598f",
-        "public/social-preview.png": "sha256:f1965e2b35cbd915e2b584e7e216ac9150b9462fe1ff32491d3ce882b4078bb1"
+        "public/readme-hero.png": "sha256:f1d849bbbde2218ee465bd6dcb22a3eed7dba4c27d2150fed5c706c987d97535",
+        "public/social-preview.png": "sha256:70c65531a6a5e9b7f6f3770976167e268f3d8648681fbd670eb2416a899c4ba4"
       },
-      "modifications": "The approved generated PNG was copied unchanged as the README hero. A centered crop was resized to 1280 × 640 for social metadata with macOS sips.",
+      "modifications": "The approved generated PNG was copied unchanged as the README hero. A centered 1618 × 809 crop was resized to 1280 × 640 for social metadata with macOS sips.",
       "generatedMediaProvenance": {
         "generator": {
           "tool": "OpenAI image_gen built-in tool",
           "model": "OpenAI image generation model",
-          "version": "Built-in service accessed 2026-08-12",
+          "version": "Built-in service accessed 2026-08-13",
           "canonicalUrl": "https://openai.com/"
         },
-        "generatedAt": "2026-08-12T19:49:29Z",
-        "prompt": "Use case: stylized-concept\nAsset type: wide GitHub README hero banner for the open-source project Repo Magical Kingdom\nInput image: the supplied final application capture is the sole design reference; preserve its original project's pale Spring palette, modular medieval architecture, continuous valley, sandstone escarpment, river, lake, and mixed pink/pale-green woodland, but create a newly composed polished hero illustration rather than a pixel copy.\nPrimary request: show one living public-code repository transformed into a clean, magical 3D kingdom.\nScene/backdrop: a cohesive elongated isometric floating valley on a soft warm ivory-to-pale-sage atmospheric backdrop; a dramatic continuous pale sandstone rear escarpment with vertical mineral streaks; a branching blue stream descends through the valley into a broad foreground lake; three distinct inhabited hamlets connected by winding paths; scattered blossom groves, pale green trees, rocks, flowers, tiny deer, chimney smoke, and restrained magical motes.\nSemantic motif: repository structure should read through one central crown settlement, three subordinate settlement clusters, branching paths like a source tree, and one subtle crystalline gateway at the far edge. Keep this metaphor visual only.\nStyle/medium: premium clean stylized 3D game-world render, modern soft PBR, handcrafted modular detail, high-key, elegant, coherent, open-source friendly.\nComposition/framing: panoramic 2.4:1 banner composition, terrain fills about 78% of frame, rear cliff in upper third, lake in lower foreground, clear silhouette, safe crop margin on every edge, no UI chrome.\nLighting/mood: fresh luminous Spring daylight, warm soft shadows, airy and alive, readable at README width.\nColor palette: ivory, pale sage, fresh spring green, blush pink, warm peach sandstone, clear powder-blue water, tiny restrained violet crystal accent.\nConstraints: no words, no letters, no code text, no logos, no badges, no watermark, no black background, no city skyline, no modern skyscrapers, no square district pads, no grid layout, no copied third-party artwork, no Tencent or WorldClaw imagery, no recognizable franchise elements.",
+        "generatedAt": "2026-08-13T01:20:37Z",
+        "prompt": "Use case: stylized-concept\nAsset type: panoramic GitHub README hero banner for the open-source project Repo Magical Kingdom\n\nInput images:\n- Image 1 is a reference for the product's real repository-universe system: realistic terrestrial, rocky, and ringed gas-giant planets floating in a deep living star field.\n- Image 2 is a reference for the product's enterable repository kingdom: clean isometric terrain, continuous mountains, river and lake, settlements, forests, and seasonal appearance.\nUse both only as references to this project's own visual language. Create a newly composed hero illustration, not a screenshot collage or pixel copy.\n\nPrimary request: portray the complete semantic journey from a GitHub profile's planetary repository universe into one living, explorable repository kingdom.\n\nScene/backdrop: one cohesive cinematic panorama. The left third contains a refined deep-space repository system with a luminous Earth-like terrestrial planet and an elegant Saturn-like ringed gas giant, realistic spherical materials, atmospheres, cloud bands, moons, orbital arcs, and restrained stars. No buildings or trees attached to any planet. A subtle ribbon of starlight and a crystalline gateway lead toward the right two-thirds, where one large continuous floating kingdom rises in clean isometric perspective: a dominant mountain escarpment, branching river, broad foreground lake, three inhabited medieval hamlets connected by winding paths, layered forests, rocks, tiny wildlife, smoke, and restrained magical motes. Include subtle localized hints of spring blossom, lush summer green, amber autumn, and snow-covered winter as appearance possibilities around the outer landscape, while keeping the kingdom coherent rather than split into quadrants.\n\nSemantic motif: the profile is a planetary universe, each planet is a repository, and entering a planet reveals its repository-derived kingdom. Express this only through composition, orbital relationships, gateway, branching paths, and settlement hierarchy.\n\nStyle/medium: premium modern stylized 3D game-world render, physically plausible but softly art-directed PBR, clean contemporary assets, handcrafted modular detail, polished open-source showcase quality.\n\nComposition/framing: extremely wide 2.4:1 banner. Keep the full planetary silhouettes and full kingdom terrain inside safe margins. Kingdom fills roughly 60% of the banner; planets fill roughly 25%; the center transition stays open and readable. Strong thumbnail silhouette, no UI chrome.\n\nLighting/mood: cinematic transition from deep indigo space on the left to luminous ivory daylight over the kingdom on the right; warm soft shadows, atmospheric depth, magical but grounded, alive.\n\nColor palette: midnight navy and restrained violet stars; ocean blue, cloud white and living green on the terrestrial planet; warm gold and umber on the ringed gas giant; ivory, sage, blush pink, amber foliage, winter blue-white, warm sandstone, and clear turquoise water in the kingdom.\n\nConstraints: no words, letters, source code, logos, badges, watermark, UI panels, fake interface chrome, or legible symbols. No toy planets, no King Kai or Dragon Ball imagery, no houses/trees mounted on spheres, no city skyline, no skyscrapers, no square district pads, no grid layout, no isolated terrain circles, no recognizable franchise characters or protected third-party artwork, and no Tencent/WorldClaw media.",
         "negativeConstraints": [
-          "No words, letters, code text, logos, badges, or watermarks",
-          "No black background, city skyline, modern skyscrapers, square district pads, or grid layout",
-          "No copied third-party artwork, Tencent or WorldClaw imagery, or recognizable franchise elements"
+          "No words, letters, source code, logos, badges, watermark, UI panels, or fake interface chrome",
+          "No toy planets, franchise imagery, or buildings and trees mounted on spheres",
+          "No city skyline, skyscrapers, square district pads, grid layout, or isolated terrain circles",
+          "No copied third-party artwork, Tencent or WorldClaw media, or recognizable franchise characters"
         ],
         "referenceAssets": [
           {
-            "description": "Fresh 1440 × 900 Spring overview captured from this repository's deterministic /visual-review route; ephemeral source capture SHA-256 4971561fb91f00e99fa087468424efa1ed6a65867d573ac1514e5a114943346f.",
+            "description": "Fresh 1440 × 900 production repository-universe capture showing this repository's terrestrial, rocky, and ringed gas-giant systems; ephemeral source capture SHA-256 80209d7c3ce2bca3325e9c09c944a1eaba5a6505432339a230bcc24937a13127.",
+            "rights": "Original Repo Magical Kingdom production application output by Parris Digital; no third-party image was supplied to the generator."
+          },
+          {
+            "description": "Fresh 1440 × 900 production Enchanted Forest winter capture showing this repository's terrain, settlements, forests, water, and seasonal controls; ephemeral source capture SHA-256 87881298671725e98fb4512c75910bcd9c82708169cd0be558527c9f357c0ff3.",
             "rights": "Original Repo Magical Kingdom application output by Parris Digital; no WorldClaw or Tencent image was supplied to the generator."
           }
         ],
         "humanEdits": [
-          "Selected the generated output after composition, text, logo, and rights review; no pixel-level edits were made to the README hero.",
+          "Selected the generated output after semantic composition, planet treatment, text, logo, franchise, and rights review; no pixel-level edits were made to the README hero.",
           "Created the social preview as a centered crop of the approved hero without generative alteration."
         ],
         "conversionSteps": [
@@ -683,16 +688,17 @@
           "Centered-cropped and resized the approved hero to 1280 × 640 with macOS sips for public/social-preview.png."
         ],
         "sourceContentHashes": {
-          "built-in-generated-source": "sha256:439d30f534a46337b52116959d2e05d1ee71a7c7ead5e38fb4abadaee87f598f",
-          "application-reference-capture": "sha256:4971561fb91f00e99fa087468424efa1ed6a65867d573ac1514e5a114943346f"
+          "built-in-generated-source": "sha256:f1d849bbbde2218ee465bd6dcb22a3eed7dba4c27d2150fed5c706c987d97535",
+          "production-universe-reference-capture": "sha256:80209d7c3ce2bca3325e9c09c944a1eaba5a6505432339a230bcc24937a13127",
+          "production-kingdom-reference-capture": "sha256:87881298671725e98fb4512c75910bcd9c82708169cd0be558527c9f357c0ff3"
         },
-        "attributionText": "README hero and social preview generated with OpenAI image generation from an original Repo Magical Kingdom application capture; reviewed for project release by Parris Digital's Codex workflow.",
+        "attributionText": "README hero and social preview generated with OpenAI image generation from two original Repo Magical Kingdom production captures; reviewed for project release by Parris Digital's Codex workflow.",
         "review": {
           "reviewer": "OpenAI Codex project release review",
-          "reviewedAt": "2026-08-12T19:50:15Z",
+          "reviewedAt": "2026-08-13T01:21:42Z",
           "confirmsNoProtectedProjectImitation": true,
           "confirmsNoThirdPartyLogosOrCharacters": true,
-          "notes": "The only image supplied to the generator was a capture produced by this repository. The output contains no readable text, logos, characters, or copied WorldClaw/Tencent media."
+          "notes": "The only images supplied to the generator were two production captures made by this repository. The output contains no readable text, logos, characters, toy-planet franchise imagery, or copied WorldClaw/Tencent media."
         }
       }
     }

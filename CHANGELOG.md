@@ -29,6 +29,9 @@ begin.
 
 ### Changed
 
+- Release artwork now communicates the full planetary-profile-to-enterable-
+  kingdom journey using two reviewed production captures as its only visual
+  references.
 - README signals now use ShieldCN's light/dark ghost-badge composition, with a
   restrained live CI pulse.
 - Profile-universe camera fitting now protects short desktop viewports without

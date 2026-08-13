@@ -6,7 +6,7 @@
 
 <img
   src="public/readme-hero.png"
-  alt="A living spring repository kingdom with three settlements, branching paths, a mountain escarpment, blossom forests, a river, lake, wildlife, and a crystalline gateway"
+  alt="A realistic repository universe with terrestrial and ringed planets connected through a crystalline gateway to a living seasonal mountain kingdom with hamlets, forests, a river, and a lake"
   width="1942"
 />
 
