@@ -1,0 +1,28 @@
+.github/dependabot.yml
+  s_57e29531c752a5::t_1b740fad156036 13-19
+package.json
+  s_57e29531c752a5::t_ba7f80d767e9c3 8-25
+CONTRIBUTING.md
+  s_57e29531c752a5::t_1b740fad156036 83-86
+.github/scripts/check-dco.mjs
+  s_57e29531c752a5::t_1b740fad156036 8-10,30-31,44,47-50,59,101-102
+  s_57e29531c752a5::t_9972098456a8d9 25-29,45-46,51-58,60-63,75,79-82,93,100,123
+  s_57e29531c752a5::t_efded3d9582123 126-128
+  s_57e29531c752a5::t_9e84b95a19a761 103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "af06ec9e868dc3d8f2e7917efe8b1f8a4f42ccfe",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
