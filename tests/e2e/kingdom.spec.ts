@@ -114,6 +114,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
     await expectWebGlKingdom(page);
 
     await expect(page).toHaveTitle(/Repo Magical Kingdom/);
+    await expect(page.locator('link[rel~="icon"]')).toHaveAttribute("href", /icon\.png/);
     const app = page.locator("main[data-mode]");
     await expect(app).toHaveAttribute("data-mode", "landing");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -241,6 +242,15 @@ test.describe("Repo Magical Kingdom journeys", () => {
 
     await expect(page).toHaveURL(`/profile/${universeFixture.owner}`);
     await expect(page.locator('main[data-mode="universe"]')).toBeVisible();
+    await expect(page.getByText("Repo Magical Kingdom", { exact: true })).toHaveCSS(
+      "color",
+      "rgb(247, 241, 220)",
+    );
+    await expect(
+      page
+        .getByRole("button", { name: "Return to the Repo Magical Kingdom gateway" })
+        .locator("img"),
+    ).toHaveAttribute("src", /app-logo\.png/);
     await expect.poll(() => apiRequests.length, { timeout: 15_000 }).toBeGreaterThan(0);
     await expect(page.getByRole("heading", { name: universeFixture.displayName })).toBeVisible();
     await expect(

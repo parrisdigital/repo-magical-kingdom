@@ -49,6 +49,17 @@ The integration was reviewed against ShieldCN revision
 licensed under MIT. ShieldCN is an external presentation service and is not a
 runtime dependency of the application.
 
+### Generated project identity
+
+The Seasonal Gateway application mark and Orbital Mountain favicon were
+generated with OpenAI's image generation tool using only Repo Magical
+Kingdom's own registered release hero as a visual-language reference. Parris
+Digital selected the final B/C directions after small-size, text, logo,
+trademark, franchise, and protected-project review. No WorldClaw, Tencent, or
+other third-party media was supplied or reproduced. Full prompts, source and
+output hashes, crop/resize steps, review records, and CC BY 4.0 licensing are
+maintained in `attribution/registry.json`.
+
 ## World art and living systems
 
 ### Quaternius

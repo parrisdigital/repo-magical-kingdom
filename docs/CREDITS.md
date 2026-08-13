@@ -15,6 +15,9 @@ open-source community.
 ## Project identity
 
 - [ShieldCN](https://shieldcn.dev/) — live, theme-aware README badges, MIT.
+- OpenAI image generation — project-owned Seasonal Gateway application mark
+  and Orbital Mountain favicon, generated from the project's own release
+  artwork and distributed under CC BY 4.0 with full prompt/hash provenance.
 
 ## World art and wildlife
 

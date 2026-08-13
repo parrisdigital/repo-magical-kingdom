@@ -26,6 +26,12 @@ const credits = [
     copy: "Justin Levine's MIT-licensed project renders the live repository badges and community signals used in this project's README.",
   },
   {
+    relationship: "Generated project identity",
+    title: "Seasonal Gateway · Orbital Mountain",
+    href: "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/attribution/registry.json",
+    copy: "The application mark and favicon were generated with OpenAI image generation from this project's own registered release artwork, then selected and rights-reviewed by Parris Digital.",
+  },
+  {
     relationship: "World art & wildlife",
     title: "Quaternius",
     href: "https://quaternius.com",

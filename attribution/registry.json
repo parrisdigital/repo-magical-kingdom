@@ -409,26 +409,147 @@
       "notes": "Attribution is not required by CC0; recognition is retained as project policy. Models by @Quaternius. Reviewed self-contained source glTF SHA-256 values: Deer b8afd0647e7a74332ce802c8326dfefe1a2b76da67ab925a631aaddb5ae9bdd4; Fox 2f36e3c9c75ecddda85c5f9944e98ee1e88e7c679a546534aff1cea8ecde64c7; Stag 170b964909d16d1ab4d428b1d714f25016913d32481acd9c3d62923192583be6."
     },
     {
-      "id": "repo-magical-kingdom-app-icon",
-      "name": "Repo Magical Kingdom application icon",
-      "kind": "asset",
-      "relationship": "Original first-party four-season Crown Nexus mark.",
-      "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/src/app/icon.svg",
-      "version": "1.0.0",
+      "id": "repo-magical-kingdom-app-logo",
+      "name": "Repo Magical Kingdom Seasonal Gateway brand mark",
+      "kind": "generated-media",
+      "relationship": "Original generated project identity selected for the in-application brand and installable app icons.",
+      "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/brand/app-logo.png",
+      "version": "1.0, generated 2026-08-13",
       "distribution": "bundled-runtime",
       "license": {
-        "spdx": "MIT",
+        "spdx": "CC-BY-4.0",
         "status": "declared",
-        "url": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/LICENSE"
+        "url": "https://creativecommons.org/licenses/by/4.0/"
       },
-      "authors": ["Parris Digital"],
-      "usage": "Application icon and browser metadata artwork.",
-      "projectLocations": ["src/app/icon.svg"],
-      "redistributedFiles": ["src/app/icon.svg"],
+      "authors": ["Parris Digital", "OpenAI image generation tool"],
+      "usage": "Application HUD brand mark and 192/512-pixel installable web-app icons.",
+      "projectLocations": [
+        "public/brand/app-logo.png",
+        "public/icons/app-icon-192.png",
+        "public/icons/app-icon-512.png",
+        "src/app/manifest.ts",
+        "src/components/kingdom/kingdom-hud.tsx"
+      ],
+      "redistributedFiles": [
+        "public/brand/app-logo.png",
+        "public/icons/app-icon-192.png",
+        "public/icons/app-icon-512.png"
+      ],
       "contentHashes": {
-        "src/app/icon.svg": "sha256:b2c8c4bfa298e51e986323a576e0b5da3220136a9e576dc0d5fc3d305e278db9"
+        "public/brand/app-logo.png": "sha256:2668f22bc6b8f7c3dee87c3c3af67bae2076ea83d29ff463005cf31a7ff1948d",
+        "public/icons/app-icon-192.png": "sha256:fc5a99b31a1e72628cd0ad9bd39e868761657b89ec292ac8c221d852b0d8acf5",
+        "public/icons/app-icon-512.png": "sha256:c9dec556923c3dc31e14bd5d6c39fe51642c59e92907552c47d3e3ea921d3980"
       },
-      "modifications": "Original SVG authored for this project."
+      "modifications": "The selected 1254-pixel generated PNG was resized without generative alteration to 256, 192, and 512 pixels with macOS sips.",
+      "generatedMediaProvenance": {
+        "generator": {
+          "tool": "OpenAI image_gen built-in tool",
+          "model": "OpenAI image generation model",
+          "version": "Built-in service accessed 2026-08-13",
+          "canonicalUrl": "https://openai.com/"
+        },
+        "generatedAt": "2026-08-13T01:41:21Z",
+        "prompt": "Use case: logo-brand\nAsset type: square application icon and browser favicon concept, Option C — Seasonal Gateway\nReference image: use only the project's crystalline gateway and four-season palette. Do not reproduce the scene.\nPrimary request: create an elegant professional symbol for selectable repository worlds and seasons.\nSubject: one central faceted ivory crystal portal shaped as a clean vertical diamond. Four broad rounded terrain petals orbit it as a compact circular world: spring blush pink, summer fresh green, autumn amber, winter ice blue. A dark navy circular core behind the crystal creates strong contrast. The overall silhouette must remain one simple disc, not four separated icons.\nStyle: modern minimal 3D app icon, subtle soft PBR bevels, restrained and mature, precise geometry, strong small-size recognition.\nComposition: centered on a deep midnight rounded-square background with generous padding; symmetrical; readable at 16px.\nPalette: midnight navy, ivory, blush, green, amber, ice blue.\nConstraints: no words, letters, code symbols, GitHub logo, buildings, trees, mountains, stars, literal crown, thin lines, micro-detail, excessive glow, watermark, or franchise imagery.",
+        "negativeConstraints": [
+          "No words, letters, code symbols, GitHub logo, or literal crown",
+          "No buildings, trees, mountains, stars, thin lines, or micro-detail",
+          "No watermark, franchise imagery, or copied third-party artwork"
+        ],
+        "referenceAssets": [
+          {
+            "description": "The project's approved release hero supplied only as a palette and visual-language reference.",
+            "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/readme-hero.png",
+            "localFile": "public/readme-hero.png",
+            "rights": "Original Repo Magical Kingdom generated release artwork controlled by Parris Digital and already registered in this attribution registry."
+          }
+        ],
+        "humanEdits": [
+          "Selected Option C after 16/32/64-pixel, trademark, logo, text, and franchise review.",
+          "No pixel-level or generative retouching was applied to the selected source output."
+        ],
+        "conversionSteps": [
+          "Resized the selected 1254 × 1254 source to 256 × 256 for the HUD brand mark with macOS sips.",
+          "Resized the same source to 192 × 192 and 512 × 512 for the web app manifest with macOS sips."
+        ],
+        "sourceContentHashes": {
+          "built-in-generated-source": "sha256:cd1fdc1e1ca25360d2878dd9274ef66c7ffd473ea095d8b3805528ee4d507b5b",
+          "project-readme-hero-reference": "sha256:f1d849bbbde2218ee465bd6dcb22a3eed7dba4c27d2150fed5c706c987d97535"
+        },
+        "attributionText": "Seasonal Gateway application mark generated with OpenAI image generation from Repo Magical Kingdom's own release artwork and selected by Parris Digital.",
+        "review": {
+          "reviewer": "OpenAI Codex open-source release review",
+          "reviewedAt": "2026-08-13T02:11:28Z",
+          "confirmsNoProtectedProjectImitation": true,
+          "confirmsNoThirdPartyLogosOrCharacters": true,
+          "notes": "The only supplied image was the project's own registered release hero. The selected mark contains no readable text, third-party logo, character, franchise imagery, or Tencent/WorldClaw media."
+        }
+      }
+    },
+    {
+      "id": "repo-magical-kingdom-favicon",
+      "name": "Repo Magical Kingdom Orbital Mountain favicon",
+      "kind": "generated-media",
+      "relationship": "Original generated ringed mountain-world mark selected for browser identity.",
+      "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/src/app/icon.png",
+      "version": "1.0, generated 2026-08-13",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC-BY-4.0",
+        "status": "declared",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "authors": ["Parris Digital", "OpenAI image generation tool"],
+      "usage": "Next.js browser favicon and page identity artwork.",
+      "projectLocations": ["src/app/icon.png", "src/app/layout.tsx"],
+      "redistributedFiles": ["src/app/icon.png"],
+      "contentHashes": {
+        "src/app/icon.png": "sha256:1758922b759fa06824222972c1cc6541cb07414f532e502e278c7e1070d34e5f"
+      },
+      "modifications": "The selected 1254-pixel generated PNG was center-cropped to 900 pixels so the planet reads larger, then resized without generative alteration to a 64-pixel PNG with macOS sips.",
+      "generatedMediaProvenance": {
+        "generator": {
+          "tool": "OpenAI image_gen built-in tool",
+          "model": "OpenAI image generation model",
+          "version": "Built-in service accessed 2026-08-13",
+          "canonicalUrl": "https://openai.com/"
+        },
+        "generatedAt": "2026-08-13T01:42:16Z",
+        "prompt": "Use case: logo-brand\nAsset type: square application icon and browser favicon concept, Option B — Orbital Mountain\nReference image: use only the project's realistic ringed-planet, mountain kingdom, navy, gold, green, and ivory visual language. Do not reproduce the scene.\nPrimary request: create a distinctive professional mark joining a Saturn-like repository universe with an enterable mountain world.\nSubject: a simple deep-green and navy sphere crossed by one thick warm-gold orbital ring. At the top edge of the sphere, the negative-space silhouette rises into three strong mountain peaks, so the planet and kingdom become one memorable symbol. Add one tiny turquoise river stroke only if it remains visible at favicon scale.\nStyle: bold minimal 3D emblem, polished soft PBR, clean geometry, high contrast, not cartoonish.\nComposition: centered on a warm ivory rounded-square background; generous safe padding; no elements touching edges; excellent silhouette at 16px.\nPalette: forest green, midnight navy, warm gold, turquoise accent, ivory background.\nConstraints: no words, letters, source-code marks, GitHub logo, literal crown, buildings, trees, clouds, multiple rings, tiny stars, thin outlines, micro-detail, watermark, or recognizable franchise imagery.",
+        "negativeConstraints": [
+          "No words, letters, source-code marks, GitHub logo, or literal crown",
+          "No buildings, trees, clouds, multiple rings, tiny stars, thin outlines, or micro-detail",
+          "No watermark, franchise imagery, or copied third-party artwork"
+        ],
+        "referenceAssets": [
+          {
+            "description": "The project's approved release hero supplied only as a palette and visual-language reference.",
+            "canonicalUrl": "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/public/readme-hero.png",
+            "localFile": "public/readme-hero.png",
+            "rights": "Original Repo Magical Kingdom generated release artwork controlled by Parris Digital and already registered in this attribution registry."
+          }
+        ],
+        "humanEdits": [
+          "Selected Option B after 16/32/64-pixel, trademark, logo, text, and franchise review.",
+          "No pixel-level or generative retouching was applied to the selected source output."
+        ],
+        "conversionSteps": [
+          "Center-cropped the selected 1254 × 1254 source to 900 × 900 so the planet and ring occupy more of the favicon canvas.",
+          "Resized the 900 × 900 crop to 64 × 64 for the Next.js favicon with macOS sips."
+        ],
+        "sourceContentHashes": {
+          "built-in-generated-source": "sha256:55f28105594bcada8b72f44fc48ce9ab039bf2c4162e7b95987d1a02a3d1a2c0",
+          "center-cropped-source": "sha256:9d79aa0fdc611d6e9bd1d5ab91f3d90550d04095948ed09aee5fd67bd371ccd1",
+          "project-readme-hero-reference": "sha256:f1d849bbbde2218ee465bd6dcb22a3eed7dba4c27d2150fed5c706c987d97535"
+        },
+        "attributionText": "Orbital Mountain favicon generated with OpenAI image generation from Repo Magical Kingdom's own release artwork and selected by Parris Digital.",
+        "review": {
+          "reviewer": "OpenAI Codex open-source release review",
+          "reviewedAt": "2026-08-13T02:11:28Z",
+          "confirmsNoProtectedProjectImitation": true,
+          "confirmsNoThirdPartyLogosOrCharacters": true,
+          "notes": "The only supplied image was the project's own registered release hero. The selected favicon contains no readable text, third-party logo, character, franchise imagery, or Tencent/WorldClaw media."
+        }
+      }
     },
     {
       "id": "contributor-covenant",
