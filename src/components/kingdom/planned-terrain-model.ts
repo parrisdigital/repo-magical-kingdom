@@ -1,6 +1,11 @@
 import { stableFraction, stableHash } from "@/lib/kingdom/hash";
 import {
-  getHamletTerrainPlacementMask,
+  createPhysicalWaterContract,
+  queryPhysicalWaterDistance,
+  type PhysicalWaterContract,
+} from "@/lib/kingdom/physical-water-contract";
+import {
+  createHamletTerrainPlacementMasks,
   requiredHamletTerrainRadius,
   type CorridorRegionMask,
   type EllipseRegionMask,
@@ -48,6 +53,7 @@ export type PlannedLake = Readonly<{
   area: number;
   footprintRatio: number;
   inletAngle: number;
+  perimeter: ReadonlyArray<WorldPlanPoint>;
   islet: Readonly<{
     center: WorldPlanPoint;
     radiusX: number;
@@ -137,7 +143,9 @@ export function getHamletVisualPlacementMask(
   plan: WorldPlan,
   hamlet: HamletRegion,
 ): EllipseRegionMask {
-  return getHamletTerrainPlacementMask(plan.topology.envelope, hamlet);
+  const mask = getHamletPlacementMasks(plan).get(hamlet.id);
+  if (!mask) throw new Error(`Hamlet ${hamlet.id} is missing from the planned terrain layout.`);
+  return mask;
 }
 
 const MATERIAL_ZONE_CODE: Readonly<Record<PlannedTerrainMaterialZone, number>> = {
@@ -157,6 +165,15 @@ const MATERIAL_ZONE_CODE: Readonly<Record<PlannedTerrainMaterialZone, number>> =
 const definitionCache = new WeakMap<WorldPlan, PlannedTerrainDefinition>();
 const definitionCacheByTerrainKey = new Map<string, PlannedTerrainDefinition>();
 const MAX_TERRAIN_DEFINITION_CACHE_ENTRIES = 16;
+const hamletPlacementCache = new WeakMap<WorldPlan, ReadonlyMap<string, EllipseRegionMask>>();
+
+function getHamletPlacementMasks(plan: WorldPlan): ReadonlyMap<string, EllipseRegionMask> {
+  const cached = hamletPlacementCache.get(plan);
+  if (cached) return cached;
+  const masks = createHamletTerrainPlacementMasks(plan.topology.envelope, plan.topology.hamlets);
+  hamletPlacementCache.set(plan, masks);
+  return masks;
+}
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -535,24 +552,6 @@ function fittedLakeRadiusMultiplier(definition: FittedLakeShapeDefinition, angle
   return Math.max(0, lower * 0.995);
 }
 
-function fittedLakeSignedDistance(
-  definition: FittedLakeShapeDefinition,
-  x: number,
-  z: number,
-): number {
-  const lake = definition.water.lake;
-  const normalizedX = (x - lake.center.x) / lake.radiusX;
-  const normalizedZ = (z - lake.center.z) / lake.radiusZ;
-  const angle = Math.atan2(normalizedZ, normalizedX);
-  const normalizedRadius = Math.hypot(normalizedX, normalizedZ);
-  const boundaryRadius = fittedLakeRadiusMultiplier(definition, angle);
-  const worldUnitsPerNormalizedRadius = Math.hypot(
-    Math.cos(angle) * lake.radiusX,
-    Math.sin(angle) * lake.radiusZ,
-  );
-  return (normalizedRadius - boundaryRadius) * worldUnitsPerNormalizedRadius;
-}
-
 function courseWaterHeight(definition: PlannedTerrainDefinition, progress: number): number {
   const eased = smoothstep(0, definition.water.course.basinEntryProgress, progress);
   return mix(
@@ -644,10 +643,11 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
         ridgeCharacter.depth,
     } satisfies PlannedMountainPeak;
   });
+  const placementMasks = getHamletPlacementMasks(plan);
   const terraces = plan.topology.hamlets.map((hamlet, index) => {
     const rearward =
       1 - clamp((hamlet.mask.center.z - envelope.minZ) / Math.max(1, envelope.depth * 0.5), 0, 1);
-    const visualMask = getHamletVisualPlacementMask(plan, hamlet);
+    const visualMask = placementMasks.get(hamlet.id)!;
     return {
       id: hamlet.id,
       center: visualMask.center,
@@ -702,6 +702,7 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     area: 0,
     footprintRatio: 0,
     inletAngle,
+    perimeter: [],
     islet,
   };
   const provisionalLakeShape = {
@@ -800,6 +801,7 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     area: lakeArea,
     footprintRatio: lakeArea / (envelope.width * envelope.depth),
     inletAngle,
+    perimeter: [],
     islet,
   };
   const temporaryDefinition = {
@@ -856,9 +858,21 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
       lake: lakeDefinition,
     },
   };
+  const physicalWater = createPhysicalWaterContract({
+    key: plan.terrainKey,
+    envelope,
+    horizonZ: plan.topology.camera.horizonZ,
+    courseMask,
+    lakeMask,
+    terraces,
+  });
   return {
     ...partial,
-    outline,
+    outline: physicalWater.outline,
+    water: {
+      course: physicalWater.course,
+      lake: physicalWater.lake,
+    },
   };
 }
 
@@ -1035,15 +1049,25 @@ function waterQuery(
 }> {
   const course = queryCourse(definition, x, z);
   const lakeRadius = lakeNormalizedRadius(definition, x, z);
+  const lakeDistance = queryPhysicalWaterDistance(
+    {
+      key: definition.key,
+      envelope: definition.envelope,
+      outline: definition.outline,
+      terraces: definition.terraces,
+      course: definition.water.course,
+      lake: definition.water.lake,
+    },
+    x,
+    z,
+  ).lakeDistance;
   // Float32 perimeter vertices can land a few microunits outside their source
   // doubles. Keep the rendered shoreline and classifier identical at that
   // numeric boundary without widening the authored basin perceptibly.
-  const inLake = fittedLakeSignedDistance(definition, x, z) <= 0.002;
+  const inLake = lakeDistance <= 0.002;
   const inCourse = course.distance <= course.halfWidth;
-  const lakeShoreWidth = 4 / Math.max(definition.water.lake.radiusX, definition.water.lake.radiusZ);
   const shore =
-    (!inLake && lakeRadius <= 1 + lakeShoreWidth) ||
-    (!inCourse && course.distance <= course.shoreHalfWidth);
+    (!inLake && lakeDistance <= 4) || (!inCourse && course.distance <= course.shoreHalfWidth);
   if (inLake) {
     return {
       course,
@@ -1126,15 +1150,15 @@ export function queryPlannedWaterDistance(
   z: number,
 ): PlannedWaterDistance {
   const definition = getPlannedTerrainDefinition(plan);
-  const course = queryCourse(definition, x, z);
-  const courseDistance = course.distance - course.halfWidth;
-  const lakeDistance = fittedLakeSignedDistance(definition, x, z);
-  return {
-    signedDistance: Math.min(courseDistance, lakeDistance),
-    shoreDistance: Math.min(course.distance - course.shoreHalfWidth, lakeDistance - 4),
-    courseDistance,
-    lakeDistance,
+  const contract: PhysicalWaterContract = {
+    key: definition.key,
+    envelope: definition.envelope,
+    outline: definition.outline,
+    terraces: definition.terraces,
+    course: definition.water.course,
+    lake: definition.water.lake,
   };
+  return queryPhysicalWaterDistance(contract, x, z);
 }
 
 /** Samples the continuous terrain, including the river cut and lake basin. */
@@ -1417,7 +1441,6 @@ export function buildPlannedWaterGeometry(
   const definition = getPlannedTerrainDefinition(plan);
   const courseSegments = clamp(Math.round(options.courseSegments ?? 64), 12, 120);
   const crossSegments = clamp(Math.round(options.courseCrossSegments ?? 4), 2, 8);
-  const lakeSegments = clamp(Math.round(options.lakeSegments ?? 56), 20, 96);
   const positions: number[] = [];
   const indices: number[] = [];
   const zones: number[] = [];
@@ -1473,14 +1496,10 @@ export function buildPlannedWaterGeometry(
   );
   zones.push(MATERIAL_ZONE_CODE["lake-bed"]);
   const perimeterStart = positions.length / 3;
+  const lakeSegments = definition.water.lake.perimeter.length;
   for (let index = 0; index <= lakeSegments; index += 1) {
-    const angle = (index / lakeSegments) * Math.PI * 2;
-    const multiplier = fittedLakeRadiusMultiplier(definition, angle);
-    positions.push(
-      definition.water.lake.center.x + Math.cos(angle) * definition.water.lake.radiusX * multiplier,
-      definition.water.lake.surfaceHeight + 0.045,
-      definition.water.lake.center.z + Math.sin(angle) * definition.water.lake.radiusZ * multiplier,
-    );
+    const perimeterPoint = definition.water.lake.perimeter[index % lakeSegments]!;
+    positions.push(perimeterPoint.x, definition.water.lake.surfaceHeight + 0.045, perimeterPoint.z);
     zones.push(MATERIAL_ZONE_CODE["lake-bed"]);
   }
   for (let index = 0; index < lakeSegments; index += 1) {

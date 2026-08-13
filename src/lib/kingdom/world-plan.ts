@@ -1,4 +1,9 @@
 import { stableDigest, stableFraction, stableHash } from "./hash";
+import {
+  createPhysicalWaterContract,
+  physicalWaterCircleHasClearance,
+  type PhysicalWaterContract,
+} from "./physical-water-contract";
 import type { FileCategory, KingdomEntity, KingdomSeason, KingdomWorld, Province } from "./types";
 import {
   deriveRepositoryWorldIdentity,
@@ -311,6 +316,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function mix(first: number, second: number, amount: number): number {
+  return first + (second - first) * amount;
+}
+
 function round(value: number): number {
   return Math.round(value * 1_000) / 1_000;
 }
@@ -328,32 +337,110 @@ export function requiredHamletTerrainRadius(hamlet: HamletRegion): number {
   );
 }
 
+const PHYSICAL_HAMLET_CLEARANCE = 4;
+
+/**
+ * Resolves every physical settlement terrace as one collision-safe layout.
+ * Semantic masks stay at their repository-derived coordinates; only terrain,
+ * scenery, water, and rendered structures consume these physical masks.
+ */
+export function createHamletTerrainPlacementMasks(
+  envelope: WorldPlanEnvelope,
+  hamlets: ReadonlyArray<HamletRegion>,
+): ReadonlyMap<string, EllipseRegionMask> {
+  const resolved = new Map<string, EllipseRegionMask>();
+  const descriptors = hamlets
+    .map((hamlet) => {
+      const radius = requiredHamletTerrainRadius(hamlet);
+      const horizonZ = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40);
+      const rearFaceZ = horizonZ + envelope.depth * 0.025;
+      const minimumSmoothCenterZ = rearFaceZ + radius * 2.55;
+      const needsEscarpmentClearance = hamlet.mask.center.z < minimumSmoothCenterZ;
+      const lateralDirection = hamlet.mask.center.x <= envelope.center.x ? -1 : 1;
+      const minimumX = envelope.minX + envelope.safeMargin + radius;
+      const maximumX = envelope.maxX - envelope.safeMargin - radius;
+      const minimumZ = Math.max(
+        envelope.minZ + envelope.safeMargin + radius,
+        needsEscarpmentClearance ? minimumSmoothCenterZ : Number.NEGATIVE_INFINITY,
+      );
+      const maximumZ = envelope.maxZ - envelope.safeMargin - radius;
+      const desired = needsEscarpmentClearance
+        ? point(
+            clamp(hamlet.mask.center.x + lateralDirection * radius * 4.75, minimumX, maximumX),
+            clamp(minimumSmoothCenterZ, minimumZ, maximumZ),
+          )
+        : point(
+            clamp(hamlet.mask.center.x, minimumX, maximumX),
+            clamp(hamlet.mask.center.z, minimumZ, maximumZ),
+          );
+      return {
+        hamlet,
+        radius,
+        desired,
+        minimumX,
+        maximumX,
+        minimumZ,
+        maximumZ,
+      };
+    })
+    .sort(
+      (first, second) =>
+        second.radius - first.radius || first.hamlet.id.localeCompare(second.hamlet.id),
+    );
+
+  const placed: Array<Readonly<{ center: WorldPlanPoint; radius: number }>> = [];
+  for (const descriptor of descriptors) {
+    const candidates: WorldPlanPoint[] = [descriptor.desired];
+    const gridSteps = 24;
+    for (let zIndex = 0; zIndex <= gridSteps; zIndex += 1) {
+      for (let xIndex = 0; xIndex <= gridSteps; xIndex += 1) {
+        candidates.push(
+          point(
+            mix(descriptor.minimumX, descriptor.maximumX, xIndex / gridSteps),
+            mix(descriptor.minimumZ, descriptor.maximumZ, zIndex / gridSteps),
+          ),
+        );
+      }
+    }
+    candidates.sort((first, second) => {
+      const firstDistance = distance(first, descriptor.desired);
+      const secondDistance = distance(second, descriptor.desired);
+      return (
+        firstDistance - secondDistance ||
+        stableHash(`${descriptor.hamlet.id}:${first.x}:${first.z}`) -
+          stableHash(`${descriptor.hamlet.id}:${second.x}:${second.z}`)
+      );
+    });
+    const center = candidates.find((candidate) =>
+      placed.every(
+        (other) =>
+          distance(candidate, other.center) >=
+          descriptor.radius + other.radius + PHYSICAL_HAMLET_CLEARANCE,
+      ),
+    );
+    if (!center) {
+      throw new Error(`Unable to resolve collision-safe terrain for ${descriptor.hamlet.id}.`);
+    }
+    placed.push({ center, radius: descriptor.radius });
+    resolved.set(descriptor.hamlet.id, {
+      ...descriptor.hamlet.mask,
+      center,
+      radiusX: descriptor.radius,
+      radiusZ: descriptor.radius,
+    });
+  }
+  return resolved;
+}
+
 /** Canonical physical settlement mask shared by terrain identity and rendering. */
 export function getHamletTerrainPlacementMask(
   envelope: WorldPlanEnvelope,
   hamlet: HamletRegion,
+  hamlets: ReadonlyArray<HamletRegion>,
 ): EllipseRegionMask {
-  const radius = requiredHamletTerrainRadius(hamlet);
-  const horizonZ = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40);
-  const rearFaceZ = horizonZ + envelope.depth * 0.025;
-  const minimumSmoothCenterZ = rearFaceZ + radius * 2.55;
-  const needsEscarpmentClearance = hamlet.mask.center.z < minimumSmoothCenterZ;
-  const lateralDirection = hamlet.mask.center.x <= envelope.center.x ? -1 : 1;
-  const center = needsEscarpmentClearance
-    ? point(
-        clamp(
-          hamlet.mask.center.x + lateralDirection * radius * 4.75,
-          envelope.minX + envelope.safeMargin + radius,
-          envelope.maxX - envelope.safeMargin - radius,
-        ),
-        clamp(
-          minimumSmoothCenterZ,
-          envelope.minZ + envelope.safeMargin + radius,
-          envelope.maxZ - envelope.safeMargin - radius,
-        ),
-      )
-    : hamlet.mask.center;
-  return { ...hamlet.mask, center, radiusX: radius, radiusZ: radius };
+  const mask = createHamletTerrainPlacementMasks(envelope, hamlets).get(hamlet.id);
+  if (!mask) throw new Error(`Hamlet ${hamlet.id} is missing from the physical layout.`);
+  return mask;
 }
 
 function distance(first: WorldPlanPoint, second: WorldPlanPoint): number {
@@ -652,15 +739,16 @@ function waterCandidate(
   };
 }
 
-function waterClearance(water: WaterSystem, hamlets: ReadonlyArray<HamletRegion>): number {
+function waterClearance(
+  water: WaterSystem,
+  placementMasks: ReadonlyArray<EllipseRegionMask>,
+): number {
   return Math.min(
-    ...hamlets.flatMap((hamlet) => {
-      const hamletRadius = Math.max(hamlet.mask.radiusX, hamlet.mask.radiusZ);
+    ...placementMasks.flatMap((mask) => {
+      const hamletRadius = Math.max(mask.radiusX, mask.radiusZ);
       return [
-        distanceToCorridor(hamlet.mask.center, water.course) -
-          hamletRadius -
-          water.course.width / 2,
-        distance(hamlet.mask.center, water.lake.center) -
+        distanceToCorridor(mask.center, water.course) - hamletRadius - water.course.width / 2,
+        distance(mask.center, water.lake.center) -
           hamletRadius -
           Math.max(water.lake.radiusX, water.lake.radiusZ),
       ];
@@ -686,9 +774,11 @@ function createWaterSystem(
   const candidates = archetypeWater.ratios.map((ratio) =>
     waterCandidate(world, envelope, ratio, waterWidth),
   );
+  const placementMasks = [...createHamletTerrainPlacementMasks(envelope, hamlets).values()];
   return candidates.sort(
     (first, second) =>
-      waterClearance(second, hamlets) - waterClearance(first, hamlets) || second.side - first.side,
+      waterClearance(second, placementMasks) - waterClearance(first, placementMasks) ||
+      second.side - first.side,
   )[0]!;
 }
 
@@ -842,17 +932,27 @@ function circleClearsWater(
   );
 }
 
+/** Verifies the entire planner-owned habitat perimeter against rendered water. */
+function circleClearsPhysicalWater(
+  center: WorldPlanPoint,
+  radius: number,
+  water: PhysicalWaterContract,
+  clearance: number,
+): boolean {
+  return physicalWaterCircleHasClearance(water, center, radius, clearance);
+}
+
 function circleClearsHamlets(
   center: WorldPlanPoint,
   radius: number,
-  hamlets: ReadonlyArray<HamletRegion>,
+  placementMasks: ReadonlyArray<EllipseRegionMask>,
   clearance: number,
 ): boolean {
-  return hamlets.every(
-    (hamlet) =>
-      distance(center, hamlet.mask.center) >=
-      radius + Math.max(hamlet.mask.radiusX, hamlet.mask.radiusZ) + clearance,
-  );
+  return placementMasks.every((mask) => {
+    return (
+      distance(center, mask.center) >= radius + Math.max(mask.radiusX, mask.radiusZ) + clearance
+    );
+  });
 }
 
 function createGroves(
@@ -860,6 +960,7 @@ function createGroves(
   envelope: WorldPlanEnvelope,
   hamlets: ReadonlyArray<HamletRegion>,
   water: WaterSystem,
+  physicalWater: PhysicalWaterContract,
   maxTrees: number,
   maxGroves: number,
 ): ReadonlyArray<ForestGroveRegion> {
@@ -868,6 +969,7 @@ function createGroves(
     3,
     maxGroves,
   );
+  const placementMasks = [...createHamletTerrainPlacementMasks(envelope, hamlets).values()];
   const rearLimit = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40) + 7;
   const candidates = Array.from({ length: 56 }, (_, index) => {
     const column = index % 8;
@@ -906,7 +1008,8 @@ function createGroves(
         candidate.center.z - candidateRadius >= rearLimit &&
         candidate.center.z + candidateRadius <= envelope.maxZ - envelope.safeMargin &&
         circleClearsWater(candidate.center, candidateRadius, water, 4) &&
-        circleClearsHamlets(candidate.center, candidateRadius, hamlets, 4) &&
+        circleClearsPhysicalWater(candidate.center, candidateRadius, physicalWater, 4) &&
+        circleClearsHamlets(candidate.center, candidateRadius, placementMasks, 4) &&
         chosen.every(
           (grove) => distance(candidate.center, grove.center) >= candidateRadius + grove.radius + 3,
         ),
@@ -1625,6 +1728,7 @@ function createTerrainKey(
   // Terrain identity deliberately excludes visual budgets, grove populations,
   // wildlife, and selected world style. Raising an instance budget must never
   // reshape a coastline or invalidate a settlement terrace.
+  const placementMasks = createHamletTerrainPlacementMasks(envelope, hamlets);
   return stableDigest(
     JSON.stringify({
       schema: "repo-terrain/v2",
@@ -1635,7 +1739,7 @@ function createTerrainKey(
       scaleTier: identity.scaleTier,
       envelope,
       terraces: hamlets.map((hamlet) => {
-        const mask = getHamletTerrainPlacementMask(envelope, hamlet);
+        const mask = placementMasks.get(hamlet.id)!;
         return { id: hamlet.id, center: mask.center, radiusX: mask.radiusX, radiusZ: mask.radiusZ };
       }),
       terrainZones: terrainZones.map((zone) => ({
@@ -1658,12 +1762,27 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
   const envelope = createEnvelope(world, identity);
   const hamlets = createHamlets(world, envelope, identity);
   const { zones: terrainZones, water } = createTerrainZones(world, envelope, hamlets, identity);
+  const terrainKey = createTerrainKey(world, identity, envelope, hamlets, terrainZones);
+  const camera = createCamera(envelope, hamlets, world.bounds.height);
+  const physicalHamlets = createHamletTerrainPlacementMasks(envelope, hamlets);
+  const physicalWater = createPhysicalWaterContract({
+    key: terrainKey,
+    envelope,
+    horizonZ: camera.horizonZ,
+    courseMask: water.course,
+    lakeMask: water.lake,
+    terraces: hamlets.map((hamlet) => {
+      const mask = physicalHamlets.get(hamlet.id)!;
+      return { id: hamlet.id, center: mask.center, radiusX: mask.radiusX, radiusZ: mask.radiusZ };
+    }),
+  });
   const visualBudgets = createVisualBudgets(world, identity, hamlets);
   const groves = createGroves(
     world,
     envelope,
     hamlets,
     water,
+    physicalWater,
     visualBudgets.maxTrees,
     visualBudgets.maxGroves,
   );
@@ -1677,7 +1796,7 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
   const semanticZones = createSemanticZones(world, hamlets);
   const topology: WorldPlanTopology = {
     envelope,
-    camera: createCamera(envelope, hamlets, world.bounds.height),
+    camera,
     terrainZones,
     hamlets,
     groves,
@@ -1705,7 +1824,6 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
     visualBudgets,
   };
   const topologyKey = createTopologyKey(world, topology);
-  const terrainKey = createTerrainKey(world, identity, envelope, hamlets, terrainZones);
 
   return {
     schema: "repo-world-plan/v1",

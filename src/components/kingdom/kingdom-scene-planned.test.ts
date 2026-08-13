@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRetracedWildlifeMotion } from "./kingdom-scene-planned";
+import { buildRetracedWildlifeMotion } from "./wildlife-motion";
 
 describe("buildRetracedWildlifeMotion", () => {
   it("uses only adjacent validated edges and retraces them to loop", () => {

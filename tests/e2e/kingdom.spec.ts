@@ -383,32 +383,43 @@ test.describe("Repo Magical Kingdom journeys", () => {
   });
 
   test("honors prefers-reduced-motion in both the browser and rendered scene shell", async ({
-    page,
+    browser,
   }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    const canvas = await expectWebGlKingdom(page);
-
-    await expect
-      .poll(() => page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches))
-      .toBe(true);
-    const motionStyles = await canvas.evaluate((element) => {
-      const canvasWrap = element.parentElement;
-      const overview = document.querySelector<HTMLButtonElement>("nav button");
-      return {
-        canvasAnimation: canvasWrap ? getComputedStyle(canvasWrap).animationName : null,
-        toolTransition: overview ? getComputedStyle(overview).transitionDuration : null,
-      };
+    // Construct a dedicated context instead of mutating a page after the
+    // serial software-WebGL journeys. Chromium can otherwise retain stale
+    // media emulation state after several GPU contexts have been released.
+    const context = await browser.newContext({
+      baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+      reducedMotion: "reduce",
     });
-    expect(motionStyles.canvasAnimation).toBe("none");
-    const longestTransition = Math.max(
-      ...(motionStyles.toolTransition ?? "0s")
-        .split(",")
-        .map((duration) => Number.parseFloat(duration) || 0),
-    );
-    // Browsers clamp a zero-duration transition to a tiny epsilon internally.
-    expect(longestTransition).toBeLessThan(0.001);
-    await expect(page.locator("main[data-mode]")).toHaveAttribute("data-travel-phase", "idle");
+    const page = await context.newPage();
+    try {
+      expect(
+        await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches),
+      ).toBe(true);
+      await page.goto("/");
+      const canvas = await expectWebGlKingdom(page);
+
+      const motionStyles = await canvas.evaluate((element) => {
+        const canvasWrap = element.parentElement;
+        const overview = document.querySelector<HTMLButtonElement>("nav button");
+        return {
+          canvasAnimation: canvasWrap ? getComputedStyle(canvasWrap).animationName : null,
+          toolTransition: overview ? getComputedStyle(overview).transitionDuration : null,
+        };
+      });
+      expect(motionStyles.canvasAnimation).toBe("none");
+      const longestTransition = Math.max(
+        ...(motionStyles.toolTransition ?? "0s")
+          .split(",")
+          .map((duration) => Number.parseFloat(duration) || 0),
+      );
+      // Browsers clamp a zero-duration transition to a tiny epsilon internally.
+      expect(longestTransition).toBeLessThan(0.001);
+      await expect(page.locator("main[data-mode]")).toHaveAttribute("data-travel-phase", "idle");
+    } finally {
+      await context.close();
+    }
   });
 });
 

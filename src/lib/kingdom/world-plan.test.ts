@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createDemoKingdom } from "./demo-world";
 import { KINGDOM_SEASONS } from "./types";
 import {
+  createHamletTerrainPlacementMasks,
   createWorldPlan,
   getHamletTerrainPlacementMask,
   type CorridorRegionMask,
@@ -194,13 +195,51 @@ describe("createWorldPlan", () => {
     }
   });
 
+  it("resolves same-side rear settlements into distinct physical terraces", () => {
+    const { topology } = createWorldPlan(createDemoKingdom());
+    const forced = topology.hamlets.slice(0, 3).map((hamlet, index) => ({
+      ...hamlet,
+      id: `${hamlet.id}-forced-${index}`,
+      mask: {
+        ...hamlet.mask,
+        center: {
+          x: topology.envelope.minX + topology.envelope.safeMargin + 2,
+          z: topology.envelope.minZ + topology.envelope.safeMargin + index,
+        },
+      },
+    }));
+    const placements = createHamletTerrainPlacementMasks(topology.envelope, forced);
+    expect(placements.size).toBe(forced.length);
+    const masks = [...placements.values()];
+    for (const mask of masks) expectMaskInside(mask, topology.envelope);
+    for (let firstIndex = 0; firstIndex < masks.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < masks.length; secondIndex += 1) {
+        const first = masks[firstIndex]!;
+        const second = masks[secondIndex]!;
+        expect(distance(first.center, second.center)).toBeGreaterThanOrEqual(
+          first.radiusX + second.radiusX + 4 - EPSILON,
+        );
+      }
+    }
+  });
+
   it("keeps forest and wildlife habitat clear of water and hamlets", () => {
     const { topology } = createWorldPlan(createDemoKingdom());
+    const placementMasks = createHamletTerrainPlacementMasks(topology.envelope, topology.hamlets);
     const course = topology.terrainZones.find((zone) => zone.kind === "watershed")?.mask;
     const lake = topology.terrainZones.find((zone) => zone.kind === "lake")?.mask;
     expect(course?.shape).toBe("corridor");
     expect(lake?.shape).toBe("ellipse");
     if (course?.shape !== "corridor" || lake?.shape !== "ellipse") return;
+
+    for (const placementMask of placementMasks.values()) {
+      expect(distanceToCorridor(placementMask.center, course)).toBeGreaterThanOrEqual(
+        placementMask.radiusX + course.width / 2 - EPSILON,
+      );
+      expect(distance(placementMask.center, lake.center)).toBeGreaterThanOrEqual(
+        placementMask.radiusX + Math.max(lake.radiusX, lake.radiusZ) - EPSILON,
+      );
+    }
 
     expect(topology.groves.length).toBeGreaterThanOrEqual(3);
     for (const grove of topology.groves) {
@@ -212,8 +251,9 @@ describe("createWorldPlan", () => {
         groveRadius + Math.max(lake.radiusX, lake.radiusZ) + grove.exclusions.clearance - EPSILON,
       );
       for (const hamlet of topology.hamlets) {
-        expect(distance(grove.mask.center, hamlet.mask.center)).toBeGreaterThanOrEqual(
-          groveRadius + hamlet.mask.radiusX + grove.exclusions.clearance - EPSILON,
+        const placementMask = placementMasks.get(hamlet.id)!;
+        expect(distance(grove.mask.center, placementMask.center)).toBeGreaterThanOrEqual(
+          groveRadius + placementMask.radiusX + grove.exclusions.clearance - EPSILON,
         );
       }
       expect(grove.exclusions.terrainZoneIds).toEqual(
@@ -319,6 +359,10 @@ describe("createWorldPlan", () => {
     expect(first.topology.envelope.width).toBeGreaterThanOrEqual(256);
     expect(first.topology.envelope.depth).toBeGreaterThanOrEqual(264);
     expect(first.topology.hamlets).toHaveLength(4);
+    const physicalMasks = createHamletTerrainPlacementMasks(
+      first.topology.envelope,
+      first.topology.hamlets,
+    );
     for (const hamlet of first.topology.hamlets) {
       expect(hamlet.mask.radiusX).toBeGreaterThan(0);
       expectMaskInside(hamlet.mask, first.topology.envelope);
@@ -334,6 +378,20 @@ describe("createWorldPlan", () => {
         const secondHamlet = first.topology.hamlets[secondIndex]!;
         expect(distance(firstHamlet.mask.center, secondHamlet.mask.center)).toBeGreaterThanOrEqual(
           firstHamlet.mask.radiusX + secondHamlet.mask.radiusX + 8 - EPSILON,
+        );
+      }
+    }
+    const physicalMaskList = [...physicalMasks.values()];
+    for (let firstIndex = 0; firstIndex < physicalMaskList.length; firstIndex += 1) {
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < physicalMaskList.length;
+        secondIndex += 1
+      ) {
+        const firstMask = physicalMaskList[firstIndex]!;
+        const secondMask = physicalMaskList[secondIndex]!;
+        expect(distance(firstMask.center, secondMask.center)).toBeGreaterThanOrEqual(
+          firstMask.radiusX + secondMask.radiusX + 4 - EPSILON,
         );
       }
     }
@@ -356,11 +414,18 @@ describe("createWorldPlan", () => {
     const expanded = createWorldPlan(expandedWorld);
     expect(
       expanded.topology.hamlets.map(
-        (hamlet) => getHamletTerrainPlacementMask(expanded.topology.envelope, hamlet).radiusX,
+        (hamlet) =>
+          getHamletTerrainPlacementMask(
+            expanded.topology.envelope,
+            hamlet,
+            expanded.topology.hamlets,
+          ).radiusX,
       ),
     ).not.toEqual(
       valley.topology.hamlets.map(
-        (hamlet) => getHamletTerrainPlacementMask(valley.topology.envelope, hamlet).radiusX,
+        (hamlet) =>
+          getHamletTerrainPlacementMask(valley.topology.envelope, hamlet, valley.topology.hamlets)
+            .radiusX,
       ),
     );
     expect(expanded.terrainKey).not.toBe(valley.terrainKey);

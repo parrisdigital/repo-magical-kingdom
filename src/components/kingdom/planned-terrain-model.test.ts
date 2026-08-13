@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { createDemoKingdom } from "@/lib/kingdom/demo-world";
+import { createPhysicalWaterContract } from "@/lib/kingdom/physical-water-contract";
 import { KINGDOM_SEASONS } from "@/lib/kingdom/types";
-import { createWorldPlan } from "@/lib/kingdom/world-plan";
+import { createHamletTerrainPlacementMasks, createWorldPlan } from "@/lib/kingdom/world-plan";
 
 import {
   buildPlannedTerrainGeometry,
@@ -21,7 +22,53 @@ function numericArray(values: ArrayLike<number>): number[] {
   return Array.from(values);
 }
 
+function projectedTriangleArea(
+  positions: ArrayLike<number>,
+  first: number,
+  second: number,
+  third: number,
+): number {
+  const ax = positions[first * 3]!;
+  const az = positions[first * 3 + 2]!;
+  const bx = positions[second * 3]!;
+  const bz = positions[second * 3 + 2]!;
+  const cx = positions[third * 3]!;
+  const cz = positions[third * 3 + 2]!;
+  return Math.abs((bx - ax) * (cz - az) - (bz - az) * (cx - ax)) / 2;
+}
+
 describe("planned global terrain", () => {
+  it("renders the same canonical physical water contract used by planning", () => {
+    const plan = createWorldPlan(createDemoKingdom());
+    const definition = getPlannedTerrainDefinition(plan);
+    const courseMask = plan.topology.terrainZones.find(
+      (zone) => zone.kind === "watershed" && zone.mask.shape === "corridor",
+    )?.mask;
+    const lakeMask = plan.topology.terrainZones.find(
+      (zone) => zone.kind === "lake" && zone.mask.shape === "ellipse",
+    )?.mask;
+    expect(courseMask?.shape).toBe("corridor");
+    expect(lakeMask?.shape).toBe("ellipse");
+    if (courseMask?.shape !== "corridor" || lakeMask?.shape !== "ellipse") return;
+    const placementMasks = createHamletTerrainPlacementMasks(
+      plan.topology.envelope,
+      plan.topology.hamlets,
+    );
+    const contract = createPhysicalWaterContract({
+      key: plan.terrainKey,
+      envelope: plan.topology.envelope,
+      horizonZ: plan.topology.camera.horizonZ,
+      courseMask,
+      lakeMask,
+      terraces: plan.topology.hamlets.map((hamlet) => {
+        const mask = placementMasks.get(hamlet.id)!;
+        return { id: hamlet.id, center: mask.center, radiusX: mask.radiusX, radiusZ: mask.radiusZ };
+      }),
+    });
+    expect(definition.outline).toEqual(contract.outline);
+    expect(definition.water).toEqual({ course: contract.course, lake: contract.lake });
+  });
+
   it("shares one canonical definition across equivalent fresh plans", () => {
     const springPlan = createWorldPlan(createDemoKingdom("spring"));
     const winterPlan = createWorldPlan(createDemoKingdom("winter"));
@@ -240,8 +287,10 @@ describe("planned global terrain", () => {
     const definition = getPlannedTerrainDefinition(plan);
     const lake = definition.water.lake;
     expect(lake.center.z).toBeGreaterThan(definition.envelope.center.z);
-    expect(lake.footprintRatio).toBeGreaterThanOrEqual(0.12);
-    expect(lake.footprintRatio).toBeLessThanOrEqual(0.22);
+    // This is the fitted visible polygon after coastline and terrace coves,
+    // not the larger nominal source ellipse used to author the basin.
+    expect(lake.footprintRatio).toBeGreaterThanOrEqual(0.1);
+    expect(lake.footprintRatio).toBeLessThanOrEqual(0.14);
 
     const water = buildPlannedWaterGeometry(plan, { lakeSegments: 72 });
     const lakeStart = water.vertexCount - 73;
@@ -273,6 +322,216 @@ describe("planned global terrain", () => {
         const region = classifyPlannedTerrainRegion(plan, x, z);
         expect(region.water, `${terrace.id} intersects rendered water`).toBeNull();
         expect(region.material, `${terrace.id} intersects rendered shore`).not.toBe("shore");
+      }
+    }
+  });
+
+  it("reports the actual fitted lake polygon area and keeps its visible footprint substantial", () => {
+    const plan = createWorldPlan(createDemoKingdom());
+    const definition = getPlannedTerrainDefinition(plan);
+    const water = buildPlannedWaterGeometry(plan, { lakeSegments: 96 });
+    const lakeIndexStart = water.ranges.courseTriangles * 3;
+    let renderedArea = 0;
+    for (let index = lakeIndexStart; index < water.indices.length; index += 3) {
+      renderedArea += projectedTriangleArea(
+        water.positions,
+        water.indices[index]!,
+        water.indices[index + 1]!,
+        water.indices[index + 2]!,
+      );
+    }
+    expect(definition.water.lake.area).toBeCloseTo(renderedArea, 3);
+    expect(definition.water.lake.footprintRatio).toBeCloseTo(
+      renderedArea / (definition.envelope.width * definition.envelope.depth),
+      5,
+    );
+    expect(definition.water.lake.footprintRatio).toBeGreaterThanOrEqual(0.1);
+    expect(definition.water.lake.footprintRatio).toBeLessThanOrEqual(0.14);
+  });
+
+  it("classifies every canonical shoreline chord and triangle interior as lake", () => {
+    const demo = createDemoKingdom();
+    const plan = createWorldPlan({
+      ...demo,
+      seed: "water-parity:asset:31:2",
+      source: {
+        ...demo.source,
+        commitSha: "0000000000000000000000000000000005000002",
+      },
+      coverage: {
+        ...demo.coverage,
+        discoveredFiles: 31,
+        eligibleFiles: 31,
+        representedFiles: 31,
+      },
+      statistics: {
+        ...demo.statistics,
+        files: 31,
+        bytes: 31_000,
+        categories: [
+          { category: "asset", files: 26, bytes: 25_420 },
+          { category: "other", files: 5, bytes: 5_580 },
+        ],
+      },
+    });
+    expect(plan.terrainKey).toBe("ff956dae4c07c11d");
+    const definition = getPlannedTerrainDefinition(plan);
+    const perimeter = definition.water.lake.perimeter;
+    expect(perimeter).toHaveLength(96);
+    for (let index = 0; index < perimeter.length; index += 1) {
+      const first = perimeter[index]!;
+      const second = perimeter[(index + 1) % perimeter.length]!;
+      for (const progress of [0, 0.25, 0.5, 0.75, 1]) {
+        const edgeX = first.x + (second.x - first.x) * progress;
+        const edgeZ = first.z + (second.z - first.z) * progress;
+        expect(
+          queryPlannedWaterDistance(plan, edgeX, edgeZ).lakeDistance,
+          `edge:${index}:${progress}`,
+        ).toBeLessThanOrEqual(0.002);
+        for (const inward of [0.25, 0.5, 0.75]) {
+          const x = edgeX + (definition.water.lake.center.x - edgeX) * inward;
+          const z = edgeZ + (definition.water.lake.center.z - edgeZ) * inward;
+          expect(
+            queryPlannedWaterDistance(plan, x, z).lakeDistance,
+            `triangle:${index}:${progress}:${inward}`,
+          ).toBeLessThanOrEqual(0.002);
+        }
+      }
+    }
+  });
+
+  it("keeps planner-owned grove and wildlife habitats outside rendered water", () => {
+    const demo = createDemoKingdom();
+    for (let seedIndex = 0; seedIndex < 48; seedIndex += 1) {
+      const plan = createWorldPlan({ ...demo, seed: `${demo.seed}:water-clearance:${seedIndex}` });
+      for (const grove of plan.topology.groves) {
+        for (let sampleIndex = 0; sampleIndex < 24; sampleIndex += 1) {
+          const angle = (sampleIndex / 24) * Math.PI * 2;
+          const localX = Math.cos(angle) * grove.mask.radiusX;
+          const localZ = Math.sin(angle) * grove.mask.radiusZ;
+          const cosine = Math.cos(grove.mask.rotation);
+          const sine = Math.sin(grove.mask.rotation);
+          const x = grove.mask.center.x + localX * cosine - localZ * sine;
+          const z = grove.mask.center.z + localX * sine + localZ * cosine;
+          expect(
+            queryPlannedWaterDistance(plan, x, z).shoreDistance,
+            `${plan.terrainKey}:${grove.id}:boundary:${sampleIndex}`,
+          ).toBeGreaterThanOrEqual(grove.exclusions.clearance - 0.002);
+        }
+      }
+      for (const wildlife of plan.topology.wildlifeZones) {
+        for (let sampleIndex = 0; sampleIndex < 16; sampleIndex += 1) {
+          const angle = (sampleIndex / 16) * Math.PI * 2;
+          const localX = Math.cos(angle) * wildlife.mask.radiusX;
+          const localZ = Math.sin(angle) * wildlife.mask.radiusZ;
+          const cosine = Math.cos(wildlife.mask.rotation);
+          const sine = Math.sin(wildlife.mask.rotation);
+          const x = wildlife.mask.center.x + localX * cosine - localZ * sine;
+          const z = wildlife.mask.center.z + localX * sine + localZ * cosine;
+          expect(
+            queryPlannedWaterDistance(plan, x, z).shoreDistance,
+            `${plan.terrainKey}:${wildlife.id}:boundary:${sampleIndex}`,
+          ).toBeGreaterThanOrEqual(-0.002);
+        }
+      }
+    }
+  });
+
+  it("densely verifies matrix-57 against the narrow fitted-lake lobe", () => {
+    const demo = createDemoKingdom();
+    const plan = createWorldPlan({
+      ...demo,
+      seed: "matrix-57",
+      source: {
+        ...demo.source,
+        commitSha: "0000000000000000000000000000000000100057",
+      },
+      coverage: {
+        ...demo.coverage,
+        discoveredFiles: 120,
+        eligibleFiles: 120,
+        representedFiles: 120,
+      },
+      statistics: {
+        ...demo.statistics,
+        files: 120,
+        categories: [
+          { category: "config", files: 98, bytes: 98_000 },
+          { category: "source", files: 22, bytes: 22_000 },
+        ],
+      },
+    });
+    expect(plan.topology.groves.some((grove) => grove.id === "grove-f74e9edbf4")).toBe(true);
+    for (const grove of plan.topology.groves) {
+      let minimum = Number.POSITIVE_INFINITY;
+      const radius = Math.max(grove.mask.radiusX, grove.mask.radiusZ);
+      for (let index = 0; index < 10_000; index += 1) {
+        const angle = (index / 10_000) * Math.PI * 2;
+        minimum = Math.min(
+          minimum,
+          queryPlannedWaterDistance(
+            plan,
+            grove.mask.center.x + Math.cos(angle) * radius,
+            grove.mask.center.z + Math.sin(angle) * radius,
+          ).shoreDistance,
+        );
+      }
+      expect(minimum, grove.id).toBeGreaterThanOrEqual(grove.exclusions.clearance - 0.002);
+    }
+  });
+
+  it("truthfully bounds actual fitted lake footprints across archetypes and scale tiers", () => {
+    const demo = createDemoKingdom();
+    const categories = ["source", "test", "docs", "config", "asset", "other"] as const;
+    const fileCounts = [48, 120, 900, 8_000] as const;
+    for (const [categoryIndex, category] of categories.entries()) {
+      for (const files of fileCounts) {
+        for (let seedIndex = 0; seedIndex < 2; seedIndex += 1) {
+          const plan = createWorldPlan({
+            ...demo,
+            seed: `lake-matrix:${category}:${files}:${seedIndex}`,
+            source: {
+              ...demo.source,
+              commitSha: String(categoryIndex * 100_000 + files + seedIndex).padStart(40, "0"),
+            },
+            coverage: {
+              ...demo.coverage,
+              discoveredFiles: files,
+              eligibleFiles: files,
+              representedFiles: files,
+            },
+            statistics: {
+              ...demo.statistics,
+              files,
+              categories: [
+                { category, files: Math.ceil(files * 0.82), bytes: files * 820 },
+                { category: "other", files: Math.floor(files * 0.18), bytes: files * 180 },
+              ],
+            },
+          });
+          const definition = getPlannedTerrainDefinition(plan);
+          const ratio = definition.water.lake.footprintRatio;
+          expect(ratio, `${category}:${files}:${seedIndex}`).toBeGreaterThanOrEqual(0.1);
+          expect(ratio, `${category}:${files}:${seedIndex}`).toBeLessThanOrEqual(0.14);
+          const water = buildPlannedWaterGeometry(plan, { lakeSegments: 96 });
+          let renderedArea = 0;
+          for (
+            let index = water.ranges.courseTriangles * 3;
+            index < water.indices.length;
+            index += 3
+          ) {
+            renderedArea += projectedTriangleArea(
+              water.positions,
+              water.indices[index]!,
+              water.indices[index + 1]!,
+              water.indices[index + 2]!,
+            );
+          }
+          expect(definition.water.lake.area, `${category}:${files}:${seedIndex}:area`).toBeCloseTo(
+            renderedArea,
+            3,
+          );
+        }
       }
     }
   });
@@ -352,7 +611,7 @@ describe("planned global terrain", () => {
     }
     expect(minimumLakeRadius).toBeGreaterThan(0.9);
     expect(water.ranges.courseTriangles).toBeGreaterThan(0);
-    expect(water.ranges.lakeTriangles).toBe(48);
+    expect(water.ranges.lakeTriangles).toBe(definition.water.lake.perimeter.length);
   });
 
   it("exposes stone on steep slopes and keeps all geometry finite and bounded", () => {

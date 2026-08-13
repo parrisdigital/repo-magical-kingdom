@@ -252,9 +252,20 @@ function useProceduralAmbience(enabled: boolean) {
   }, [enabled]);
 }
 
-type SceneBoundaryProps = Readonly<{ children: ReactNode; onError: (error: Error) => void }>;
+type RendererBoundaryStage = "canvas" | "scene";
 
-class SceneBoundary extends Component<SceneBoundaryProps, { failed: boolean }> {
+const RENDERER_BOUNDARY_LOG_MESSAGE: Readonly<Record<RendererBoundaryStage, string>> = {
+  canvas: "The WebGL canvas failed before the repository scene mounted.",
+  scene: "The repository world failed to assemble.",
+};
+
+type RendererBoundaryProps = Readonly<{
+  children: ReactNode;
+  onError: (error: Error) => void;
+  stage: RendererBoundaryStage;
+}>;
+
+class RendererBoundary extends Component<RendererBoundaryProps, { failed: boolean }> {
   public override state = { failed: false };
 
   public static getDerivedStateFromError(): { failed: boolean } {
@@ -262,26 +273,7 @@ class SceneBoundary extends Component<SceneBoundaryProps, { failed: boolean }> {
   }
 
   public override componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("The repository world failed to assemble.", error, info);
-    this.props.onError(error);
-  }
-
-  public override render() {
-    return this.state.failed ? null : this.props.children;
-  }
-}
-
-type CanvasBoundaryProps = Readonly<{ children: ReactNode; onError: (error: Error) => void }>;
-
-class CanvasBoundary extends Component<CanvasBoundaryProps, { failed: boolean }> {
-  public override state = { failed: false };
-
-  public static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true };
-  }
-
-  public override componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("The WebGL canvas failed before the repository scene mounted.", error, info);
+    console.error(RENDERER_BOUNDARY_LOG_MESSAGE[this.props.stage], error, info);
     this.props.onError(error);
   }
 
@@ -723,9 +715,10 @@ export function KingdomExperience({
       aria-busy={travel !== null}
     >
       {webglSupported && contextFailureCount < 2 && !sceneFailure ? (
-        <CanvasBoundary
+        <RendererBoundary
           key={`renderer:${sceneKey}:${sceneAttempt}`}
           onError={() => setContextFailureCount(2)}
+          stage="canvas"
         >
           <div className={styles.canvasWrap} aria-hidden="true">
             <Canvas
@@ -752,9 +745,10 @@ export function KingdomExperience({
                 });
               }}
             >
-              <SceneBoundary
+              <RendererBoundary
                 key={`scene:${sceneKey}:${sceneAttempt}`}
                 onError={() => setFailedSceneKey(sceneKey)}
+                stage="scene"
               >
                 {mode === "universe" ? (
                   <RepositoryUniverseScene
@@ -783,10 +777,10 @@ export function KingdomExperience({
                     quality={quality}
                   />
                 )}
-              </SceneBoundary>
+              </RendererBoundary>
             </Canvas>
           </div>
-        </CanvasBoundary>
+        </RendererBoundary>
       ) : sceneFailure ? (
         <div className={styles.sceneFallback} role="alert">
           <p className={styles.sceneFallbackEyebrow}>Repository world interrupted</p>
