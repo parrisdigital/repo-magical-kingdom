@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { createDemoKingdom } from "@/lib/kingdom/demo-world";
-import { createPhysicalWaterContract } from "@/lib/kingdom/physical-water-contract";
+import {
+  createPhysicalWaterContract,
+  physicalWaterCircleHasClearance,
+} from "@/lib/kingdom/physical-water-contract";
 import { KINGDOM_SEASONS } from "@/lib/kingdom/types";
 import { createHamletTerrainPlacementMasks, createWorldPlan } from "@/lib/kingdom/world-plan";
 
@@ -462,9 +465,27 @@ describe("planned global terrain", () => {
       },
     });
     expect(plan.topology.groves.some((grove) => grove.id === "grove-f74e9edbf4")).toBe(true);
+    const definition = getPlannedTerrainDefinition(plan);
+    const contract = {
+      key: definition.key,
+      envelope: definition.envelope,
+      outline: definition.outline,
+      terraces: definition.terraces,
+      course: definition.water.course,
+      lake: definition.water.lake,
+    };
     for (const grove of plan.topology.groves) {
       let minimum = Number.POSITIVE_INFINITY;
       const radius = Math.max(grove.mask.radiusX, grove.mask.radiusZ);
+      expect(
+        physicalWaterCircleHasClearance(
+          contract,
+          grove.mask.center,
+          radius,
+          grove.exclusions.clearance,
+        ),
+        `${grove.id}:direct-proof`,
+      ).toBe(true);
       for (let index = 0; index < 10_000; index += 1) {
         const angle = (index / 10_000) * Math.PI * 2;
         minimum = Math.min(

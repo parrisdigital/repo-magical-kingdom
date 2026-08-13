@@ -305,19 +305,117 @@ function fittedLakeRadiusMultiplier(contract: PhysicalWaterContract, angle: numb
   return Math.max(0, lower * 0.995);
 }
 
+type PreparedPolygonEdge = Readonly<{
+  start: WorldPlanPoint;
+  deltaX: number;
+  deltaZ: number;
+  lengthSquared: number;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}>;
+
+const preparedPolygonCache = new WeakMap<
+  ReadonlyArray<WorldPlanPoint>,
+  ReadonlyArray<PreparedPolygonEdge>
+>();
+
+function preparePolygonEdges(
+  polygon: ReadonlyArray<WorldPlanPoint>,
+): ReadonlyArray<PreparedPolygonEdge> {
+  const cached = preparedPolygonCache.get(polygon);
+  if (cached) return cached;
+  const edges = polygon.map((start, index) => {
+    const end = polygon[(index + 1) % polygon.length]!;
+    const deltaX = end.x - start.x;
+    const deltaZ = end.z - start.z;
+    return {
+      start,
+      deltaX,
+      deltaZ,
+      lengthSquared: deltaX * deltaX + deltaZ * deltaZ,
+      minX: Math.min(start.x, end.x),
+      maxX: Math.max(start.x, end.x),
+      minZ: Math.min(start.z, end.z),
+      maxZ: Math.max(start.z, end.z),
+    };
+  });
+  preparedPolygonCache.set(polygon, edges);
+  return edges;
+}
+
+function squaredDistanceToEdge(edge: PreparedPolygonEdge, x: number, z: number): number {
+  const progress =
+    edge.lengthSquared === 0
+      ? 0
+      : clamp(
+          ((x - edge.start.x) * edge.deltaX + (z - edge.start.z) * edge.deltaZ) /
+            edge.lengthSquared,
+          0,
+          1,
+        );
+  const deltaX = x - (edge.start.x + edge.deltaX * progress);
+  const deltaZ = z - (edge.start.z + edge.deltaZ * progress);
+  return deltaX * deltaX + deltaZ * deltaZ;
+}
+
+function squaredDistanceToEdgeBounds(edge: PreparedPolygonEdge, x: number, z: number): number {
+  const deltaX = x < edge.minX ? edge.minX - x : x > edge.maxX ? x - edge.maxX : 0;
+  const deltaZ = z < edge.minZ ? edge.minZ - z : z > edge.maxZ ? z - edge.maxZ : 0;
+  return deltaX * deltaX + deltaZ * deltaZ;
+}
+
 function polygonSignedDistance(
   polygon: ReadonlyArray<WorldPlanPoint>,
+  center: WorldPlanPoint,
   x: number,
   z: number,
 ): number {
-  const subject = point(x, z);
-  let minimum = Number.POSITIVE_INFINITY;
-  for (let index = 0; index < polygon.length; index += 1) {
-    const start = polygon[index]!;
-    const end = polygon[(index + 1) % polygon.length]!;
-    minimum = Math.min(minimum, closestPointOnSegment(subject, start, end).distance);
+  const edges = preparePolygonEdges(polygon);
+  if (edges.length === 0) return Number.POSITIVE_INFINITY;
+  const angle = Math.atan2(z - center.z, x - center.x);
+  const normalizedAngle = angle < 0 ? angle + Math.PI * 2 : angle;
+  const nearbyIndex = Math.floor((normalizedAngle / (Math.PI * 2)) * edges.length) % edges.length;
+  let minimumSquared = Number.POSITIVE_INFINITY;
+  for (const offset of [-1, 0, 1]) {
+    const edge = edges[(nearbyIndex + offset + edges.length) % edges.length]!;
+    minimumSquared = Math.min(minimumSquared, squaredDistanceToEdge(edge, x, z));
   }
-  return polygonContains(subject, polygon) ? -minimum : minimum;
+  for (const edge of edges) {
+    if (squaredDistanceToEdgeBounds(edge, x, z) >= minimumSquared) continue;
+    minimumSquared = Math.min(minimumSquared, squaredDistanceToEdge(edge, x, z));
+  }
+  const minimum = Math.sqrt(minimumSquared);
+  return polygonContains(point(x, z), polygon) ? -minimum : minimum;
+}
+
+/** Exact radial ratio inside the canonical triangle-fan shoreline. */
+export function canonicalLakeNormalizedRadius(
+  lake: PhysicalLakeContract,
+  x: number,
+  z: number,
+): number {
+  const deltaX = x - lake.center.x;
+  const deltaZ = z - lake.center.z;
+  const subjectRadius = Math.hypot(deltaX, deltaZ);
+  if (subjectRadius <= Number.EPSILON || lake.perimeter.length === 0) return 0;
+  const directionX = deltaX / subjectRadius;
+  const directionZ = deltaZ / subjectRadius;
+  const angle = Math.atan2(deltaZ, deltaX);
+  const normalizedAngle = angle < 0 ? angle + Math.PI * 2 : angle;
+  const index =
+    Math.floor((normalizedAngle / (Math.PI * 2)) * lake.perimeter.length) % lake.perimeter.length;
+  const first = lake.perimeter[index]!;
+  const second = lake.perimeter[(index + 1) % lake.perimeter.length]!;
+  const segmentX = second.x - first.x;
+  const segmentZ = second.z - first.z;
+  const denominator = directionX * segmentZ - directionZ * segmentX;
+  if (Math.abs(denominator) <= Number.EPSILON) return 1;
+  const fromCenterX = first.x - lake.center.x;
+  const fromCenterZ = first.z - lake.center.z;
+  const boundaryRadius = (fromCenterX * segmentZ - fromCenterZ * segmentX) / denominator;
+  return subjectRadius / Math.max(Number.EPSILON, boundaryRadius);
 }
 
 export function physicalLakePolygonArea(perimeter: ReadonlyArray<WorldPlanPoint>): number {
@@ -368,7 +466,7 @@ export function queryPhysicalWaterDistance(
 ): PhysicalWaterDistance {
   const course = queryCourse(contract, x, z);
   const courseDistance = course.distance - course.halfWidth;
-  const lakeDistance = polygonSignedDistance(contract.lake.perimeter, x, z);
+  const lakeDistance = polygonSignedDistance(contract.lake.perimeter, contract.lake.center, x, z);
   return {
     signedDistance: Math.min(courseDistance, lakeDistance),
     shoreDistance: Math.min(course.distance - course.shoreHalfWidth, lakeDistance - 4),
@@ -377,18 +475,11 @@ export function queryPhysicalWaterDistance(
   };
 }
 
-const HABITAT_CLEARANCE_BASE_SEGMENTS = 24;
-const HABITAT_CLEARANCE_MAX_DEPTH = 8;
-// The authored lake edge contains harmonics through order nine plus smooth
-// terrace/coast fitting. This intentionally loose bound also covers course
-// widening and the fitted-edge radial distance approximation.
-const HABITAT_CLEARANCE_DISTANCE_SLOPE_BOUND = 32;
-
 /**
  * Conservatively proves that a circular habitat footprint clears the exact
- * rendered wet surface and shore. Intervals near the boundary are subdivided;
- * if the bounded refinement cannot certify an interval, the candidate is
- * rejected instead of assuming that unsampled space is dry.
+ * rendered wet surface and shore. Expanding the canonical lake polygon and
+ * every river segment by the habitat radius turns the whole-footprint proof
+ * into one bounded O(lake edges + course segments) center-distance query.
  */
 export function physicalWaterCircleHasClearance(
   contract: PhysicalWaterContract,
@@ -396,49 +487,25 @@ export function physicalWaterCircleHasClearance(
   radius: number,
   clearance: number,
 ): boolean {
-  const distanceAt = (angle: number): number =>
-    queryPhysicalWaterDistance(
-      contract,
-      center.x + Math.cos(angle) * radius,
-      center.z + Math.sin(angle) * radius,
-    ).shoreDistance;
+  const lakeClearance = polygonSignedDistance(
+    contract.lake.perimeter,
+    contract.lake.center,
+    center.x,
+    center.z,
+  );
+  if (lakeClearance < radius + clearance + 4) return false;
 
-  const intervalClears = (
-    startAngle: number,
-    endAngle: number,
-    startDistance: number,
-    endDistance: number,
-    depth: number,
-  ): boolean => {
-    if (startDistance < clearance || endDistance < clearance) return false;
-    const middleAngle = (startAngle + endAngle) / 2;
-    const middleDistance = distanceAt(middleAngle);
-    if (middleDistance < clearance) return false;
-
-    // Start, midpoint, and end cover this arc with a maximum unsampled travel
-    // of one quarter interval. The slope allowance makes the acceptance test
-    // conservative for every currently authored lake/course frequency.
-    const maximumUnobservedDrop =
-      ((endAngle - startAngle) * radius * HABITAT_CLEARANCE_DISTANCE_SLOPE_BOUND) / 4;
-    if (Math.min(startDistance, middleDistance, endDistance) - maximumUnobservedDrop >= clearance) {
-      return true;
-    }
-    if (depth >= HABITAT_CLEARANCE_MAX_DEPTH) return false;
-    return (
-      intervalClears(startAngle, middleAngle, startDistance, middleDistance, depth + 1) &&
-      intervalClears(middleAngle, endAngle, middleDistance, endDistance, depth + 1)
-    );
-  };
-
-  const step = (Math.PI * 2) / HABITAT_CLEARANCE_BASE_SEGMENTS;
-  let startAngle = 0;
-  let startDistance = distanceAt(startAngle);
-  for (let index = 0; index < HABITAT_CLEARANCE_BASE_SEGMENTS; index += 1) {
-    const endAngle = (index + 1) * step;
-    const endDistance = distanceAt(endAngle);
-    if (!intervalClears(startAngle, endAngle, startDistance, endDistance, 0)) return false;
-    startAngle = endAngle;
-    startDistance = endDistance;
+  // `courseHalfWidth` is capped at sourceWidth * 1.42 / 2 and the authored
+  // bank grows to at most 4.8 world units. Using that maximum for every
+  // segment is conservative across all progress-dependent widening phases.
+  const maximumCourseShoreHalfWidth = contract.course.sourceWidth * 1.42 * 0.5 + 4.8;
+  for (let index = 1; index < contract.course.points.length; index += 1) {
+    const distance = closestPointOnSegment(
+      center,
+      contract.course.points[index - 1]!,
+      contract.course.points[index]!,
+    ).distance;
+    if (distance < radius + clearance + maximumCourseShoreHalfWidth) return false;
   }
   return true;
 }

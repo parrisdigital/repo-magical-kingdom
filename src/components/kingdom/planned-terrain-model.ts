@@ -1,5 +1,6 @@
 import { stableFraction, stableHash } from "@/lib/kingdom/hash";
 import {
+  canonicalLakeNormalizedRadius,
   createPhysicalWaterContract,
   queryPhysicalWaterDistance,
   type PhysicalWaterContract,
@@ -166,6 +167,22 @@ const definitionCache = new WeakMap<WorldPlan, PlannedTerrainDefinition>();
 const definitionCacheByTerrainKey = new Map<string, PlannedTerrainDefinition>();
 const MAX_TERRAIN_DEFINITION_CACHE_ENTRIES = 16;
 const hamletPlacementCache = new WeakMap<WorldPlan, ReadonlyMap<string, EllipseRegionMask>>();
+const physicalWaterContractCache = new WeakMap<PlannedTerrainDefinition, PhysicalWaterContract>();
+
+function asPhysicalWaterContract(definition: PlannedTerrainDefinition): PhysicalWaterContract {
+  const cached = physicalWaterContractCache.get(definition);
+  if (cached) return cached;
+  const contract: PhysicalWaterContract = {
+    key: definition.key,
+    envelope: definition.envelope,
+    outline: definition.outline,
+    terraces: definition.terraces,
+    course: definition.water.course,
+    lake: definition.water.lake,
+  };
+  physicalWaterContractCache.set(definition, contract);
+  return contract;
+}
 
 function getHamletPlacementMasks(plan: WorldPlan): ReadonlyMap<string, EllipseRegionMask> {
   const cached = hamletPlacementCache.get(plan);
@@ -1048,16 +1065,9 @@ function waterQuery(
   surfaceHeight: number | null;
 }> {
   const course = queryCourse(definition, x, z);
-  const lakeRadius = lakeNormalizedRadius(definition, x, z);
+  const lakeRadius = canonicalLakeNormalizedRadius(definition.water.lake, x, z);
   const lakeDistance = queryPhysicalWaterDistance(
-    {
-      key: definition.key,
-      envelope: definition.envelope,
-      outline: definition.outline,
-      terraces: definition.terraces,
-      course: definition.water.course,
-      lake: definition.water.lake,
-    },
+    asPhysicalWaterContract(definition),
     x,
     z,
   ).lakeDistance;
@@ -1150,15 +1160,7 @@ export function queryPlannedWaterDistance(
   z: number,
 ): PlannedWaterDistance {
   const definition = getPlannedTerrainDefinition(plan);
-  const contract: PhysicalWaterContract = {
-    key: definition.key,
-    envelope: definition.envelope,
-    outline: definition.outline,
-    terraces: definition.terraces,
-    course: definition.water.course,
-    lake: definition.water.lake,
-  };
-  return queryPhysicalWaterDistance(contract, x, z);
+  return queryPhysicalWaterDistance(asPhysicalWaterContract(definition), x, z);
 }
 
 /** Samples the continuous terrain, including the river cut and lake basin. */
