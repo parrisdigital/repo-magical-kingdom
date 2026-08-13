@@ -1,0 +1,66 @@
+attribution/registry.json
+  s_57e29531c752a5::t_a953d5da056ec2 78-102
+  s_57e29531c752a5::t_3d2ea7955ccfef 77
+src/lib/kingdom/world-plan.test.ts
+  s_57e29531c752a5::t_1b473f51770c3c 294-295,303-327,333-345,350-355,367
+  s_57e29531c752a5::t_b1ed58f6f5de7b 7,357-364
+  s_57e29531c752a5::t_62c9e4d0bb1a0a 346-349,356,365-366
+  s_57e29531c752a5::t_28e1c22f158b06 328-332,376
+  s_57e29531c752a5::t_5e63c533b7ece8 368
+src/components/kingdom/planned-terrain-model.ts
+  s_57e29531c752a5::t_2734cb0ad19063 599,1107-1121,1123-1127
+  s_57e29531c752a5::t_2f3dd47ea8094c 454,1026-1029,1122
+  s_57e29531c752a5::t_e4660f5d8cbe8e 2-4,129,140
+  s_57e29531c752a5::t_3b5163d39b3d49 5-10
+  s_57e29531c752a5::t_9c2a84b7db8c33 415,576-598
+  s_57e29531c752a5::t_a8d8fca98e65e8 402-414,416-419,505,510,513
+  s_57e29531c752a5::t_8993ac3be751d0 536-553
+  s_57e29531c752a5::t_884f1df89abfe6 605,708,710-711,806,808,859
+  s_57e29531c752a5::t_3d5f5bdce60867 1224-1225
+  s_57e29531c752a5::t_9a7f473dafbe2a 1424-1426,1436-1451
+  s_57e29531c752a5::t_d94a786d2ee3d9 600
+src/components/kingdom/kingdom-scene-planned.tsx
+  s_57e29531c752a5::t_dc49a08f74076c 183-187
+  s_57e29531c752a5::t_acd284ac6f0b59 51-59,167-182,188-194,1554,1604-1606,1609-1641
+src/components/kingdom/kingdom-experience.tsx
+  s_57e29531c752a5::t_a300a7bf5189c1 274,276,284,726,789
+  s_57e29531c752a5::t_c1f6bc72a704ce 275,277-283,285-292,432-433,530-531,727-728,755-786,793-797,799-801,810
+  s_57e29531c752a5::t_32e8a93453175c 150-159
+src/components/kingdom/kingdom-scene-planned.test.ts
+  s_57e29531c752a5::t_4a0dc57bde57d2 1-28
+src/lib/kingdom/world-plan.ts
+  s_57e29531c752a5::t_2af5b44fd231df 1690-1696,1698
+  s_57e29531c752a5::t_7aaf478817ba34 322-358,405,518-519,1637-1640,1697
+  s_57e29531c752a5::t_336d78a6715e31 303-308,432-433,435-436,509-513,563,1658
+README.md
+  s_57e29531c752a5::t_a953d5da056ec2 14
+THIRD_PARTY_NOTICES.md
+  s_57e29531c752a5::t_a953d5da056ec2 72-81,84
+src/components/kingdom/planned-scatter.ts
+  s_57e29531c752a5::t_b81752aa0448de 16,267
+docs/VISUAL_ACCEPTANCE.md
+  s_57e29531c752a5::t_c352b4b88687dc 104
+  s_57e29531c752a5::t_a953d5da056ec2 17,118
+src/components/kingdom/planned-terrain-model.test.ts
+  s_57e29531c752a5::t_dbbdbde2279c5d 225
+  s_57e29531c752a5::t_d451e4e278c280 14,167-168,188-224,226-228,237-245
+  s_57e29531c752a5::t_2928fce64efcbc 246
+src/components/kingdom/kingdom-hud.tsx
+  s_57e29531c752a5::t_c1f6bc72a704ce 262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b337b07b7d26412ab4e527fec3cb3a907b75a9df",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
