@@ -1,0 +1,27 @@
+src/lib/kingdom/physical-water-contract.test.ts
+  s_57e29531c752a5::t_ad6c0accdb4b4d 81-99,101,103-116,166-210,216
+  s_57e29531c752a5::t_39c200c52da033 100,102
+  s_57e29531c752a5::t_7ce8f6cac92495 211-215
+src/components/kingdom/planned-terrain-model.test.ts
+  s_57e29531c752a5::t_df9afa137d50a3 533
+  s_57e29531c752a5::t_26fd4ff139747b 494,497,510-513,515-516,523-526,531-532,534-535
+src/lib/kingdom/physical-water-contract.ts
+  s_57e29531c752a5::t_1da335013255d5 251-256,258-260
+  s_57e29531c752a5::t_39c200c52da033 257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ae565aa9527f42aa27fb99a22af183a4699e5f18",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
