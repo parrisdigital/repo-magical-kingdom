@@ -38,3 +38,5 @@ A candidate can be promoted only when:
 Missing evidence, unclear evidence, or a semantically mislabeled frame is **REVISE**. Automated success never becomes an aesthetic pass.
 
 Current validation state: **RED**. The latest bounded medium desktop smoke run wrote five of six required page captures, timed out at 240 seconds before `walk-shoreline`, and could not perform semantic Walk movement because headless pointer lock was denied. See the frozen run report in [GAUNTLET.md](./GAUNTLET.md); the six-view contract is defined but not yet satisfied.
+
+The isolated `/asset-lab` and `/worlds-v2-lab` routes are available in local development and Vercel Preview deployments so stakeholders can inspect Batch-1 work. They remain hidden on the production deployment unless the server-side `REPOSITORY_WORLDS_V2_LAB=1` flag is deliberately enabled.

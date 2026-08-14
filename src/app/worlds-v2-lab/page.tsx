@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { notFound } from "next/navigation";
 
 import { legacyKingdomWorldSchema } from "@/lib/kingdom/schemas";
+import { isRepositoryWorldsV2LabEnabled } from "@/lib/kingdom-v2";
 
 import { WorldsV2TerrainLab } from "./worlds-v2-terrain-lab";
 
@@ -25,7 +26,13 @@ export default async function WorldsV2LabPage({
 }: Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>) {
-  if (process.env.NODE_ENV === "production" && process.env.REPOSITORY_WORLDS_V2_LAB !== "1") {
+  if (
+    !isRepositoryWorldsV2LabEnabled({
+      nodeEnvironment: process.env.NODE_ENV,
+      vercelEnvironment: process.env.VERCEL_ENV,
+      explicitFlag: process.env.REPOSITORY_WORLDS_V2_LAB,
+    })
+  ) {
     notFound();
   }
 
