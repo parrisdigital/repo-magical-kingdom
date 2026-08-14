@@ -1,6 +1,7 @@
 import { stableFraction, stableHash } from "@/lib/kingdom/hash";
 import {
   canonicalLakeNormalizedRadius,
+  createPhysicalTerrainPointSampler,
   createPhysicalWaterContract,
   queryPhysicalWaterDistance,
   type PhysicalWaterContract,
@@ -50,16 +51,31 @@ export type PlannedLake = Readonly<{
   center: WorldPlanPoint;
   radiusX: number;
   radiusZ: number;
+  rotation: number;
   surfaceHeight: number;
   area: number;
   footprintRatio: number;
   inletAngle: number;
   perimeter: ReadonlyArray<WorldPlanPoint>;
   islet: Readonly<{
+    enabled: boolean;
+    kind: "grove" | "ruin";
     center: WorldPlanPoint;
     radiusX: number;
     radiusZ: number;
     rotation: number;
+    height: number;
+    detailAnchors: ReadonlyArray<
+      Readonly<{
+        id: string;
+        role: "rock" | "tree" | "ruin";
+        x: number;
+        y: number;
+        z: number;
+        rotation: number;
+        scale: number;
+      }>
+    >;
   }>;
 }>;
 
@@ -84,6 +100,7 @@ export type PlannedTerrainDefinition = Readonly<{
   envelope: WorldPlanEnvelope;
   outline: ReadonlyArray<WorldPlanPoint>;
   rearFaceZ: number;
+  ridgeAngle: number;
   ordinaryHouseHeight: number;
   peaks: ReadonlyArray<PlannedMountainPeak>;
   terraces: ReadonlyArray<PlannedHamletTerrace>;
@@ -104,6 +121,15 @@ export type PlannedGeometryData = Readonly<{
 export type PlannedWaterGeometryRanges = Readonly<{
   courseTriangles: number;
   lakeTriangles: number;
+  lakeFirstVertex: number;
+  lakeRingCount: number;
+  lakePerimeterSegments: number;
+}>;
+
+export type PlannedWaterSurfaceAttributes = Readonly<{
+  edge: Float32Array;
+  region: Float32Array;
+  progress: Float32Array;
 }>;
 
 export type PlannedTerrainGeometry = Readonly<{
@@ -113,7 +139,10 @@ export type PlannedTerrainGeometry = Readonly<{
 }>;
 
 export type PlannedWaterGeometry = PlannedGeometryData &
-  Readonly<{ ranges: PlannedWaterGeometryRanges }>;
+  Readonly<{
+    ranges: PlannedWaterGeometryRanges;
+    surfaceAttributes: PlannedWaterSurfaceAttributes;
+  }>;
 
 export type PlannedTerrainModel = Readonly<{
   schema: "planned-global-terrain/v1";
@@ -128,6 +157,7 @@ export type PlannedTerrainBuildOptions = Readonly<{
   segmentsZ?: number;
   courseSegments?: number;
   courseCrossSegments?: number;
+  lakeRingCount?: number;
 }>;
 
 /** Minimum level settlement radius needed for 3–6 final-scale building assemblies. */
@@ -146,6 +176,25 @@ export function getHamletVisualPlacementMask(
   const mask = getHamletPlacementMasks(plan).get(hamlet.id);
   if (!mask) throw new Error(`Hamlet ${hamlet.id} is missing from the planned terrain layout.`);
   return mask;
+}
+
+/**
+ * Packing search envelope for full-scale modular architecture. It extends
+ * into the terrace's graded approach, while every candidate still proves its
+ * complete footprint against exact terrain, water, shore, and slope queries.
+ * The canonical physical terrace remains unchanged for water/topology.
+ */
+export function getHamletArchitecturePlacementMask(
+  plan: WorldPlan,
+  hamlet: HamletRegion,
+): EllipseRegionMask {
+  const visual = getHamletVisualPlacementMask(plan, hamlet);
+  const expansion = hamlet.role === "commons-hamlet" ? 5 : 8;
+  return {
+    ...visual,
+    radiusX: visual.radiusX + expansion,
+    radiusZ: visual.radiusZ + expansion,
+  };
 }
 
 const MATERIAL_ZONE_CODE: Readonly<Record<PlannedTerrainMaterialZone, number>> = {
@@ -257,105 +306,6 @@ function getWaterMasks(plan: WorldPlan): Readonly<{
     throw new Error("The world plan must provide corridor and lake terrain zones.");
   }
   return { course, lake };
-}
-
-type BoundaryParameters = Readonly<{
-  seed: number;
-  phaseA: number;
-  phaseB: number;
-  phaseC: number;
-}>;
-
-function boundaryParameters(key: string): BoundaryParameters {
-  return {
-    seed: stableHash(`${key}:terrain`),
-    phaseA: stableFraction(`${key}:boundary:a`) * Math.PI * 2,
-    phaseB: stableFraction(`${key}:boundary:b`) * Math.PI * 2,
-    phaseC: stableFraction(`${key}:boundary:c`) * Math.PI * 2,
-  };
-}
-
-/**
- * Maps a rectangular sampling grid into one continuous, elongated landmass.
- * Its four independently warped edges avoid the radial/ring silhouette that
- * made the earlier renderer read like a chart instead of a world.
- */
-function parametricTerrainPoint(
-  envelope: WorldPlanEnvelope,
-  parameters: BoundaryParameters,
-  signedX: number,
-  progressZ: number,
-): WorldPlanPoint {
-  const s = clamp(signedX, -1, 1);
-  const t = clamp(progressZ, 0, 1);
-  const side = s < 0 ? -1 : 1;
-  const widthWave =
-    Math.sin(t * Math.PI * 2.17 + parameters.phaseA) * 0.045 +
-    Math.sin(t * Math.PI * 5.03 + parameters.phaseB) * 0.021 +
-    Math.sin(t * Math.PI * 8.1 + parameters.phaseC) * 0.006;
-  const valleySwell =
-    Math.exp(-(((t - 0.23) / 0.22) ** 2)) * 0.13 + Math.exp(-(((t - 0.8) / 0.2) ** 2)) * 0.2;
-  const leftBay = -Math.exp(-(((t - 0.61) / 0.18) ** 2)) * 0.14;
-  const leftPeninsula = Math.exp(-(((t - 0.82) / 0.15) ** 2)) * 0.12;
-  const rightBay = -Math.exp(-(((t - 0.37) / 0.16) ** 2)) * 0.09;
-  const rightPeninsula = Math.exp(-(((t - 0.7) / 0.17) ** 2)) * 0.2;
-  const asymmetricCoast =
-    valleySwell + (side < 0 ? leftBay + leftPeninsula : rightBay + rightPeninsula);
-  // Keep one authored valley waist and one broad foreground delta in every
-  // repository silhouette. Repository phases still move the bays and
-  // peninsulas, but they cannot accidentally cancel all macro width change.
-  const authoredWidthProfile =
-    -Math.exp(-(((t - 0.42) / 0.13) ** 2)) * 0.1 -
-    Math.exp(-(((t - 0.59) / 0.105) ** 2)) * 0.11 +
-    Math.exp(-(((t - 0.81) / 0.14) ** 2)) * 0.105;
-  const endTaper =
-    1 - 0.22 * Math.exp(-(((t - 0.03) / 0.13) ** 2)) - 0.1 * Math.exp(-(((t - 0.96) / 0.12) ** 2));
-  const halfWidth =
-    (envelope.width / 2 - envelope.safeMargin * 0.88) *
-    (endTaper + widthWave + asymmetricCoast + authoredWidthProfile);
-  const centerShift =
-    envelope.width *
-    (Math.sin(t * Math.PI * 1.43 + parameters.phaseC) * 0.025 +
-      Math.sin(t * Math.PI * 3.61 + parameters.phaseA) * 0.018 +
-      Math.exp(-(((t - 0.76) / 0.14) ** 2)) * 0.035);
-  const interiorWarp =
-    (1 - Math.abs(s)) *
-    envelope.width *
-    0.019 *
-    Math.sin(t * Math.PI * 3.2 + s * 2.1 + parameters.phaseB);
-  const x = clamp(
-    envelope.center.x + centerShift + s * halfWidth + interiorWarp,
-    envelope.minX + envelope.safeMargin * 0.2,
-    envelope.maxX - envelope.safeMargin * 0.2,
-  );
-
-  const normalizedX = (s + 1) / 2;
-  const rearInset =
-    envelope.safeMargin * 0.47 +
-    envelope.depth *
-      (0.012 +
-        0.023 * Math.sin(normalizedX * Math.PI * 2.7 + parameters.phaseB) +
-        0.014 * Math.sin(normalizedX * Math.PI * 6.1 + parameters.phaseC));
-  const frontInset =
-    envelope.safeMargin * 0.56 +
-    envelope.depth *
-      (0.019 +
-        0.034 * Math.sin(normalizedX * Math.PI * 2.3 + parameters.phaseA) +
-        0.018 * Math.sin(normalizedX * Math.PI * 5.7 + parameters.phaseC) +
-        // A broad delta lobe supports the irregular foreground basin. This
-        // pushes the coastline outward around the lake instead of pinching it
-        // into a deterministic front-edge leak.
-        0.025 * -Math.exp(-(((normalizedX - 0.72) / 0.11) ** 2)) -
-        0.018 * Math.exp(-(((normalizedX - 0.28) / 0.09) ** 2)));
-  const rearZ = envelope.minZ + clamp(rearInset, envelope.safeMargin * 0.2, envelope.depth * 0.07);
-  const frontZ =
-    envelope.maxZ - clamp(frontInset, envelope.safeMargin * 0.25, envelope.depth * 0.085);
-  const zBow =
-    Math.sin(s * Math.PI * 1.35 + parameters.phaseA) *
-    envelope.depth *
-    0.014 *
-    Math.sin(t * Math.PI);
-  return point(x, mix(rearZ, frontZ, t) + zBow);
 }
 
 function polygonContains(
@@ -532,13 +482,15 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     const zJitter =
       (stableFraction(`${plan.terrainKey}:peak:${index}:z`) - 0.5) * envelope.depth * 0.025;
     const heroLift = index === 3 ? 13.5 : index === 2 ? 7.2 : index === 4 ? 4.4 : 0;
+    const x = envelope.center.x + envelope.width * fraction * ridgeCharacter.spread + xJitter;
     return {
-      x: envelope.center.x + envelope.width * fraction * ridgeCharacter.spread + xJitter,
+      x,
       z:
         envelope.minZ +
         envelope.depth *
           (0.095 + Math.sin(index * 1.37 + stableHash(plan.terrainKey) * 0.000_01) * 0.014) +
-        zJitter,
+        zJitter +
+        (x - envelope.center.x) * Math.tan(plan.topology.geography.ridge.angle),
       amplitude:
         (20.5 + stableFraction(`${plan.terrainKey}:peak:${index}:height`) * 8.5 + heroLift) *
         ridgeCharacter.height,
@@ -574,12 +526,14 @@ function makeDefinition(plan: WorldPlan): PlannedTerrainDefinition {
     courseMask,
     lakeMask,
     terraces,
+    topologyFamily: plan.topology.geography,
   });
   return {
     key: plan.terrainKey,
     envelope,
     outline: physicalWater.outline,
     rearFaceZ,
+    ridgeAngle: plan.topology.geography.ridge.angle,
     ordinaryHouseHeight: 7.5,
     peaks,
     terraces,
@@ -622,6 +576,7 @@ function rawLandHeight(definition: PlannedTerrainDefinition, x: number, z: numbe
   const normalizedX = Math.abs((x - envelope.center.x) / (envelope.width * 0.5));
   const frontLine =
     definition.rearFaceZ +
+    (x - envelope.center.x) * Math.tan(definition.ridgeAngle) +
     Math.sin(x * 0.052 + seed * 0.000_004) * envelope.depth * 0.018 +
     Math.sin(x * 0.119 + seed * 0.000_009) * envelope.depth * 0.007;
   const rearFactor =
@@ -637,7 +592,8 @@ function rawLandHeight(definition: PlannedTerrainDefinition, x: number, z: numbe
     envelope.depth *
       (0.105 +
         Math.sin(x * 0.031 + seed * 0.000_006) * 0.014 +
-        Math.sin(x * 0.083 - seed * 0.000_003) * 0.006);
+        Math.sin(x * 0.083 - seed * 0.000_003) * 0.006) +
+    (x - envelope.center.x) * Math.tan(definition.ridgeAngle);
   const crestDistance = Math.abs(z - crestLine) / Math.max(1, envelope.depth * 0.17);
   const crestDepthProfile = Math.pow(Math.max(0, 1 - crestDistance), 1.1);
   const ridgeShelf =
@@ -725,18 +681,26 @@ function rawLandHeight(definition: PlannedTerrainDefinition, x: number, z: numbe
       Math.sin(directionAngle * 3 + stableHash(terrace.id) * 0.000_01) * 0.11 +
       Math.sin(directionAngle * 5 - stableHash(terrace.id) * 0.000_02) * 0.052;
     const gradedDistance = normalizedDistance * angularWarp;
-    const radialTarget = terrace.targetHeight + maximumGrade * Math.max(0, gradedDistance - 0.82);
-    // Hold the entire tested settlement apron inside the fully graded region,
-    // even where the organic angular warp is widest. The prior 2.55 cutoff
-    // could begin fading between adjacent slope samples and create a one-cell
-    // cliff on otherwise valid repository seeds.
-    const baseWeight = 1 - smoothstep(2.75, 3.8, gradedDistance);
+    // The whole canonical placement mask is a level settlement platform. The
+    // grade begins outside it so a recipe-aware footprint near the perimeter
+    // cannot straddle the former 0.82-radius slope seam.
+    const radialTarget = terrace.targetHeight + maximumGrade * Math.max(0, gradedDistance - 1.15);
+    // Keep the inhabited front and side approaches long and gentle, but hand
+    // the rear apron back to the authored escarpment sooner. A uniform 3.8x
+    // influence erased broad mountain faces when repository-scale/v2 moved a
+    // rear settlement in front of the ridge. The directional transition still
+    // holds the complete tested 2.2x apron at the target grade.
+    const compactRearRelease = 1 - smoothstep(220, 320, envelope.width);
+    const rearwardBlend = smoothstep(0.05, 0.35, -Math.sin(directionAngle)) * compactRearRelease;
+    const fadeStart = mix(2.75, 2.62, rearwardBlend);
+    const fadeEnd = mix(3.8, 2.9, rearwardBlend);
+    const baseWeight = 1 - smoothstep(fadeStart, fadeEnd, gradedDistance);
     if (baseWeight <= 0) continue;
     // Normalized exponential dominance keeps a nearby terrace in control while
     // blending continuously through equal-distance settlement approaches.
     const targetWeight = baseWeight * Math.exp(-4 * gradedDistance);
     terraceTargetTotal +=
-      (gradedDistance <= 0.82 ? terrace.targetHeight : radialTarget) * targetWeight;
+      (gradedDistance <= 1.15 ? terrace.targetHeight : radialTarget) * targetWeight;
     terraceWeightTotal += targetWeight;
     terraceInfluence = Math.max(terraceInfluence, baseWeight);
   }
@@ -775,6 +739,13 @@ function waterQuery(
   const inCourse = course.distance <= course.halfWidth;
   const shore =
     (!inLake && lakeDistance <= 4) || (!inCourse && course.distance <= course.shoreHalfWidth);
+  const insideTerraceApproach = definition.terraces.some(
+    (terrace) =>
+      Math.hypot(
+        (x - terrace.center.x) / (terrace.radiusX + 4),
+        (z - terrace.center.z) / (terrace.radiusZ + 4),
+      ) <= 1,
+  );
   if (inLake) {
     return {
       course,
@@ -793,7 +764,13 @@ function waterQuery(
       surfaceHeight: courseWaterHeight(definition, course.progress),
     };
   }
-  return { course, lakeRadius, water: null, shore, surfaceHeight: null };
+  return {
+    course,
+    lakeRadius,
+    water: null,
+    shore: shore && !insideTerraceApproach,
+    surfaceHeight: null,
+  };
 }
 
 function settlementSurfaceQuery(
@@ -825,22 +802,6 @@ function settlementSurfaceQuery(
     withinGrading: nearestDistance <= 4.85,
     soil: nearestDistance <= organicCore,
   };
-}
-
-function pathSurfaceDistance(definition: PlannedTerrainDefinition, x: number, z: number): number {
-  if (definition.terraces.length < 2) return Number.POSITIVE_INFINITY;
-  const ordered = [...definition.terraces].sort(
-    (first, second) => first.center.z - second.center.z || first.id.localeCompare(second.id),
-  );
-  let minimum = Number.POSITIVE_INFINITY;
-  const subject = point(x, z);
-  for (let index = 1; index < ordered.length; index += 1) {
-    minimum = Math.min(
-      minimum,
-      closestPointOnSegment(subject, ordered[index - 1]!.center, ordered[index]!.center).distance,
-    );
-  }
-  return minimum;
 }
 
 export function samplePlannedWaterSurface(plan: WorldPlan, x: number, z: number): number | null {
@@ -887,6 +848,18 @@ export function samplePlannedTerrainHeight(plan: WorldPlan, x: number, z: number
     return Math.min(rawHeight, courseBedHeight(definition, query.course));
   }
   if (query.shore) {
+    // Settlement approaches own their dry grade. A lake bank may run close to
+    // the outer apron, but blending a neighboring dry sample down to water
+    // height would introduce a false cliff into an otherwise eight-degree
+    // terrace. Wet samples still use the canonical lake/river bed above.
+    const insideTerraceGrade = definition.terraces.some(
+      (terrace) =>
+        Math.hypot(
+          (x - terrace.center.x) / terrace.radiusX,
+          (z - terrace.center.z) / terrace.radiusZ,
+        ) <= 2.35,
+    );
+    if (insideTerraceGrade) return rawHeight;
     const lakeBank = query.lakeRadius > 1 ? smoothstep(1, 1.18, query.lakeRadius) : 1;
     const courseBank = smoothstep(
       query.course.halfWidth,
@@ -932,15 +905,11 @@ export function classifyPlannedTerrainRegion(
   const slope = Math.hypot(deltaX, deltaZ) / (sampleDistance * 2);
   const slopeDegrees = (Math.atan(slope) * 180) / Math.PI;
   const settlement = settlementSurfaceQuery(definition, x, z);
-  const pathDistance = pathSurfaceDistance(definition, x, z);
-  const pathEdge =
-    1.2 + valueNoise(stableHash(`${definition.key}:path-edge`), x * 0.08, z * 0.08) * 0.32;
   let material: PlannedTerrainMaterialZone;
   if (water.water === "lake") material = "lake-bed";
   else if (water.water === "river") material = "river-bed";
   else if (water.shore) material = "shore";
   else if (settlement.soil && slopeDegrees < 12) material = "settlement-soil";
-  else if (pathDistance <= pathEdge && slopeDegrees < 15) material = "path-soil";
   else if (settlement.withinGrading && slopeDegrees < 20) material = "high-meadow";
   else if (
     slopeDegrees >= 37 ||
@@ -988,8 +957,9 @@ function geometryData(
 export function buildPlannedIsletGeometry(plan: WorldPlan): PlannedGeometryData {
   const definition = getPlannedTerrainDefinition(plan);
   const { islet, surfaceHeight } = definition.water.lake;
+  if (!islet.enabled) return geometryData([], [], []);
   const segments = 36;
-  const positions: number[] = [islet.center.x, surfaceHeight + 0.34, islet.center.z];
+  const positions: number[] = [islet.center.x, surfaceHeight + islet.height, islet.center.z];
   const indices: number[] = [];
   const zones: number[] = [MATERIAL_ZONE_CODE["high-meadow"]];
   const cosine = Math.cos(islet.rotation);
@@ -1012,16 +982,26 @@ export function buildPlannedIsletGeometry(plan: WorldPlan): PlannedGeometryData 
     }
   };
   const innerStart = 1;
-  appendRing(0.68, surfaceHeight + 0.27, "high-meadow");
-  const outerStart = 1 + segments + 1;
+  appendRing(0.44, surfaceHeight + islet.height * 0.9, "high-meadow");
+  const middleStart = innerStart + segments + 1;
+  appendRing(0.76, surfaceHeight + islet.height * 0.48, "cliff-stone");
+  const outerStart = middleStart + segments + 1;
   appendRing(1, surfaceHeight + 0.055, "shore");
   for (let index = 0; index < segments; index += 1) {
     indices.push(0, innerStart + index, innerStart + index + 1);
     indices.push(
       innerStart + index,
+      middleStart + index,
+      innerStart + index + 1,
+      innerStart + index + 1,
+      middleStart + index,
+      middleStart + index + 1,
+    );
+    indices.push(
+      middleStart + index,
       outerStart + index,
-      innerStart + index + 1,
-      innerStart + index + 1,
+      middleStart + index + 1,
+      middleStart + index + 1,
       outerStart + index,
       outerStart + index + 1,
     );
@@ -1034,7 +1014,11 @@ export function buildPlannedTerrainGeometry(
   options: PlannedTerrainBuildOptions = {},
 ): PlannedTerrainGeometry {
   const definition = getPlannedTerrainDefinition(plan);
-  const parameters = boundaryParameters(plan.terrainKey);
+  const sampleTerrainPoint = createPhysicalTerrainPointSampler(
+    definition.envelope,
+    plan.terrainKey,
+    plan.topology.geography,
+  );
   const segmentsX = clamp(Math.round(options.segmentsX ?? 96), 16, 160);
   const segmentsZ = clamp(Math.round(options.segmentsZ ?? 112), 20, 180);
   const positions: number[] = [];
@@ -1046,12 +1030,7 @@ export function buildPlannedTerrainGeometry(
     const progressZ = row / segmentsZ;
     for (let column = 0; column <= segmentsX; column += 1) {
       const signedX = -1 + (column / segmentsX) * 2;
-      const terrainPoint = parametricTerrainPoint(
-        definition.envelope,
-        parameters,
-        signedX,
-        progressZ,
-      );
+      const terrainPoint = sampleTerrainPoint(signedX, progressZ);
       const height = samplePlannedTerrainHeight(plan, terrainPoint.x, terrainPoint.z);
       const region = classifyPlannedTerrainRegion(plan, terrainPoint.x, terrainPoint.z);
       positions.push(terrainPoint.x, height, terrainPoint.z);
@@ -1149,14 +1128,30 @@ export function buildPlannedWaterGeometry(
   options: PlannedTerrainBuildOptions = {},
 ): PlannedWaterGeometry {
   const definition = getPlannedTerrainDefinition(plan);
+  const physicalWater = asPhysicalWaterContract(definition);
   const courseSegments = clamp(Math.round(options.courseSegments ?? 64), 12, 120);
   const crossSegments = clamp(Math.round(options.courseCrossSegments ?? 4), 2, 8);
+  const lakeRingCount = clamp(Math.round(options.lakeRingCount ?? 8), 4, 14);
   const positions: number[] = [];
   const indices: number[] = [];
   const zones: number[] = [];
+  const edgeAttributes: number[] = [];
+  const regionAttributes: number[] = [];
+  const progressAttributes: number[] = [];
   const verticesPerCourseRow = crossSegments + 1;
   const basinEntryProgress = definition.water.course.basinEntryProgress;
   const activeCourseRows = Math.max(2, Math.floor(courseSegments * basinEntryProgress));
+  const pushDownwardTriangle = (a: number, b: number, c: number) => {
+    const ax = positions[a * 3] ?? 0;
+    const az = positions[a * 3 + 2] ?? 0;
+    const abx = (positions[b * 3] ?? 0) - ax;
+    const abz = (positions[b * 3 + 2] ?? 0) - az;
+    const acx = (positions[c * 3] ?? 0) - ax;
+    const acz = (positions[c * 3 + 2] ?? 0) - az;
+    const normalY = abz * acx - abx * acz;
+    if (normalY < 0) indices.push(a, b, c);
+    else indices.push(a, c, b);
+  };
 
   for (let row = 0; row <= activeCourseRows; row += 1) {
     const progress = Math.min(
@@ -1172,23 +1167,15 @@ export function buildPlannedWaterGeometry(
       const y = center.surfaceHeight + Math.sin(progress * Math.PI * 8 + across * 2) * 0.018;
       positions.push(x, y + 0.035, z);
       zones.push(MATERIAL_ZONE_CODE["river-bed"]);
+      edgeAttributes.push(Math.abs(across));
+      regionAttributes.push(0);
+      progressAttributes.push(row / activeCourseRows);
     }
   }
   for (let row = 0; row < activeCourseRows; row += 1) {
     for (let column = 0; column < crossSegments; column += 1) {
       const first = row * verticesPerCourseRow + column;
       const second = first + verticesPerCourseRow;
-      const pushDownwardTriangle = (a: number, b: number, c: number) => {
-        const ax = positions[a * 3] ?? 0;
-        const az = positions[a * 3 + 2] ?? 0;
-        const abx = (positions[b * 3] ?? 0) - ax;
-        const abz = (positions[b * 3 + 2] ?? 0) - az;
-        const acx = (positions[c * 3] ?? 0) - ax;
-        const acz = (positions[c * 3 + 2] ?? 0) - az;
-        const normalY = abz * acx - abx * acz;
-        if (normalY < 0) indices.push(a, b, c);
-        else indices.push(a, c, b);
-      };
       // Repository-driven bends can rotate neighboring cross sections enough
       // to invert one projected quad. Keep every triangle consistently
       // downward-wound for the BackSide water material.
@@ -1205,19 +1192,70 @@ export function buildPlannedWaterGeometry(
     definition.water.lake.center.z,
   );
   zones.push(MATERIAL_ZONE_CODE["lake-bed"]);
-  const perimeterStart = positions.length / 3;
+  edgeAttributes.push(0);
+  regionAttributes.push(1);
+  progressAttributes.push(0);
+
   const perimeterSegmentCount = definition.water.lake.perimeter.length;
-  for (let index = 0; index <= perimeterSegmentCount; index += 1) {
-    const perimeterPoint = definition.water.lake.perimeter[index % perimeterSegmentCount]!;
-    positions.push(perimeterPoint.x, definition.water.lake.surfaceHeight + 0.045, perimeterPoint.z);
-    zones.push(MATERIAL_ZONE_CODE["lake-bed"]);
+  const centerShoreDistance = Math.max(
+    1,
+    -queryPhysicalWaterDistance(
+      physicalWater,
+      definition.water.lake.center.x,
+      definition.water.lake.center.z,
+    ).lakeDistance,
+  );
+  for (let ring = 1; ring <= lakeRingCount; ring += 1) {
+    const ringRatio = ring / lakeRingCount;
+    // Cosine spacing concentrates topology around both the tiny residual
+    // center fan and the shoreline where depth/foam gradients change fastest.
+    const radialProgress = 0.5 - Math.cos(ringRatio * Math.PI) * 0.5;
+    for (let index = 0; index < perimeterSegmentCount; index += 1) {
+      const perimeterPoint = definition.water.lake.perimeter[index]!;
+      const x = mix(definition.water.lake.center.x, perimeterPoint.x, radialProgress);
+      const z = mix(definition.water.lake.center.z, perimeterPoint.z, radialProgress);
+      positions.push(x, definition.water.lake.surfaceHeight + 0.045, z);
+      zones.push(MATERIAL_ZONE_CODE["lake-bed"]);
+      const lakeDistance = queryPhysicalWaterDistance(physicalWater, x, z).lakeDistance;
+      const sampledEdge =
+        ring === lakeRingCount
+          ? 1
+          : 1 - clamp(Math.max(0, -lakeDistance) / centerShoreDistance, 0, 1);
+      edgeAttributes.push(sampledEdge);
+      regionAttributes.push(1);
+      progressAttributes.push(index / perimeterSegmentCount);
+    }
   }
+
+  const firstRingStart = lakeCenterIndex + 1;
   for (let index = 0; index < perimeterSegmentCount; index += 1) {
-    indices.push(lakeCenterIndex, perimeterStart + index, perimeterStart + index + 1);
+    const next = (index + 1) % perimeterSegmentCount;
+    pushDownwardTriangle(lakeCenterIndex, firstRingStart + index, firstRingStart + next);
   }
+  for (let ring = 1; ring < lakeRingCount; ring += 1) {
+    const innerStart = firstRingStart + (ring - 1) * perimeterSegmentCount;
+    const outerStart = firstRingStart + ring * perimeterSegmentCount;
+    for (let index = 0; index < perimeterSegmentCount; index += 1) {
+      const next = (index + 1) % perimeterSegmentCount;
+      pushDownwardTriangle(innerStart + index, outerStart + index, outerStart + next);
+      pushDownwardTriangle(innerStart + index, outerStart + next, innerStart + next);
+    }
+  }
+  const lakeTriangles = indices.length / 3 - courseTriangles;
   return {
     ...geometryData(positions, indices, zones),
-    ranges: { courseTriangles, lakeTriangles: perimeterSegmentCount },
+    ranges: {
+      courseTriangles,
+      lakeTriangles,
+      lakeFirstVertex: lakeCenterIndex,
+      lakeRingCount,
+      lakePerimeterSegments: perimeterSegmentCount,
+    },
+    surfaceAttributes: {
+      edge: new Float32Array(edgeAttributes),
+      region: new Float32Array(regionAttributes),
+      progress: new Float32Array(progressAttributes),
+    },
   };
 }
 

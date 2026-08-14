@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  OrbitControls,
-  OrthographicCamera,
-  Sparkles,
-  useAnimations,
-  useGLTF,
-} from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { OrbitControls, OrthographicCamera, useAnimations, useGLTF } from "@react-three/drei";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
@@ -19,23 +13,67 @@ import {
 import { QUATERNIUS_ANIMAL_CLIPS, quaterniusAssetUrl } from "@/lib/assets/quaternius";
 import { stableFraction } from "@/lib/kingdom/hash";
 import { createWorldPlan, type KingdomSeason, type WorldPlan } from "@/lib/kingdom";
-import type {
-  KingdomEntity,
-  KingdomWorld,
-  Province,
-  RepositoryPortal,
-  Selection,
-} from "@/lib/kingdom/types";
+import type { KingdomWorld, RepositoryPortal, Selection } from "@/lib/kingdom/types";
 
 import { createPlannedScatter, type PlannedScatter } from "./planned-scatter";
 import {
   classifyPlannedTerrainRegion,
   getHamletVisualPlacementMask,
+  getPlannedTerrainDefinition,
   samplePlannedTerrainHeight,
-  samplePlannedWatershedPoint,
 } from "./planned-terrain-model";
 import { buildPlannedEscarpmentGeometry, PlannedEscarpment } from "./planned-escarpment";
 import { PlannedLife } from "./planned-life";
+import { PlannedLakeHabitat } from "./planned-lake-habitat";
+import {
+  createPlannedHamletPathBatch,
+  disposePlannedHamletPathBatch,
+} from "./planned-hamlet-paths";
+import { PlannedLandUseLayer } from "./planned-land-use-layer";
+import {
+  createPlannedScenePickRecords,
+  plannedPickRecordForInstance,
+  PlannedScenePickProxy,
+} from "./planned-scene-picking";
+import {
+  createPlannedPortalInstances,
+  plannedPortalForInstance,
+  writePlannedPortalMatrices,
+} from "./planned-portal-batching";
+import { createPlannedLandUse } from "./planned-land-use";
+import {
+  createPlannedTreeLodBatches,
+  createPlannedWalkTreeLodBatches,
+  disposePlannedTreeLodGeometry,
+  plannedTreeLodMode,
+  plannedTreeLodPaletteFor,
+  selectPlannedWalkTreeHybrid,
+  type PlannedTreeLodBatch,
+  type PlannedTreeLodPalette,
+  type PlannedWalkTreeDetailCandidate,
+  type PlannedWalkTreeLodBatch,
+} from "./planned-tree-lod";
+import {
+  createPlannedEnchantedOrbitGeometry,
+  createPlannedThemeTreeLodGeometry,
+  disposePlannedEnchantedOrbitGeometry,
+  plannedThemeLodMode,
+  plannedThemeTreeTrianglesPerInstance,
+} from "./planned-theme-lod";
+import {
+  fitPlannedOverview,
+  isPlannedCameraTransitionSettled,
+  plannedCameraTransitionAlpha,
+} from "./planned-camera-model";
+import { PlannedCinematicEnvironment } from "./planned-cinematic-environment";
+import {
+  finalizePlannedArchitectureMaterial,
+  loadPlannedArchitectureDetailRuntimeTextures,
+  type PlannedArchitectureDetailRuntimeGate,
+  type PlannedArchitectureDetailRuntimeTextureOwner,
+  type PlannedArchitectureDetailRuntimeTextures,
+} from "./planned-architecture-detail-material";
+import { PlannedRegionalExperienceLayer } from "./planned-regional-experience-layer";
 import { PlannedTerrain, PlannedWatershed } from "./planned-terrain";
 import {
   createPlannedVisualEnrichment,
@@ -45,7 +83,44 @@ import {
   createPlannedWorldThemeLayer,
   type PlannedWorldThemeLayer,
 } from "./planned-world-theme-model";
-import { buildRetracedWildlifeMotion, wildlifeMotionStartDistance } from "./wildlife-motion";
+import {
+  buildRetracedWildlifeMotion,
+  wildlifeMotionStartDistance,
+  type WildlifeMotion,
+} from "./wildlife-motion";
+import {
+  createPlannedWalkWildlifeLodGeometry,
+  PLANNED_WALK_WILDLIFE_LOD_CONTRACT,
+} from "./planned-wildlife-lod";
+import {
+  createLandUseWalkObstacles,
+  type KingdomNavigationMode,
+  type WalkObstacle,
+} from "./kingdom-navigation-model";
+import { KingdomWalkControls } from "./kingdom-walk-controls";
+import { PlannedWalkDetail } from "./planned-walk-detail";
+import {
+  createRepositoryWalkInteraction,
+  WALK_ANIMAL_TARGET_HEIGHT as ANIMAL_TARGET_HEIGHT,
+  WALK_WILDLIFE_GROUND_OFFSET as WILDLIFE_GROUND_OFFSET,
+  type LivingWalkSpawn,
+  type WalkTarget,
+  type WalkTargetPositionUpdater,
+  type WalkViewStatus,
+} from "./kingdom-walk-experience-model";
+import type { PlannedWalkRuntimePlan } from "./planned-walk-runtime-model";
+import { usePreparedPlannedWalkRuntime } from "./use-planned-walk-runtime";
+import {
+  ARCHITECTURE_MATERIAL_POLICY,
+  ARCHITECTURE_RECIPES,
+  createRepositoryAssetVocabulary,
+  type ArchitectureRecipe,
+  type ArchitectureRecipeId,
+  type GroundCompoundProp,
+  type MedievalModuleRole,
+  type RepositoryAssetVocabulary,
+  type RepositoryCompoundIdentity,
+} from "./repo-asset-vocabulary";
 
 type Quality = "low" | "high";
 type VecTuple = readonly [number, number, number];
@@ -62,6 +137,10 @@ const PORTRAIT_CAMERA_AZIMUTH = THREE.MathUtils.degToRad(9);
 
 type FoliagePalette = "broadleaf" | "pine" | "flowering";
 type SurfaceStyle = "default" | "architecture" | "rock" | "rune";
+type ArchitectureDetailContext = Readonly<{
+  gate: PlannedArchitectureDetailRuntimeGate;
+  runtimeTextures: PlannedArchitectureDetailRuntimeTextures | null;
+}>;
 
 type KingdomSceneProps = Readonly<{
   world: KingdomWorld;
@@ -73,17 +152,41 @@ type KingdomSceneProps = Readonly<{
   resetToken: number;
   reducedMotion: boolean;
   quality: Quality;
+  navigationMode?: KingdomNavigationMode;
+  onWalkLockChange?: (locked: boolean) => void;
+  onWalkStatusChange?: (status: WalkViewStatus) => void;
+  onWalkTargetSelect?: (selection: Selection) => void;
 }>;
 
-const MODULE_URLS = {
+const ignoreWalkLockChange = () => undefined;
+const ignoreWalkStatusChange = () => undefined;
+const PREPARING_WALK_STATUS: WalkViewStatus = Object.freeze({
+  heading: "N",
+  locationLabel: "Preparing walkable world…",
+  target: null,
+});
+const FAILED_WALK_STATUS: WalkViewStatus = Object.freeze({
+  heading: "N",
+  locationLabel: "Walk preparation unavailable",
+  target: null,
+});
+
+const MODULE_URLS: Readonly<Record<MedievalModuleRole, string>> = {
   plasterWall: quaterniusAssetUrl("medieval", "Wall_Plaster_Straight"),
   plasterDoor: quaterniusAssetUrl("medieval", "Wall_Plaster_Door_Round"),
   plasterWindow: quaterniusAssetUrl("medieval", "Wall_Plaster_Window_Wide_Round"),
   brickWall: quaterniusAssetUrl("medieval", "Wall_UnevenBrick_Straight"),
   brickDoor: quaterniusAssetUrl("medieval", "Wall_UnevenBrick_Door_Round"),
   brickWindow: quaterniusAssetUrl("medieval", "Wall_UnevenBrick_Window_Wide_Round"),
+  brickCorner: quaterniusAssetUrl("medieval", "Corner_Exterior_Brick"),
+  woodCorner: quaterniusAssetUrl("medieval", "Corner_Exterior_Wood"),
+  brickDoorframe: quaterniusAssetUrl("medieval", "DoorFrame_Round_Brick"),
+  standaloneDoor: quaterniusAssetUrl("medieval", "Door_1_Round"),
+  standaloneWindow: quaterniusAssetUrl("medieval", "Window_Wide_Round1"),
+  shutters: quaterniusAssetUrl("medieval", "WindowShutters_Wide_Round_Open"),
   roofSmall: quaterniusAssetUrl("medieval", "Roof_RoundTiles_4x4"),
   roofWide: quaterniusAssetUrl("medieval", "Roof_RoundTiles_6x8"),
+  roofLarge: quaterniusAssetUrl("medieval", "Roof_RoundTiles_8x8"),
   roofTower: quaterniusAssetUrl("medieval", "Roof_Tower_RoundTiles"),
   chimney: quaterniusAssetUrl("medieval", "Prop_Chimney"),
   wagon: quaterniusAssetUrl("medieval", "Prop_Wagon"),
@@ -103,6 +206,40 @@ const TREE_URLS = {
   "twisted-tree-2": quaterniusAssetUrl("nature", "TwistedTree_2"),
   "dead-tree": quaterniusAssetUrl("nature", "DeadTree_1"),
 } as const;
+
+type WalkTreeAssetStats = Readonly<{ sourcePrimitives: number; triangles: number }>;
+
+const WALK_TREE_ASSET_STATS: Readonly<Record<string, WalkTreeAssetStats>> = Object.freeze({
+  [TREE_URLS["common-tree-1"]]: { sourcePrimitives: 2, triangles: 6_265 },
+  [TREE_URLS["common-tree-2"]]: { sourcePrimitives: 2, triangles: 5_648 },
+  [TREE_URLS["common-tree-3"]]: { sourcePrimitives: 2, triangles: 3_505 },
+  [TREE_URLS["pine-1"]]: { sourcePrimitives: 2, triangles: 3_947 },
+  [TREE_URLS["pine-2"]]: { sourcePrimitives: 2, triangles: 3_648 },
+  [TREE_URLS["twisted-tree-1"]]: { sourcePrimitives: 2, triangles: 9_564 },
+  [TREE_URLS["twisted-tree-2"]]: { sourcePrimitives: 2, triangles: 9_134 },
+  [TREE_URLS["dead-tree"]]: { sourcePrimitives: 1, triangles: 6_169 },
+  "/assets/world/kenney/holiday/tree-snow-a.glb": { sourcePrimitives: 1, triangles: 378 },
+  "/assets/world/kenney/holiday/tree-snow-b.glb": { sourcePrimitives: 1, triangles: 374 },
+  "/assets/world/kenney/holiday/tree-snow-c.glb": { sourcePrimitives: 1, triangles: 234 },
+  "/assets/world/kenney/nature/tree_blocks.glb": { sourcePrimitives: 2, triangles: 132 },
+  "/assets/world/kenney/nature/tree_blocks_fall.glb": { sourcePrimitives: 2, triangles: 264 },
+  "/assets/world/kenney/nature/tree_cone.glb": { sourcePrimitives: 2, triangles: 132 },
+  "/assets/world/kenney/nature/tree_cone_fall.glb": { sourcePrimitives: 2, triangles: 132 },
+  "/assets/world/kenney/nature/tree_default.glb": { sourcePrimitives: 2, triangles: 114 },
+  "/assets/world/kenney/nature/tree_default_fall.glb": { sourcePrimitives: 2, triangles: 228 },
+  "/assets/world/kenney/nature/tree_detailed.glb": { sourcePrimitives: 3, triangles: 402 },
+  "/assets/world/kenney/nature/tree_detailed_fall.glb": { sourcePrimitives: 3, triangles: 402 },
+  "/assets/world/kenney/nature/tree_fat.glb": { sourcePrimitives: 2, triangles: 50 },
+  "/assets/world/kenney/nature/tree_fat_fall.glb": { sourcePrimitives: 2, triangles: 50 },
+  "/assets/world/kenney/nature/tree_oak.glb": { sourcePrimitives: 2, triangles: 196 },
+  "/assets/world/kenney/nature/tree_oak_fall.glb": { sourcePrimitives: 2, triangles: 196 },
+});
+
+function walkTreeAssetStats(url: string): WalkTreeAssetStats {
+  const stats = WALK_TREE_ASSET_STATS[url];
+  if (!stats) throw new Error(`Missing Walk tree renderer stats for ${url}.`);
+  return stats;
+}
 
 const GROUND_URLS = {
   bush: quaterniusAssetUrl("nature", "Bush_Common"),
@@ -149,13 +286,6 @@ const ANIMAL_URLS = {
   fox: quaterniusAssetUrl("animals", "Fox"),
   stag: quaterniusAssetUrl("animals", "Stag"),
 } as const;
-
-const ANIMAL_TARGET_HEIGHT: Readonly<Record<keyof typeof ANIMAL_URLS, number>> = {
-  deer: 2.2,
-  fox: 1.15,
-  stag: 2.65,
-};
-const WILDLIFE_GROUND_OFFSET = 0.06;
 
 const KENNEY_SEASONAL_URLS = [
   ...new Set(
@@ -230,6 +360,7 @@ function InstancePrimitive({
   seasonalCanopy,
   surfaceStyle,
   castShadow,
+  architectureDetail,
 }: Readonly<{
   primitive: GltfPrimitive;
   matrices: ReadonlyArray<THREE.Matrix4>;
@@ -238,9 +369,10 @@ function InstancePrimitive({
   seasonalCanopy: boolean;
   surfaceStyle: SurfaceStyle;
   castShadow: boolean;
+  architectureDetail?: ArchitectureDetailContext;
 }>) {
   const instance = useRef<THREE.InstancedMesh>(null);
-  const materials = useMemo(() => {
+  const ownedMaterials = useMemo(() => {
     const sources = Array.isArray(primitive.material) ? primitive.material : [primitive.material];
     return sources.map((source, materialIndex) => {
       const material = source.clone();
@@ -303,34 +435,41 @@ function InstancePrimitive({
         }
       }
       if (material instanceof THREE.MeshStandardMaterial && surfaceStyle === "architecture") {
-        material.roughness = Math.max(0.78, material.roughness);
-        material.metalness = 0;
+        material.roughness = Math.max(
+          ARCHITECTURE_MATERIAL_POLICY.minimumRoughness,
+          material.roughness,
+        );
         const roofMaterial = /tile|roof/i.test(material.name);
         const timberMaterial = /wood|timber|beam|frame|door/i.test(material.name);
-        material.map = null;
-        material.normalMap = null;
-        material.aoMap = null;
         const surfaceColor = roofMaterial
           ? plan.appearance.architecture.roofTint
           : timberMaterial
             ? plan.appearance.architecture.timberTint
             : plan.appearance.architecture.plasterTint;
-        material.color.set(surfaceColor);
-        material.emissiveMap = null;
-        material.emissive
-          .copy(material.color)
-          .multiplyScalar(plan.worldTheme === "enchanted-forest" ? 0.32 : 0.24);
-        material.emissiveIntensity = roofMaterial ? 0.14 : timberMaterial ? 0.09 : 0.11;
+        // Current Quaternius sources carry authored color, normal, and
+        // metallic-roughness detail. AO and emissive references remain intact
+        // when a future source provides them. Season contributes a restrained
+        // tint and never replaces source maps with a flat material.
+        material.color.lerp(
+          new THREE.Color(surfaceColor),
+          material.map
+            ? ARCHITECTURE_MATERIAL_POLICY.texturedTintMix
+            : ARCHITECTURE_MATERIAL_POLICY.untexturedTintMix,
+        );
+        if (!material.emissiveMap) {
+          material.emissive.copy(material.color).multiplyScalar(0.12);
+          material.emissiveIntensity = ARCHITECTURE_MATERIAL_POLICY.supplementalEmissiveIntensity;
+        }
       }
       if (material instanceof THREE.MeshStandardMaterial && surfaceStyle === "rock") {
         material.roughness = 1;
         material.metalness = 0;
-        material.color.set("#ead4c1");
-        if (material.map) {
-          material.emissiveMap = material.map;
-          material.emissive.set("#bca28c");
-          material.emissiveIntensity = 0.36;
-        }
+        material.color
+          .set("#ffffff")
+          .lerp(new THREE.Color(plan.appearance.terrain.escarpment), 0.22);
+        material.emissiveMap = null;
+        material.emissive.set("#000000");
+        material.emissiveIntensity = 0;
       }
       if (material instanceof THREE.MeshStandardMaterial && surfaceStyle === "rune") {
         material.map = null;
@@ -344,9 +483,34 @@ function InstancePrimitive({
         material.emissive.set(plan.appearance.magic.primary);
         material.emissiveIntensity = 0.34 * plan.appearance.magic.glowIntensity;
       }
-      return material;
+      if (
+        material instanceof THREE.MeshStandardMaterial &&
+        surfaceStyle === "architecture" &&
+        architectureDetail
+      ) {
+        const finalized = finalizePlannedArchitectureMaterial(architectureDetail.gate, {
+          ownedMaterial: material,
+          geometry: primitive.geometry,
+          runtimeTextures: architectureDetail.runtimeTextures,
+          windowEmissive: {
+            color: plan.appearance.architecture.windowGlow,
+            intensity: 0.72,
+          },
+        });
+        return { material: finalized.material, dispose: finalized.dispose };
+      }
+      return { material, dispose: () => material.dispose() };
     });
-  }, [foliagePalette, plan, primitive.material, seasonalCanopy, surfaceStyle]);
+  }, [
+    architectureDetail,
+    foliagePalette,
+    plan,
+    primitive.geometry,
+    primitive.material,
+    seasonalCanopy,
+    surfaceStyle,
+  ]);
+  const materials = useMemo(() => ownedMaterials.map((owned) => owned.material), [ownedMaterials]);
 
   useLayoutEffect(() => {
     if (!instance.current) return;
@@ -356,10 +520,11 @@ function InstancePrimitive({
       instance.current?.setMatrixAt(index, composed);
     });
     instance.current.instanceMatrix.needsUpdate = true;
+    instance.current.computeBoundingBox();
     instance.current.computeBoundingSphere();
-  }, [matrices, primitive.sourceMatrix]);
+  }, [materials, matrices, primitive.sourceMatrix]);
 
-  useEffect(() => () => materials.forEach((material) => material.dispose()), [materials]);
+  useEffect(() => () => ownedMaterials.forEach((owned) => owned.dispose()), [ownedMaterials]);
   return (
     <instancedMesh
       ref={instance}
@@ -370,7 +535,6 @@ function InstancePrimitive({
       ]}
       castShadow={castShadow}
       receiveShadow
-      frustumCulled={false}
     />
   );
 }
@@ -383,6 +547,7 @@ function AssetInstances({
   foliagePalette,
   surfaceStyle = "default",
   castShadow = false,
+  architectureDetail,
 }: Readonly<{
   url: string;
   matrices: ReadonlyArray<THREE.Matrix4>;
@@ -391,6 +556,7 @@ function AssetInstances({
   foliagePalette?: FoliagePalette;
   surfaceStyle?: SurfaceStyle;
   castShadow?: boolean;
+  architectureDetail?: ArchitectureDetailContext;
 }>) {
   const { scene } = useGLTF(url);
   const normalize = targetHeight !== undefined;
@@ -426,6 +592,7 @@ function AssetInstances({
           seasonalCanopy={url.includes("/kenney/") && (targetHeight ?? 0) > 4}
           surfaceStyle={surfaceStyle}
           castShadow={castShadow}
+          architectureDetail={architectureDetail}
         />
       ))}
     </group>
@@ -465,11 +632,7 @@ function multiply(parent: THREE.Matrix4, local: THREE.Matrix4): THREE.Matrix4 {
   return new THREE.Matrix4().multiplyMatrices(parent, local);
 }
 
-type ArchitectureRole =
-  | PlannedScatter["buildings"][number]["assetRole"]
-  | PlannedScatter["landmarks"][number]["assetRole"];
-
-type CompoundIdentity = "civic" | "productive" | "village";
+type CompoundIdentity = RepositoryCompoundIdentity;
 
 type HamletCompound = Readonly<{
   hamletId: string;
@@ -480,73 +643,36 @@ type HamletCompound = Readonly<{
   rotation: number;
 }>;
 
-function watershedDistance(plan: WorldPlan, point: Readonly<{ x: number; z: number }>): number {
-  let nearest = Number.POSITIVE_INFINITY;
-  for (let index = 0; index <= 24; index += 1) {
-    const water = samplePlannedWatershedPoint(plan, index / 24);
-    nearest = Math.min(nearest, Math.hypot(point.x - water.x, point.z - water.z));
-  }
-  return nearest;
-}
-
 function createHamletCompounds(
   plan: WorldPlan,
   scatter: PlannedScatter,
 ): ReadonlyMap<string, HamletCompound> {
-  const hamlets = plan.topology.hamlets.map((hamlet) => {
-    const mask = getHamletVisualPlacementMask(plan, hamlet);
-    return { hamlet, mask };
-  });
-  const remaining = new Set(hamlets.map(({ hamlet }) => hamlet.id));
+  const identities = new Map<string, CompoundIdentity>();
+  for (const structure of [...scatter.buildings, ...scatter.landmarks]) {
+    if (structure.hamletId === null) continue;
+    const identity = structure.architecture.compoundIdentity;
+    const existing = identities.get(structure.hamletId);
+    if (existing !== undefined && existing !== identity) {
+      throw new Error(`Conflicting planned compound identities for ${structure.hamletId}.`);
+    }
+    identities.set(structure.hamletId, identity);
+  }
   const result = new Map<string, HamletCompound>();
-
-  const assign = (
-    identity: CompoundIdentity,
-    score: (candidate: (typeof hamlets)[number]) => number,
-  ) => {
-    const candidate = hamlets
-      .filter(({ hamlet }) => remaining.has(hamlet.id))
-      .sort(
-        (first, second) =>
-          score(second) - score(first) || first.hamlet.id.localeCompare(second.hamlet.id),
-      )[0];
-    if (!candidate) return;
-    remaining.delete(candidate.hamlet.id);
+  for (const hamlet of plan.topology.hamlets) {
+    const identity = identities.get(hamlet.id);
+    if (identity === undefined) {
+      throw new Error(`Missing planned compound identity for ${hamlet.id}.`);
+    }
+    const mask = getHamletVisualPlacementMask(plan, hamlet);
     const orientationJitter =
-      (stableFraction(`${plan.topologyKey}:${candidate.hamlet.id}:compound-orientation`) - 0.5) *
-      0.42;
-    result.set(candidate.hamlet.id, {
-      hamletId: candidate.hamlet.id,
-      identity,
-      center: candidate.mask.center,
-      radiusX: candidate.mask.radiusX,
-      radiusZ: candidate.mask.radiusZ,
-      rotation: candidate.mask.rotation + orientationJitter,
-    });
-  };
-
-  assign("civic", ({ hamlet }) => {
-    const hasLandmark = scatter.landmarks.some((landmark) => landmark.hamletId === hamlet.id);
-    const civicRole = /crown|archive|observatory|warden/.test(hamlet.role);
-    return (hasLandmark ? 1_000 : 0) + (civicRole ? 400 : 0) + hamlet.representedFiles;
-  });
-  assign("productive", ({ hamlet, mask }) => {
-    const productiveRole = /maker|crossroads/.test(hamlet.role);
-    return (productiveRole ? 500 : 0) - watershedDistance(plan, mask.center);
-  });
-  assign("village", ({ hamlet }) => hamlet.representedFiles);
-
-  for (const { hamlet, mask } of hamlets) {
-    if (!remaining.has(hamlet.id)) continue;
+      (stableFraction(`${plan.topologyKey}:${hamlet.id}:compound-orientation`) - 0.5) * 0.42;
     result.set(hamlet.id, {
       hamletId: hamlet.id,
-      identity: "village",
+      identity,
       center: mask.center,
       radiusX: mask.radiusX,
       radiusZ: mask.radiusZ,
-      rotation:
-        mask.rotation +
-        (stableFraction(`${plan.topologyKey}:${hamlet.id}:compound-orientation`) - 0.5) * 0.42,
+      rotation: mask.rotation + orientationJitter,
     });
   }
   return result;
@@ -565,23 +691,6 @@ function compoundPoint(
   };
 }
 
-function architectureKind(role: ArchitectureRole) {
-  const brick =
-    role === "brick-cottage" ||
-    role === "workshop" ||
-    role === "forge" ||
-    role === "watchtower" ||
-    role === "observatory" ||
-    role === "waystone";
-  const tower = role === "watchtower" || role === "observatory" || role === "waystone";
-  const hall =
-    role === "manor" ||
-    role === "repository-crown" ||
-    role === "archive" ||
-    role === "garden-sanctum";
-  return { brick, tower, hall, workshop: role === "workshop" || role === "forge" };
-}
-
 type InstanceGroups = Map<string, THREE.Matrix4[]>;
 
 function addInstance(groups: InstanceGroups, url: string, matrix: THREE.Matrix4) {
@@ -592,7 +701,7 @@ function addInstance(groups: InstanceGroups, url: string, matrix: THREE.Matrix4)
 
 function addBuildingAssembly(
   groups: InstanceGroups,
-  role: ArchitectureRole,
+  recipe: ArchitectureRecipe,
   parent: THREE.Matrix4,
   options: Readonly<{ compound: CompoundIdentity; hero: boolean; enchanted: boolean }> = {
     compound: "village",
@@ -600,109 +709,197 @@ function addBuildingAssembly(
     enchanted: false,
   },
 ) {
-  const kind = architectureKind(role);
-  const wall = kind.brick ? MODULE_URLS.brickWall : MODULE_URLS.plasterWall;
-  const door = kind.brick ? MODULE_URLS.brickDoor : MODULE_URLS.plasterDoor;
-  const window = kind.brick ? MODULE_URLS.brickWindow : MODULE_URLS.plasterWindow;
-  const stories = kind.tower || kind.hall ? 2 : 1;
-  const offset = kind.hall ? 2 : 1.75;
+  const width = recipe.footprint === "wide" ? 2 : recipe.footprint === "tower" ? 1.65 : 1.75;
+  const depth = recipe.footprint === "wide" ? 1.88 : recipe.footprint === "tower" ? 1.65 : 1.75;
 
-  for (let story = 0; story < stories; story += 1) {
+  for (let story = 0; story < recipe.stories; story += 1) {
     const y = story * 3.12;
-    const frontLeft = story === 0 ? door : window;
-    const pieces: ReadonlyArray<readonly [string, number, number, number, number]> = [
-      [frontLeft, -1, y, offset, 0],
-      [window, 1, y, offset, 0],
-      [window, -1, y, -offset, Math.PI],
-      [wall, 1, y, -offset, Math.PI],
-      [window, -offset, y, -1, Math.PI / 2],
-      [wall, -offset, y, 1, Math.PI / 2],
-      [window, offset, y, -1, -Math.PI / 2],
-      [wall, offset, y, 1, -Math.PI / 2],
+    const layeredPortal = story === 0 && recipe.layeredPortal;
+    const layeredWindow = recipe.layeredWindow && story === 0;
+    const frontLeft = layeredPortal
+      ? recipe.wall
+      : story === 0
+        ? recipe.integratedDoor
+        : recipe.integratedWindow;
+    const frontRight = layeredWindow ? recipe.wall : recipe.integratedWindow;
+    const pieces: ReadonlyArray<readonly [MedievalModuleRole, number, number, number, number]> = [
+      [frontLeft, -1, y, depth, 0],
+      [frontRight, 1, y, depth, 0],
+      [recipe.integratedWindow, -1, y, -depth, Math.PI],
+      [recipe.wall, 1, y, -depth, Math.PI],
+      [recipe.integratedWindow, -width, y, -1, Math.PI / 2],
+      [recipe.wall, -width, y, 1, Math.PI / 2],
+      [recipe.integratedWindow, width, y, -1, -Math.PI / 2],
+      [recipe.wall, width, y, 1, -Math.PI / 2],
     ];
-    for (const [url, x, localY, z, rotation] of pieces) {
-      addInstance(groups, url, multiply(parent, matrixAt(x, localY, z, rotation)));
+    for (const [moduleRole, x, localY, z, rotation] of pieces) {
+      addInstance(
+        groups,
+        MODULE_URLS[moduleRole],
+        multiply(parent, matrixAt(x, localY, z, rotation)),
+      );
+    }
+    if (layeredPortal) {
+      addInstance(
+        groups,
+        MODULE_URLS.brickDoorframe,
+        multiply(parent, matrixAt(-1, y + 0.015, depth + 0.035, 0, 0.98)),
+      );
+      addInstance(
+        groups,
+        MODULE_URLS.standaloneDoor,
+        multiply(parent, matrixAt(-1, y + 0.025, depth + 0.06, 0, 0.96)),
+      );
+    }
+    if (layeredWindow) {
+      addInstance(
+        groups,
+        MODULE_URLS.standaloneWindow,
+        multiply(parent, matrixAt(1, y + 0.02, depth + 0.04, 0, 0.96)),
+      );
+      if (recipe.shutters) {
+        addInstance(
+          groups,
+          MODULE_URLS.shutters,
+          multiply(parent, matrixAt(1, y + 0.025, depth + 0.065, 0, 0.96)),
+        );
+      }
+    }
+    if (recipe.corner && story === 0) {
+      const corners: ReadonlyArray<readonly [number, number, number]> = [
+        [-width, depth, 0],
+        [width, depth, -Math.PI / 2],
+      ];
+      for (const [x, z, rotation] of corners) {
+        addInstance(
+          groups,
+          MODULE_URLS[recipe.corner],
+          multiply(parent, matrixAt(x, y, z, rotation, 0.96)),
+        );
+      }
     }
   }
 
-  const roofY = stories * 3.12 - (kind.tower ? 0.2 : 0.35);
-  const roofUrl = kind.tower
-    ? MODULE_URLS.roofTower
-    : kind.hall
-      ? MODULE_URLS.roofWide
-      : MODULE_URLS.roofSmall;
-  const roofScale = kind.tower ? 0.62 : kind.hall ? 0.58 : 0.52;
-  addInstance(groups, roofUrl, multiply(parent, matrixAt(0, roofY, 0, 0, roofScale)));
+  const roofY = recipe.stories * 3.12 - (recipe.footprint === "tower" ? 0.2 : 0.35);
+  addInstance(
+    groups,
+    MODULE_URLS[recipe.roof],
+    multiply(parent, matrixAt(0, roofY, 0, 0, recipe.roofScale)),
+  );
 
-  if (!kind.tower) {
+  if (recipe.chimney) {
     addInstance(
       groups,
       MODULE_URLS.chimney,
-      multiply(parent, matrixAt(kind.hall ? 1.4 : 1.05, roofY + 1.7, -0.4, 0, 0.72)),
+      multiply(
+        parent,
+        matrixAt(recipe.footprint === "wide" ? 1.4 : 1.05, roofY + 1.7, -0.4, 0, 0.72),
+      ),
     );
   }
-  if (kind.hall) {
-    addInstance(groups, MODULE_URLS.stairs, multiply(parent, matrixAt(0, -0.08, 2.85, 0, 0.78)));
-    addInstance(groups, MODULE_URLS.balcony, multiply(parent, matrixAt(0, 3.08, 2.25, 0, 0.78)));
-  } else if (!kind.brick) {
-    addInstance(groups, MODULE_URLS.vine, multiply(parent, matrixAt(-1.1, 0.12, 2.02, 0, 0.82)));
+  if (recipe.stairs) {
+    addInstance(
+      groups,
+      MODULE_URLS.stairs,
+      multiply(parent, matrixAt(0, -0.08, depth + 1.02, 0, 0.78)),
+    );
+  }
+  if (recipe.balcony) {
+    addInstance(
+      groups,
+      MODULE_URLS.balcony,
+      multiply(parent, matrixAt(0, 3.08, depth + 0.28, 0, 0.78)),
+    );
+  }
+  if (recipe.vine) {
+    addInstance(groups, MODULE_URLS.vine, multiply(parent, matrixAt(-1.1, 1.78, 2.02, 0, 0.82)));
   }
   if (options.enchanted) {
     addInstance(
       groups,
       MODULE_URLS.vine,
-      multiply(parent, matrixAt(1.08, stories > 1 ? 2.85 : 0.18, 2.04, 0, 0.76)),
+      multiply(parent, matrixAt(1.08, recipe.stories > 1 ? 2.85 : 1.64, 2.04, 0, 0.76)),
     );
   }
-  if (kind.workshop) {
-    addInstance(groups, MODULE_URLS.wagon, multiply(parent, matrixAt(3.1, 0, 0.8, -0.4, 0.85)));
-  }
+  if (!options.hero || recipe.annex === "none") return;
+  const annexRecipeId: ArchitectureRecipeId =
+    recipe.annex === "tower-wing"
+      ? "stone-observatory"
+      : recipe.annex === "brick-wing"
+        ? "brick-corner-workshop"
+        : "plaster-shutter-cottage";
+  const annexSide = options.compound === "village" ? 1 : -1;
+  const annex = multiply(parent, matrixAt(annexSide * 2, 0, -0.35, annexSide * -0.1, 0.34));
+  addBuildingAssembly(groups, ARCHITECTURE_RECIPES[annexRecipeId], annex, {
+    compound: options.compound,
+    hero: false,
+    enchanted: options.enchanted,
+  });
+}
 
-  if (!options.hero) return;
-  if (options.compound === "civic") {
-    const annex = multiply(parent, matrixAt(-3.15, 0, -0.9, 0.08, 0.68));
-    addBuildingAssembly(groups, "watchtower", annex, {
-      compound: "civic",
-      hero: false,
-      enchanted: options.enchanted,
-    });
-    addInstance(groups, MODULE_URLS.vine, multiply(parent, matrixAt(1.25, 0.15, 2.04, 0, 0.88)));
-  } else if (options.compound === "productive") {
-    const annex = multiply(parent, matrixAt(-3.25, 0, -0.55, -0.12, 0.7));
-    addBuildingAssembly(groups, "brick-cottage", annex, {
-      compound: "productive",
-      hero: false,
-      enchanted: options.enchanted,
-    });
-    addInstance(groups, MODULE_URLS.chimney, multiply(parent, matrixAt(-1.2, 4.75, -0.8, 0, 0.82)));
-    addInstance(groups, MODULE_URLS.wagon, multiply(parent, matrixAt(3.7, 0, -1.7, -0.9, 0.92)));
-  } else {
-    const annex = multiply(parent, matrixAt(3.05, 0, -0.45, -0.08, 0.66));
-    addBuildingAssembly(groups, "plaster-cottage", annex, {
-      compound: "village",
-      hero: false,
-      enchanted: options.enchanted,
-    });
-    addInstance(groups, MODULE_URLS.vine, multiply(parent, matrixAt(-1.15, 0.12, 2.04, 0, 0.9)));
+type PlannedStructure = PlannedScatter["buildings"][number] | PlannedScatter["landmarks"][number];
+
+const COMPOUND_PROP_FOOTPRINT_RADIUS: Readonly<Record<GroundCompoundProp, number>> = {
+  fence: 1.05,
+  // Rounded above shipped GLB AABB-corner radii: stairs 1.46987, wagon 3.29913.
+  stairs: 1.5,
+  wagon: 3.35,
+};
+
+function validCompoundPropFootprint(
+  plan: WorldPlan,
+  point: Readonly<{ x: number; z: number }>,
+  radius: number,
+  structures: ReadonlyArray<PlannedStructure>,
+): boolean {
+  const terrainSamples = Array.from({ length: 9 }, (_, index) => {
+    if (index === 0) return point;
+    const angle = ((index - 1) / 8) * Math.PI * 2;
+    return {
+      x: point.x + Math.cos(angle) * radius,
+      z: point.z + Math.sin(angle) * radius,
+    };
+  });
+  if (
+    terrainSamples.some((sample) => {
+      const region = classifyPlannedTerrainRegion(plan, sample.x, sample.z);
+      return (
+        !region.inside ||
+        region.water !== null ||
+        region.material === "shore" ||
+        region.slopeDegrees > 18
+      );
+    })
+  ) {
+    return false;
   }
+  return structures.every(
+    (structure) =>
+      Math.hypot(
+        point.x - structure.transform.position.x,
+        point.z - structure.transform.position.z,
+      ) >=
+      radius + structure.footprintRadius + 0.35,
+  );
 }
 
 function addCompoundProp(
   groups: InstanceGroups,
   plan: WorldPlan,
   compound: HamletCompound,
-  url: string,
+  structures: ReadonlyArray<PlannedStructure>,
+  moduleRole: GroundCompoundProp,
   localX: number,
   localZ: number,
   rotation: number,
   scale = 1,
 ) {
   const point = compoundPoint(compound, localX, localZ);
-  const region = classifyPlannedTerrainRegion(plan, point.x, point.z);
-  if (!region.inside || region.water !== null || region.slopeDegrees > 18) return;
+  const footprintRadius = COMPOUND_PROP_FOOTPRINT_RADIUS[moduleRole] * scale;
+  if (!validCompoundPropFootprint(plan, point, footprintRadius, structures)) return;
   addInstance(
     groups,
-    url,
+    MODULE_URLS[moduleRole],
     matrixAt(
       point.x,
       samplePlannedTerrainHeight(plan, point.x, point.z) + 0.04,
@@ -717,6 +914,8 @@ function addCompoundGroundLanguage(
   groups: InstanceGroups,
   plan: WorldPlan,
   compound: HamletCompound,
+  vocabulary: RepositoryAssetVocabulary,
+  structures: ReadonlyArray<PlannedStructure>,
 ) {
   const side = Math.min(compound.radiusX, compound.radiusZ);
   const fenceScale = 1.04;
@@ -752,7 +951,8 @@ function addCompoundGroundLanguage(
       groups,
       plan,
       compound,
-      MODULE_URLS.fence,
+      structures,
+      "fence",
       localX,
       localZ,
       rotation,
@@ -760,13 +960,38 @@ function addCompoundGroundLanguage(
     );
   }
 
-  if (compound.identity === "productive") {
-    addCompoundProp(groups, plan, compound, MODULE_URLS.wagon, 4.7, 1.8, -0.72, 0.92);
-    addCompoundProp(groups, plan, compound, MODULE_URLS.wagon, 1.6, 4.4, -0.2, 0.78);
-  } else if (compound.identity === "village") {
-    addCompoundProp(groups, plan, compound, MODULE_URLS.wagon, -4.2, 2.8, 0.64, 0.76);
-  } else {
-    addCompoundProp(groups, plan, compound, MODULE_URLS.stairs, 0, 4.6, 0, 0.7);
+  const propPoints: ReadonlyArray<readonly [number, number, number]> =
+    compound.identity === "productive"
+      ? [
+          [4.7, 1.8, -0.72],
+          [1.6, 4.4, -0.2],
+        ]
+      : compound.identity === "village"
+        ? [
+            [-4.2, 2.8, 0.64],
+            [3.8, 3.7, -0.35],
+          ]
+        : [
+            [0, 4.6, 0],
+            [-4.1, 2.4, 0.4],
+          ];
+  for (const [index, moduleRole] of vocabulary.compoundPropPriority[compound.identity]
+    .slice(0, 2)
+    .entries()) {
+    const point = propPoints[index]!;
+    const scale =
+      moduleRole === "wagon" ? (index === 0 ? 0.9 : 0.78) : moduleRole === "stairs" ? 0.7 : 1;
+    addCompoundProp(
+      groups,
+      plan,
+      compound,
+      structures,
+      moduleRole,
+      point[0],
+      point[1],
+      point[2],
+      scale,
+    );
   }
 }
 
@@ -777,20 +1002,15 @@ function createArchitectureGroups(scatter: PlannedScatter, plan: WorldPlan): Ins
     ...scatter.buildings.map((building) => ({ ...building, landmark: false as const })),
     ...scatter.landmarks.map((landmark) => ({ ...landmark, landmark: true as const })),
   ];
-  const heroByHamlet = new Map<string, string>();
-  for (const compound of compounds.values()) {
-    const candidates = structures
-      .filter((structure) => structure.hamletId === compound.hamletId)
-      .sort(
-        (first, second) =>
-          Number(second.landmark) - Number(first.landmark) ||
-          (second.assetRole === "manor" || second.assetRole === "workshop" ? 1 : 0) -
-            (first.assetRole === "manor" || first.assetRole === "workshop" ? 1 : 0) ||
-          first.id.localeCompare(second.id),
-      );
-    if (candidates[0]) heroByHamlet.set(compound.hamletId, candidates[0].id);
-  }
+  const vocabulary = createRepositoryAssetVocabulary({
+    placementKey: plan.placementKey,
+    geographyId: plan.topology.geography.id,
+    archetype: plan.identity.archetype,
+    repositoryIdentity: `${plan.repository.id}:${plan.repository.owner}/${plan.repository.name}:${plan.repository.commitSha}`,
+  });
   for (const structure of structures) {
+    const compound = structure.hamletId ? compounds.get(structure.hamletId) : undefined;
+    const { desiredHeightScale, desiredVisualScale, hero, recipeId } = structure.architecture;
     const x = structure.transform.position.x;
     const z = structure.transform.position.z;
     const region = classifyPlannedTerrainRegion(plan, x, z);
@@ -811,83 +1031,111 @@ function createArchitectureGroups(scatter: PlannedScatter, plan: WorldPlan): Ins
       continue;
     }
     const y = samplePlannedTerrainHeight(plan, x, z) + 0.08;
-    const compound = structure.hamletId ? compounds.get(structure.hamletId) : undefined;
-    const hero = compound
-      ? heroByHamlet.get(compound.hamletId) === structure.id
-      : structure.landmark;
-    const sourceScale = structure.transform.scale.y;
-    const visualScale = sourceScale * (hero ? 1.52 : structure.landmark ? 1.44 : 1.28);
-    const parent = matrixAt(x, y, z, structure.transform.rotationY, visualScale);
-    const renderedRole: ArchitectureRole = hero
-      ? compound?.identity === "civic"
-        ? "repository-crown"
-        : compound?.identity === "productive"
-          ? "forge"
-          : "manor"
-      : structure.assetRole;
-    addBuildingAssembly(groups, renderedRole, parent, {
+    const parent = matrixAt(x, y, z, structure.transform.rotationY, [
+      desiredVisualScale,
+      desiredHeightScale,
+      desiredVisualScale,
+    ]);
+    addBuildingAssembly(groups, ARCHITECTURE_RECIPES[recipeId], parent, {
       compound: compound?.identity ?? "village",
       hero,
       enchanted: plan.worldTheme === "enchanted-forest",
     });
   }
 
-  for (const compound of compounds.values()) addCompoundGroundLanguage(groups, plan, compound);
+  for (const compound of compounds.values()) {
+    addCompoundGroundLanguage(groups, plan, compound, vocabulary, structures);
+  }
   return groups;
 }
 
-function isValidStructure(
-  structure: PlannedScatter["buildings"][number] | PlannedScatter["landmarks"][number],
-  plan: WorldPlan,
-): boolean {
-  const region = classifyPlannedTerrainRegion(
-    plan,
-    structure.transform.position.x,
-    structure.transform.position.z,
-  );
-  return (
-    region.inside &&
-    region.water === null &&
-    region.material !== "shore" &&
-    region.slopeDegrees <= structure.terrain.maxSlopeDegrees
-  );
-}
+function usePlannedArchitectureDetailTextures(
+  gate: PlannedArchitectureDetailRuntimeGate,
+): PlannedArchitectureDetailRuntimeTextures | null {
+  const maximumAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy());
+  const [owner, setOwner] = useState<PlannedArchitectureDetailRuntimeTextureOwner | null>(null);
+  const ownerRef = useRef<PlannedArchitectureDetailRuntimeTextureOwner | null>(null);
+  const mountedRef = useRef(true);
+  const latestGateRef = useRef(gate);
+  const attemptedLoadRef = useRef<string | null>(null);
 
-function selectionForStructure(
-  entityId: string | null,
-  provinceId: string,
-  entities: ReadonlyMap<string, KingdomEntity>,
-  provinces: ReadonlyMap<string, Province>,
-): Selection {
-  const entity = entityId ? entities.get(entityId) : undefined;
-  if (entity) return { kind: "entity", entity };
-  const province = provinces.get(provinceId);
-  return province ? { kind: "province", province } : null;
+  useEffect(() => {
+    latestGateRef.current = gate;
+  }, [gate]);
+
+  useEffect(() => {
+    if (!gate.detailEnabled || gate.quality !== "high") {
+      const previousOwner = ownerRef.current;
+      ownerRef.current = null;
+      attemptedLoadRef.current = null;
+      // The current render has already removed the shader patch. Dispose after
+      // finalized child materials complete the same passive-effect cleanup.
+      queueMicrotask(() => {
+        previousOwner?.dispose();
+        if (mountedRef.current) setOwner(null);
+      });
+      return;
+    }
+    if (gate.navigationMode !== "walk" || ownerRef.current) return;
+
+    const loadKey = `high:${maximumAnisotropy}`;
+    if (attemptedLoadRef.current === loadKey) return;
+    attemptedLoadRef.current = loadKey;
+    void loadPlannedArchitectureDetailRuntimeTextures(gate, { maximumAnisotropy }).then(
+      (nextOwner) => {
+        if (nextOwner.status !== "ready") {
+          attemptedLoadRef.current = null;
+          nextOwner.dispose();
+          return;
+        }
+        const latestGate = latestGateRef.current;
+        if (!mountedRef.current || !latestGate.detailEnabled || latestGate.quality !== "high") {
+          nextOwner.dispose();
+          return;
+        }
+        ownerRef.current?.dispose();
+        ownerRef.current = nextOwner;
+        setOwner(nextOwner);
+      },
+    );
+  }, [gate, maximumAnisotropy]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const previousOwner = ownerRef.current;
+      ownerRef.current = null;
+      if (previousOwner) queueMicrotask(() => previousOwner.dispose());
+    };
+  }, []);
+
+  return gate.detailEnabled && gate.navigationMode === "walk" && gate.quality === "high"
+    ? (owner?.textures ?? null)
+    : null;
 }
 
 function ArchitectureLayer({
-  world,
   plan,
   scatter,
-  onSelect,
-  onHover,
+  navigationMode,
+  quality,
 }: Readonly<{
-  world: KingdomWorld;
   plan: WorldPlan;
   scatter: PlannedScatter;
-  onSelect: (selection: Selection) => void;
-  onHover: (selection: Selection) => void;
+  navigationMode: KingdomNavigationMode;
+  quality: Quality;
 }>) {
   const groups = useMemo(() => createArchitectureGroups(scatter, plan), [plan, scatter]);
-  const entities = useMemo(
-    () => new Map(world.entities.map((entity) => [entity.id, entity])),
-    [world],
+  const detailGate = useMemo<PlannedArchitectureDetailRuntimeGate>(
+    () => ({ detailEnabled: true, navigationMode, quality }),
+    [navigationMode, quality],
   );
-  const provinces = useMemo(
-    () => new Map(world.provinces.map((province) => [province.id, province])),
-    [world],
+  const runtimeTextures = usePlannedArchitectureDetailTextures(detailGate);
+  const architectureDetail = useMemo<ArchitectureDetailContext>(
+    () => ({ gate: detailGate, runtimeTextures }),
+    [detailGate, runtimeTextures],
   );
-  const structures = [...scatter.buildings, ...scatter.landmarks];
   return (
     <group name="planned-hamlets">
       {[...groups.entries()].map(([url, matrices]) => (
@@ -898,60 +1146,28 @@ function ArchitectureLayer({
           plan={plan}
           surfaceStyle="architecture"
           castShadow
+          architectureDetail={architectureDetail}
         />
       ))}
-      {structures.map((structure) => {
-        if (!isValidStructure(structure, plan)) return null;
-        const selection = selectionForStructure(
-          structure.entityId,
-          structure.provinceId,
-          entities,
-          provinces,
-        );
-        if (!selection) return null;
-        const x = structure.transform.position.x;
-        const z = structure.transform.position.z;
-        const scale = structure.transform.scale.y;
-        const y = samplePlannedTerrainHeight(plan, x, z) + scale * 2.8;
-        const entity = selection.kind === "entity" ? selection.entity : null;
-        return (
-          <mesh
-            key={`${structure.id}:hit`}
-            position={[x, y, z]}
-            onPointerDown={(event) => {
-              consumePointer(event);
-              onSelect(selection);
-            }}
-            onDoubleClick={(event) => {
-              consumePointer(event);
-              if (entity) window.open(entity.sourceUrl, "_blank", "noopener,noreferrer");
-            }}
-            onPointerEnter={(event) => {
-              consumePointer(event);
-              setCursor(true);
-              onHover(selection);
-            }}
-            onPointerLeave={() => {
-              setCursor(false);
-              onHover(null);
-            }}
-          >
-            <boxGeometry args={[4.8 * scale, 6.2 * scale, 4.8 * scale]} />
-            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          </mesh>
-        );
-      })}
     </group>
   );
 }
 
 function createTreeGroups(
+  instances: ReadonlyArray<PlannedWalkTreeDetailCandidate>,
+): Map<string, THREE.Matrix4[]> {
+  const groups = new Map<string, THREE.Matrix4[]>();
+  for (const instance of instances) addInstance(groups, instance.detailKey, instance.matrix);
+  return groups;
+}
+
+function createTreeLodInstances(
   scatter: PlannedScatter,
   plan: WorldPlan,
   enrichment: PlannedVisualEnrichment,
   themeLayer: PlannedWorldThemeLayer,
-): Map<string, THREE.Matrix4[]> {
-  const groups = new Map<string, THREE.Matrix4[]>();
+): ReadonlyArray<PlannedWalkTreeDetailCandidate> {
+  const instances: PlannedWalkTreeDetailCandidate[] = [];
   const ancientTreeIds = new Set(themeLayer.ancientTreeIds);
   const seasonalCanopy = getKenneySeasonalPalette(plan.appearance.season).canopy;
   for (const tree of scatter.trees) {
@@ -984,11 +1200,20 @@ function createTreeGroups(
       : useSeasonalModel
         ? kenneySeasonalAssetReferenceUrl(seasonalCanopy[seasonalSlot % seasonalCanopy.length]!)
         : TREE_URLS[tree.assetRole];
-    addInstance(
-      groups,
-      treeUrl,
-      matrixAt(x, y, z, tree.transform.rotationY, [visualScale, visualScale, visualScale]),
-    );
+    const palette = plannedTreeLodPaletteFor(plan.appearance.season, {
+      paletteRole: tree.paletteRole,
+      ancient,
+    });
+    const stats = walkTreeAssetStats(treeUrl);
+    instances.push({
+      id: tree.id,
+      palette,
+      matrix: matrixAt(x, y, z, tree.transform.rotationY, [visualScale, visualScale, visualScale]),
+      detailKey: treeUrl,
+      detailSourcePrimitives: stats.sourcePrimitives,
+      detailTriangles: stats.triangles,
+      lodTriangles: plannedThemeTreeTrianglesPerInstance(plan.worldTheme, palette),
+    });
   }
   for (const tree of enrichment.supplementalTrees) {
     const y = samplePlannedTerrainHeight(plan, tree.position.x, tree.position.z);
@@ -1002,17 +1227,157 @@ function createTreeGroups(
       ? kenneySeasonalAssetReferenceUrl(seasonalCanopy[seasonalSlot % seasonalCanopy.length]!)
       : TREE_URLS[tree.assetRole];
     const themeScale = plan.worldTheme === "enchanted-forest" ? 1.08 : 1;
-    addInstance(
-      groups,
-      treeUrl,
-      matrixAt(tree.position.x, y, tree.position.z, tree.rotationY, [
+    const palette = plannedTreeLodPaletteFor(plan.appearance.season, {
+      paletteRole: tree.paletteRole,
+      ancient: false,
+    });
+    const stats = walkTreeAssetStats(treeUrl);
+    instances.push({
+      id: tree.id,
+      palette,
+      matrix: matrixAt(tree.position.x, y, tree.position.z, tree.rotationY, [
         tree.scale.x * themeScale,
         tree.scale.y * themeScale,
         tree.scale.z * themeScale,
       ]),
-    );
+      detailKey: treeUrl,
+      detailSourcePrimitives: stats.sourcePrimitives,
+      detailTriangles: stats.triangles,
+      lodTriangles: plannedThemeTreeTrianglesPerInstance(plan.worldTheme, palette),
+    });
   }
-  return groups;
+  return instances;
+}
+
+function treeCanopyColor(palette: PlannedTreeLodPalette, plan: WorldPlan): THREE.Color {
+  const foliage = plan.appearance.foliage;
+  const canopyColors: readonly [string, string] =
+    palette === "winter"
+      ? ["#eef7f6", "#c7e1e4"]
+      : palette === "pine"
+        ? [foliage.pine[0] ?? "#5f866c", foliage.pine[1] ?? "#789d7a"]
+        : palette === "flowering"
+          ? [foliage.flowering[0] ?? "#efb7c8", foliage.flowering[1] ?? "#f7d6df"]
+          : [foliage.broadleaf[0] ?? "#77a765", foliage.broadleaf[1] ?? "#99c47f"];
+  return new THREE.Color(canopyColors[0]).lerp(new THREE.Color(canopyColors[1]), 0.38);
+}
+
+function OverviewTreeLodBatch({
+  batch,
+  plan,
+}: Readonly<{ batch: PlannedTreeLodBatch; plan: WorldPlan }>) {
+  const trunk = useRef<THREE.InstancedMesh>(null);
+  const canopy = useRef<THREE.InstancedMesh>(null);
+  const geometry = useMemo(
+    () => createPlannedThemeTreeLodGeometry(batch.palette, plan.worldTheme),
+    [batch.palette, plan.worldTheme],
+  );
+  const colors = useMemo(() => {
+    return {
+      trunk: new THREE.Color(plan.appearance.foliage.trunk),
+      canopy: treeCanopyColor(batch.palette, plan),
+    };
+  }, [batch.palette, plan]);
+
+  useLayoutEffect(() => {
+    for (const [index, matrix] of batch.matrices.entries()) {
+      trunk.current?.setMatrixAt(index, matrix);
+      canopy.current?.setMatrixAt(index, matrix);
+    }
+    for (const instance of [trunk.current, canopy.current]) {
+      if (!instance) continue;
+      instance.instanceMatrix.needsUpdate = true;
+      instance.computeBoundingBox();
+      instance.computeBoundingSphere();
+    }
+  }, [batch.matrices]);
+  useEffect(() => () => disposePlannedTreeLodGeometry(geometry), [geometry]);
+
+  return (
+    <group name={`planned-tree-overview-lod-${batch.palette}`}>
+      <instancedMesh
+        ref={trunk}
+        args={[geometry.trunk, undefined, batch.matrices.length]}
+        castShadow
+        receiveShadow
+      >
+        <meshStandardMaterial color={colors.trunk} roughness={1} />
+      </instancedMesh>
+      <instancedMesh
+        ref={canopy}
+        args={[geometry.canopy, undefined, batch.matrices.length]}
+        castShadow
+        receiveShadow
+      >
+        <meshStandardMaterial
+          color={colors.canopy}
+          roughness={0.88}
+          emissive={colors.canopy}
+          emissiveIntensity={plan.worldTheme === "enchanted-forest" ? 0.1 : 0.04}
+        />
+      </instancedMesh>
+    </group>
+  );
+}
+
+function WalkTreeLodFamilyBatch({
+  batch,
+  plan,
+}: Readonly<{ batch: PlannedWalkTreeLodBatch; plan: WorldPlan }>) {
+  const trunk = useRef<THREE.InstancedMesh>(null);
+  const canopy = useRef<THREE.InstancedMesh>(null);
+  const representativePalette = batch.family === "conifer" ? "pine" : "broadleaf";
+  const geometry = useMemo(
+    () => createPlannedThemeTreeLodGeometry(representativePalette, plan.worldTheme),
+    [plan.worldTheme, representativePalette],
+  );
+  const canopyColors = useMemo(
+    () => batch.palettes.map((palette) => treeCanopyColor(palette, plan)),
+    [batch.palettes, plan],
+  );
+
+  useLayoutEffect(() => {
+    batch.matrices.forEach((matrix, index) => {
+      trunk.current?.setMatrixAt(index, matrix);
+      canopy.current?.setMatrixAt(index, matrix);
+      const color = canopyColors[index];
+      if (color) canopy.current?.setColorAt(index, color);
+    });
+    for (const instance of [trunk.current, canopy.current]) {
+      if (!instance) continue;
+      instance.instanceMatrix.needsUpdate = true;
+      if (instance.instanceColor) instance.instanceColor.needsUpdate = true;
+      instance.computeBoundingBox();
+      instance.computeBoundingSphere();
+    }
+  }, [batch.matrices, canopyColors]);
+  useEffect(() => () => disposePlannedTreeLodGeometry(geometry), [geometry]);
+
+  return (
+    <group name={`planned-tree-walk-lod-${batch.family}`}>
+      <instancedMesh
+        ref={trunk}
+        args={[geometry.trunk, undefined, batch.matrices.length]}
+        castShadow
+        receiveShadow
+      >
+        <meshStandardMaterial color={plan.appearance.foliage.trunk} roughness={1} />
+      </instancedMesh>
+      <instancedMesh
+        ref={canopy}
+        args={[geometry.canopy, undefined, batch.matrices.length]}
+        castShadow
+        receiveShadow
+      >
+        <meshStandardMaterial
+          color="#ffffff"
+          roughness={0.88}
+          emissive="#6d806a"
+          emissiveIntensity={plan.worldTheme === "enchanted-forest" ? 0.08 : 0.025}
+        />
+      </instancedMesh>
+    </group>
+  );
 }
 
 function createGroundGroups(
@@ -1132,15 +1497,21 @@ function VegetationLayer({
   plan,
   enrichment,
   themeLayer,
+  navigationMode,
 }: Readonly<{
   scatter: PlannedScatter;
   plan: WorldPlan;
   enrichment: PlannedVisualEnrichment;
   themeLayer: PlannedWorldThemeLayer;
+  navigationMode: KingdomNavigationMode;
 }>) {
-  const trees = useMemo(
-    () => createTreeGroups(scatter, plan, enrichment, themeLayer),
-    [enrichment, plan, scatter, themeLayer],
+  const treeMode = plannedTreeLodMode(navigationMode);
+  const overviewTrees = useMemo(
+    () =>
+      treeMode === "overview-lod"
+        ? createPlannedTreeLodBatches(createTreeLodInstances(scatter, plan, enrichment, themeLayer))
+        : [],
+    [enrichment, plan, scatter, themeLayer, treeMode],
   );
   const ground = useMemo(() => createGroundGroups(scatter, plan), [plan, scatter]);
   const ambient = useMemo(() => createAmbientGroups(scatter, plan), [plan, scatter]);
@@ -1155,24 +1526,8 @@ function VegetationLayer({
   );
   return (
     <group name="planned-groves">
-      {[...trees.entries()].map(([url, matrices]) => (
-        <AssetInstances
-          key={url}
-          url={url}
-          matrices={matrices}
-          plan={plan}
-          targetHeight={8.6}
-          foliagePalette={
-            url.includes("/kenney/")
-              ? undefined
-              : url.includes("CommonTree_2") || url.includes("TwistedTree_1")
-                ? "flowering"
-                : url.includes("Pine")
-                  ? "pine"
-                  : "broadleaf"
-          }
-          castShadow
-        />
+      {overviewTrees.map((batch) => (
+        <OverviewTreeLodBatch key={batch.palette} batch={batch} plan={plan} />
       ))}
       {[...ground.entries()].map(([url, matrices]) => {
         const role = (
@@ -1285,37 +1640,51 @@ function VegetationLayer({
   );
 }
 
-function EnchantedRootArch({
-  arch,
+function treeDetailFoliagePalette(url: string): FoliagePalette | undefined {
+  if (url.includes("/kenney/")) return undefined;
+  if (url.includes("CommonTree_2") || url.includes("TwistedTree_1")) return "flowering";
+  return url.includes("Pine") ? "pine" : "broadleaf";
+}
+
+function WalkTreeHybridLayer({
+  scatter,
   plan,
+  enrichment,
+  themeLayer,
+  livingSpawn,
 }: Readonly<{
-  arch: PlannedWorldThemeLayer["rootArches"][number];
+  scatter: PlannedScatter;
   plan: WorldPlan;
+  enrichment: PlannedVisualEnrichment;
+  themeLayer: PlannedWorldThemeLayer;
+  livingSpawn: LivingWalkSpawn | null;
 }>) {
-  const geometry = useMemo(() => {
-    const start = new THREE.Vector3(arch.start.x, arch.start.y, arch.start.z);
-    const end = new THREE.Vector3(arch.end.x, arch.end.y, arch.end.z);
-    const middle = start
-      .clone()
-      .lerp(end, 0.5)
-      .setY(Math.max(start.y, end.y) + arch.height);
-    const curve = new THREE.CatmullRomCurve3(
-      [start, start.clone().lerp(middle, 0.48), middle, middle.clone().lerp(end, 0.52), end],
-      false,
-      "centripetal",
-    );
-    return new THREE.TubeGeometry(curve, 28, arch.radius, 7, false);
-  }, [arch]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  const instances = useMemo(
+    () => createTreeLodInstances(scatter, plan, enrichment, themeLayer),
+    [enrichment, plan, scatter, themeLayer],
+  );
+  const focus = livingSpawn?.position ?? plan.topology.envelope.center;
+  const hybrid = useMemo(() => selectPlannedWalkTreeHybrid(instances, focus), [focus, instances]);
+  const farBatches = useMemo(() => createPlannedWalkTreeLodBatches(hybrid.far), [hybrid.far]);
+  const detailGroups = useMemo(() => createTreeGroups(hybrid.detail), [hybrid.detail]);
+
   return (
-    <mesh geometry={geometry} castShadow receiveShadow>
-      <meshStandardMaterial
-        color={plan.appearance.foliage.trunk}
-        roughness={1}
-        emissive={plan.appearance.magic.primary}
-        emissiveIntensity={0.055 * plan.appearance.magic.glowIntensity}
-      />
-    </mesh>
+    <group name="planned-walk-tree-hybrid">
+      {farBatches.map((batch) => (
+        <WalkTreeLodFamilyBatch key={batch.family} batch={batch} plan={plan} />
+      ))}
+      {[...detailGroups.entries()].map(([url, matrices]) => (
+        <AssetInstances
+          key={url}
+          url={url}
+          matrices={matrices}
+          plan={plan}
+          targetHeight={8.6}
+          foliagePalette={treeDetailFoliagePalette(url)}
+          castShadow
+        />
+      ))}
+    </group>
   );
 }
 
@@ -1389,11 +1758,13 @@ function EnchantedThemeLayer({
   plan,
   reducedMotion,
   quality,
+  navigationMode,
 }: Readonly<{
   layer: PlannedWorldThemeLayer;
   plan: WorldPlan;
   reducedMotion: boolean;
   quality: Quality;
+  navigationMode: KingdomNavigationMode;
 }>) {
   const runestoneMatrices = useMemo(
     () =>
@@ -1421,6 +1792,20 @@ function EnchantedThemeLayer({
       ),
     [layer.mushrooms],
   );
+  const lodMode = plannedThemeLodMode(navigationMode);
+  const repeatedFeatureGeometry = useMemo(
+    () =>
+      layer.worldTheme === "enchanted-forest" ? createPlannedEnchantedOrbitGeometry(layer) : null,
+    [layer],
+  );
+  useEffect(
+    () => () => {
+      if (repeatedFeatureGeometry) {
+        disposePlannedEnchantedOrbitGeometry(repeatedFeatureGeometry);
+      }
+    },
+    [repeatedFeatureGeometry],
+  );
   if (layer.worldTheme !== "enchanted-forest") return null;
   return (
     <group name="enchanted-forest-language">
@@ -1438,27 +1823,43 @@ function EnchantedThemeLayer({
         plan={plan}
         targetHeight={0.58 * plan.appearance.magic.groundDetailScale}
       />
-      {layer.runestones.map((runestone) => (
-        <group
-          key={`${runestone.id}:glow`}
-          position={[runestone.position.x, runestone.position.y + 0.12, runestone.position.z]}
-          rotation-y={runestone.rotationY + runestone.glowPhase * 0.08}
+      {repeatedFeatureGeometry?.runestoneGlows ? (
+        <mesh
+          name={
+            lodMode === "orbit-batched"
+              ? "enchanted-runestone-glows-orbit-batch"
+              : "enchanted-runestone-glows-walk-batch"
+          }
+          geometry={repeatedFeatureGeometry.runestoneGlows}
         >
-          <mesh rotation-x={Math.PI / 2}>
-            <torusGeometry args={[0.56 * runestone.scale, 0.035, 6, 22]} />
-            <meshBasicMaterial
-              color={plan.appearance.magic.primary}
-              transparent
-              opacity={0.72}
-              depthWrite={false}
-              toneMapped={false}
-            />
-          </mesh>
-        </group>
-      ))}
-      {layer.rootArches.map((arch) => (
-        <EnchantedRootArch key={arch.id} arch={arch} plan={plan} />
-      ))}
+          <meshBasicMaterial
+            color={plan.appearance.magic.primary}
+            transparent
+            opacity={0.72}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ) : null}
+      {repeatedFeatureGeometry?.rootArches ? (
+        <mesh
+          name={
+            lodMode === "orbit-batched"
+              ? "enchanted-root-arches-orbit-batch"
+              : "enchanted-root-arches-walk-batch"
+          }
+          geometry={repeatedFeatureGeometry.rootArches}
+          castShadow
+          receiveShadow
+        >
+          <meshStandardMaterial
+            color={plan.appearance.foliage.trunk}
+            roughness={1}
+            emissive={plan.appearance.magic.primary}
+            emissiveIntensity={0.055 * plan.appearance.magic.glowIntensity}
+          />
+        </mesh>
+      ) : null}
       <EnchantedFireflies
         layer={layer}
         plan={plan}
@@ -1480,6 +1881,7 @@ function AnimalActor({
   motionOffset,
   plan,
   reducedMotion,
+  updateWalkTargetPosition,
 }: Readonly<{
   role: PlannedScatter["wildlife"][number]["assetRole"];
   behavior: PlannedScatter["wildlife"][number]["behavior"];
@@ -1491,6 +1893,7 @@ function AnimalActor({
   motionOffset: number;
   plan: WorldPlan;
   reducedMotion: boolean;
+  updateWalkTargetPosition?: WalkTargetPositionUpdater;
 }>) {
   const root = useRef<THREE.Group>(null);
   const gltf = useGLTF(ANIMAL_URLS[role]);
@@ -1522,7 +1925,12 @@ function AnimalActor({
   const travelled = useRef(wildlifeMotionStartDistance(motion, motionOffset));
   useLayoutEffect(() => {
     travelled.current = wildlifeMotionStartDistance(motion, motionOffset);
-  }, [motion, motionOffset]);
+    updateWalkTargetPosition?.(
+      position[0],
+      position[1] + ANIMAL_TARGET_HEIGHT[role] * scale * emphasis * 0.52,
+      position[2],
+    );
+  }, [emphasis, motion, motionOffset, position, role, scale, updateWalkTargetPosition]);
   useEffect(() => {
     if (reducedMotion) return;
     const clip = behavior === "wander" && motion ? "walk" : behavior === "graze" ? "graze" : "idle";
@@ -1554,6 +1962,11 @@ function AnimalActor({
       samplePlannedTerrainHeight(plan, x, z) + WILDLIFE_GROUND_OFFSET,
       z,
     );
+    updateWalkTargetPosition?.(
+      x,
+      root.current.position.y + ANIMAL_TARGET_HEIGHT[role] * scale * emphasis * 0.52,
+      z,
+    );
     root.current.rotation.y = Math.atan2(
       segment.end[0] - segment.start[0],
       segment.end[2] - segment.start[2],
@@ -1571,11 +1984,275 @@ function AnimalActor({
   );
 }
 
+type PlannedWildlifeActor = Readonly<{
+  animal: PlannedScatter["wildlife"][number];
+  emphasis: number;
+  position: VecTuple;
+  wanderPath: ReadonlyArray<VecTuple>;
+  motion: WildlifeMotion | null;
+  motionOffset: number;
+  updateWalkTargetPosition?: WalkTargetPositionUpdater;
+}>;
+
+function OverviewWildlifeRoleBatch({
+  role,
+  actors,
+  plan,
+  reducedMotion,
+}: Readonly<{
+  role: PlannedWildlifeActor["animal"]["assetRole"];
+  actors: ReadonlyArray<PlannedWildlifeActor>;
+  plan: WorldPlan;
+  reducedMotion: boolean;
+}>) {
+  const { scene } = useGLTF(ANIMAL_URLS[role]);
+  const template = useMemo(() => templateAsset(scene, true), [scene]);
+  const meshes = useRef<Array<THREE.InstancedMesh | null>>([]);
+  const travelled = useRef(
+    actors.map((actor) => wildlifeMotionStartDistance(actor.motion, actor.motionOffset)),
+  );
+  const writeMatrices = (delta: number) => {
+    const heightNormalization = ANIMAL_TARGET_HEIGHT[role] / template.height;
+    const composed = new THREE.Matrix4();
+    actors.forEach((actor, actorIndex) => {
+      const motion = actor.motion;
+      if (!reducedMotion && actor.animal.behavior === "wander" && motion) {
+        const speed = role === "fox" ? 1.05 : role === "stag" ? 0.72 : 0.82;
+        travelled.current[actorIndex] =
+          ((travelled.current[actorIndex] ?? 0) + Math.min(delta, 0.05) * speed) %
+          motion.totalLength;
+      }
+      let x = actor.position[0];
+      let z = actor.position[2];
+      let rotationY = actor.animal.transform.rotationY;
+      if (actor.animal.behavior === "wander" && motion) {
+        let remaining = travelled.current[actorIndex] ?? 0;
+        let segment = motion.segments[motion.segments.length - 1]!;
+        for (const candidate of motion.segments) {
+          if (remaining <= candidate.length) {
+            segment = candidate;
+            break;
+          }
+          remaining -= candidate.length;
+        }
+        const progress = THREE.MathUtils.clamp(remaining / segment.length, 0, 1);
+        x = THREE.MathUtils.lerp(segment.start[0], segment.end[0], progress);
+        z = THREE.MathUtils.lerp(segment.start[2], segment.end[2], progress);
+        rotationY = Math.atan2(
+          segment.end[0] - segment.start[0],
+          segment.end[2] - segment.start[2],
+        );
+      }
+      const y = samplePlannedTerrainHeight(plan, x, z) + WILDLIFE_GROUND_OFFSET;
+      actor.updateWalkTargetPosition?.(
+        x,
+        y + ANIMAL_TARGET_HEIGHT[role] * actor.animal.transform.scale.y * actor.emphasis * 0.52,
+        z,
+      );
+      const actorMatrix = matrixAt(
+        x,
+        y,
+        z,
+        rotationY,
+        actor.animal.transform.scale.y * actor.emphasis * heightNormalization,
+      );
+      template.primitives.forEach((primitive, primitiveIndex) => {
+        meshes.current[primitiveIndex]?.setMatrixAt(
+          actorIndex,
+          composed.multiplyMatrices(actorMatrix, primitive.sourceMatrix),
+        );
+      });
+    });
+    meshes.current.forEach((mesh) => {
+      if (!mesh) return;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingBox();
+      mesh.computeBoundingSphere();
+    });
+  };
+  useLayoutEffect(() => {
+    travelled.current = actors.map((actor) =>
+      wildlifeMotionStartDistance(actor.motion, actor.motionOffset),
+    );
+    writeMatrices(0);
+  });
+  useFrame((_, delta) => {
+    if (reducedMotion) return;
+    writeMatrices(delta);
+  });
+  return (
+    <group name={`overview-wildlife:${role}`} dispose={null}>
+      {template.primitives.map((primitive, primitiveIndex) => (
+        <instancedMesh
+          key={primitive.id}
+          ref={(mesh) => {
+            meshes.current[primitiveIndex] = mesh;
+          }}
+          args={[primitive.geometry, primitive.material, actors.length]}
+          castShadow
+          receiveShadow
+        />
+      ))}
+    </group>
+  );
+}
+
+function WalkWildlifeRoleBatch({
+  role,
+  actors,
+  plan,
+  reducedMotion,
+}: Readonly<{
+  role: PlannedWildlifeActor["animal"]["assetRole"];
+  actors: ReadonlyArray<PlannedWildlifeActor>;
+  plan: WorldPlan;
+  reducedMotion: boolean;
+}>) {
+  const geometry = useMemo(() => createPlannedWalkWildlifeLodGeometry(role), [role]);
+  const material = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#ffffff",
+        vertexColors: true,
+        roughness: 0.88,
+        metalness: 0,
+      }),
+    [],
+  );
+  const mesh = useRef<THREE.InstancedMesh>(null);
+  const travelled = useRef(
+    actors.map((actor) => wildlifeMotionStartDistance(actor.motion, actor.motionOffset)),
+  );
+  const writeMatrices = (delta: number) => {
+    actors.forEach((actor, actorIndex) => {
+      const motion = actor.motion;
+      if (!reducedMotion && actor.animal.behavior === "wander" && motion) {
+        const speed = role === "fox" ? 1.05 : role === "stag" ? 0.72 : 0.82;
+        travelled.current[actorIndex] =
+          ((travelled.current[actorIndex] ?? 0) + Math.min(delta, 0.05) * speed) %
+          motion.totalLength;
+      }
+      let x = actor.position[0];
+      let z = actor.position[2];
+      let rotationY = actor.animal.transform.rotationY;
+      if (actor.animal.behavior === "wander" && motion) {
+        let remaining = travelled.current[actorIndex] ?? 0;
+        let segment = motion.segments[motion.segments.length - 1]!;
+        for (const candidate of motion.segments) {
+          if (remaining <= candidate.length) {
+            segment = candidate;
+            break;
+          }
+          remaining -= candidate.length;
+        }
+        const progress = THREE.MathUtils.clamp(remaining / segment.length, 0, 1);
+        x = THREE.MathUtils.lerp(segment.start[0], segment.end[0], progress);
+        z = THREE.MathUtils.lerp(segment.start[2], segment.end[2], progress);
+        rotationY = Math.atan2(
+          segment.end[0] - segment.start[0],
+          segment.end[2] - segment.start[2],
+        );
+      }
+      const y = samplePlannedTerrainHeight(plan, x, z) + WILDLIFE_GROUND_OFFSET;
+      actor.updateWalkTargetPosition?.(
+        x,
+        y + ANIMAL_TARGET_HEIGHT[role] * actor.animal.transform.scale.y * actor.emphasis * 0.52,
+        z,
+      );
+      mesh.current?.setMatrixAt(
+        actorIndex,
+        matrixAt(
+          x,
+          y,
+          z,
+          rotationY,
+          actor.animal.transform.scale.y * actor.emphasis * ANIMAL_TARGET_HEIGHT[role],
+        ),
+      );
+    });
+    if (!mesh.current) return;
+    mesh.current.instanceMatrix.needsUpdate = true;
+    mesh.current.computeBoundingBox();
+    mesh.current.computeBoundingSphere();
+  };
+  useLayoutEffect(() => {
+    travelled.current = actors.map((actor) =>
+      wildlifeMotionStartDistance(actor.motion, actor.motionOffset),
+    );
+    writeMatrices(0);
+  });
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      material.dispose();
+    },
+    [geometry, material],
+  );
+  useFrame((_, delta) => {
+    if (reducedMotion) return;
+    writeMatrices(delta);
+  });
+  return (
+    <instancedMesh
+      ref={mesh}
+      name={`walk-wildlife-far-role-batch:${role}`}
+      args={[geometry, material, actors.length]}
+      castShadow
+      receiveShadow
+    />
+  );
+}
+
+const WALK_ANIMATED_WILDLIFE_RADIUS = 58;
+const ANIMAL_SOURCE_PRIMITIVES: Readonly<
+  Record<PlannedWildlifeActor["animal"]["assetRole"], number>
+> = Object.freeze({ deer: 7, fox: 5, stag: 6 });
+
+function selectWalkAnimatedWildlife(
+  actors: ReadonlyArray<PlannedWildlifeActor>,
+  livingSpawn: LivingWalkSpawn | null | undefined,
+): PlannedWildlifeActor | null {
+  if (!livingSpawn) return null;
+  const focus = livingSpawn.position;
+  const maximumDistanceSquared = WALK_ANIMATED_WILDLIFE_RADIUS ** 2;
+  return (
+    [...actors]
+      .filter((actor) => {
+        const deltaX = actor.position[0] - focus.x;
+        const deltaZ = actor.position[2] - focus.z;
+        return (
+          ANIMAL_SOURCE_PRIMITIVES[actor.animal.assetRole] <=
+            PLANNED_WALK_WILDLIFE_LOD_CONTRACT.maximumAnimatedSourcePrimitives &&
+          deltaX * deltaX + deltaZ * deltaZ <= maximumDistanceSquared
+        );
+      })
+      .sort((first, second) => {
+        const firstDistance =
+          (first.position[0] - focus.x) ** 2 + (first.position[2] - focus.z) ** 2;
+        const secondDistance =
+          (second.position[0] - focus.x) ** 2 + (second.position[2] - focus.z) ** 2;
+        return firstDistance === secondDistance
+          ? first.animal.id.localeCompare(second.animal.id)
+          : firstDistance - secondDistance;
+      })[0] ?? null
+  );
+}
+
 function WildlifeLayer({
   scatter,
   plan,
   reducedMotion,
-}: Readonly<{ scatter: PlannedScatter; plan: WorldPlan; reducedMotion: boolean }>) {
+  navigationMode,
+  walkTargetUpdaters,
+  livingSpawn,
+}: Readonly<{
+  scatter: PlannedScatter;
+  plan: WorldPlan;
+  reducedMotion: boolean;
+  navigationMode: KingdomNavigationMode;
+  walkTargetUpdaters?: ReadonlyMap<string, WalkTargetPositionUpdater>;
+  livingSpawn?: LivingWalkSpawn | null;
+}>) {
   const actors = useMemo(
     () =>
       scatter.wildlife.map((animal, index) => {
@@ -1597,33 +2274,89 @@ function WildlifeLayer({
                 waypoint.z,
               ] as const,
           ),
+          motion: buildRetracedWildlifeMotion(
+            animal.wanderPath.map(
+              (waypoint) =>
+                [
+                  waypoint.x,
+                  samplePlannedTerrainHeight(plan, waypoint.x, waypoint.z) + WILDLIFE_GROUND_OFFSET,
+                  waypoint.z,
+                ] as const,
+            ),
+          ),
           motionOffset: stableFraction(`${animal.id}:motion`),
+          updateWalkTargetPosition: walkTargetUpdaters?.get(animal.id),
         };
       }),
-    [plan, scatter],
+    [plan, scatter, walkTargetUpdaters],
+  );
+  const animatedActor = useMemo(
+    () => (navigationMode === "walk" ? selectWalkAnimatedWildlife(actors, livingSpawn) : null),
+    [actors, livingSpawn, navigationMode],
+  );
+  const batchedActors = useMemo(
+    () =>
+      animatedActor
+        ? actors.filter((actor) => actor.animal.id !== animatedActor.animal.id)
+        : actors,
+    [actors, animatedActor],
+  );
+  const overviewBatches = useMemo(
+    () =>
+      (["deer", "fox", "stag"] as const).flatMap((role) => {
+        const roleActors = batchedActors.filter((actor) => actor.animal.assetRole === role);
+        return roleActors.length > 0 ? [{ role, actors: roleActors }] : [];
+      }),
+    [batchedActors],
   );
   return (
-    <group name="planned-wildlife">
-      {actors.map(({ animal, emphasis, position, wanderPath, motionOffset }) => (
+    <group
+      name={
+        navigationMode === "walk"
+          ? "planned-wildlife-walk-hybrid"
+          : "planned-wildlife-overview-batches"
+      }
+    >
+      {overviewBatches.map((batch) =>
+        navigationMode === "walk" ? (
+          <WalkWildlifeRoleBatch
+            key={batch.role}
+            role={batch.role}
+            actors={batch.actors}
+            plan={plan}
+            reducedMotion={reducedMotion}
+          />
+        ) : (
+          <OverviewWildlifeRoleBatch
+            key={batch.role}
+            role={batch.role}
+            actors={batch.actors}
+            plan={plan}
+            reducedMotion={reducedMotion}
+          />
+        ),
+      )}
+      {animatedActor ? (
         <AnimalActor
-          key={animal.id}
-          role={animal.assetRole}
-          behavior={animal.behavior}
-          position={position}
-          rotationY={animal.transform.rotationY}
-          scale={animal.transform.scale.y}
-          emphasis={emphasis}
-          wanderPath={wanderPath}
-          motionOffset={motionOffset}
+          key={animatedActor.animal.id}
+          role={animatedActor.animal.assetRole}
+          behavior={animatedActor.animal.behavior}
+          position={animatedActor.position}
+          rotationY={animatedActor.animal.transform.rotationY}
+          scale={animatedActor.animal.transform.scale.y}
+          emphasis={animatedActor.emphasis}
+          wanderPath={animatedActor.wanderPath}
+          motionOffset={animatedActor.motionOffset}
           plan={plan}
           reducedMotion={reducedMotion}
+          updateWalkTargetPosition={animatedActor.updateWalkTargetPosition}
         />
-      ))}
+      ) : null}
     </group>
   );
 }
 
-function SemanticHitZones({
+function PlannedInteractionIndex({
   world,
   plan,
   scatter,
@@ -1636,211 +2369,45 @@ function SemanticHitZones({
   onSelect: (selection: Selection) => void;
   onHover: (selection: Selection) => void;
 }>) {
-  const provinces = useMemo(
-    () => new Map(world.provinces.map((province) => [province.id, province])),
-    [world],
+  const records = useMemo(
+    () => createPlannedScenePickRecords(world, plan, scatter),
+    [plan, scatter, world],
   );
+  const proxy = useMemo(() => new PlannedScenePickProxy(records), [records]);
   return (
-    <group name="semantic-hit-zones">
-      {scatter.semanticHitZones.map((zone) => {
-        const province = provinces.get(zone.provinceId);
-        if (!province) return null;
-        const selection: Selection = { kind: "province", province };
-        return (
-          <mesh
-            key={zone.id}
-            position={[
-              zone.center.x,
-              samplePlannedTerrainHeight(plan, zone.center.x, zone.center.z) + 0.3,
-              zone.center.z,
-            ]}
-            rotation-x={-Math.PI / 2}
-            scale={[zone.radiusX, zone.radiusZ, 1]}
-            onPointerDown={(event) => {
-              consumePointer(event);
-              onSelect(selection);
-            }}
-            onPointerEnter={(event) => {
-              consumePointer(event);
-              setCursor(true);
-              onHover(selection);
-            }}
-            onPointerLeave={() => {
-              setCursor(false);
-              onHover(null);
-            }}
-          >
-            <circleGeometry args={[1, 28]} />
-            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          </mesh>
-        );
-      })}
-    </group>
+    <primitive
+      object={proxy}
+      dispose={null}
+      onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        const record = plannedPickRecordForInstance(records, event.instanceId);
+        if (!record) return;
+        consumePointer(event);
+        onSelect(record.selection);
+      }}
+      onDoubleClick={(event: ThreeEvent<MouseEvent>) => {
+        const record = plannedPickRecordForInstance(records, event.instanceId);
+        if (!record?.sourceUrl) return;
+        consumePointer(event);
+        window.open(record.sourceUrl, "_blank", "noopener,noreferrer");
+      }}
+      onPointerEnter={(event: ThreeEvent<PointerEvent>) => {
+        const record = plannedPickRecordForInstance(records, event.instanceId);
+        if (!record) return;
+        consumePointer(event);
+        setCursor(true);
+        onHover(record.selection);
+      }}
+      onPointerLeave={() => {
+        setCursor(false);
+        onHover(null);
+      }}
+    />
   );
-}
-
-type PlannedPathKind = "main" | "lane" | "courtyard";
-
-type PlannedPathEdge = Readonly<{
-  id: string;
-  from: Readonly<{ x: number; z: number }>;
-  to: Readonly<{ x: number; z: number }>;
-  kind: PlannedPathKind;
-}>;
-
-function plannedPathEdges(
-  plan: WorldPlan,
-  scatter: PlannedScatter,
-): ReadonlyArray<PlannedPathEdge> {
-  const hamlets = plan.topology.hamlets.map((hamlet) => ({
-    ...hamlet,
-    visualCenter: getHamletVisualPlacementMask(plan, hamlet).center,
-  }));
-  if (hamlets.length < 2) return [];
-  const connected = new Set([hamlets[0]!.id]);
-  const edges: PlannedPathEdge[] = [];
-  while (connected.size < hamlets.length) {
-    let best: Readonly<{
-      from: (typeof hamlets)[number];
-      to: (typeof hamlets)[number];
-      distance: number;
-    }> | null = null;
-    for (const from of hamlets) {
-      if (!connected.has(from.id)) continue;
-      for (const to of hamlets) {
-        if (connected.has(to.id)) continue;
-        const distance = Math.hypot(
-          from.visualCenter.x - to.visualCenter.x,
-          from.visualCenter.z - to.visualCenter.z,
-        );
-        if (!best || distance < best.distance) best = { from, to, distance };
-      }
-    }
-    if (!best) break;
-    connected.add(best.to.id);
-    edges.push({
-      id: `path-${best.from.id}-${best.to.id}`,
-      from: best.from.visualCenter,
-      to: best.to.visualCenter,
-      kind: "main",
-    });
-  }
-  for (const hamlet of hamlets) {
-    const buildings = scatter.buildings
-      .filter((building) => building.hamletId === hamlet.id)
-      .sort((first, second) => first.id.localeCompare(second.id));
-    const landmark = scatter.landmarks.find((candidate) => candidate.hamletId === hamlet.id);
-    const anchor =
-      landmark?.transform.position ?? buildings[0]?.transform.position ?? hamlet.visualCenter;
-    edges.push({
-      id: `court-entry-${hamlet.id}`,
-      from: hamlet.visualCenter,
-      to: anchor,
-      kind: "courtyard",
-    });
-    for (const building of buildings) {
-      const doorDistance = 2.8 * building.transform.scale.y;
-      const door = {
-        x: building.transform.position.x + Math.sin(building.transform.rotationY) * doorDistance,
-        z: building.transform.position.z + Math.cos(building.transform.rotationY) * doorDistance,
-      };
-      edges.push({
-        id: `lane-${hamlet.id}-${building.id}`,
-        from: anchor,
-        to: door,
-        kind: "lane",
-      });
-    }
-  }
-  return edges;
-}
-
-function pathCurve(plan: WorldPlan, edge: PlannedPathEdge): THREE.QuadraticBezierCurve3 | null {
-  const start = new THREE.Vector3(edge.from.x, 0, edge.from.z);
-  const end = new THREE.Vector3(edge.to.x, 0, edge.to.z);
-  const midpoint = start.clone().lerp(end, 0.5);
-  const direction = end.clone().sub(start);
-  const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
-  const bends =
-    edge.kind === "lane"
-      ? [0, 1.8, -1.8, 3.2, -3.2]
-      : edge.kind === "courtyard"
-        ? [0, 2.8, -2.8, 5, -5]
-        : [0, 8, -8, 15, -15, 24, -24];
-  let best: Readonly<{ curve: THREE.QuadraticBezierCurve3; penalty: number }> | null = null;
-  for (const bend of bends) {
-    const control = midpoint.clone().addScaledVector(perpendicular, bend);
-    const curve = new THREE.QuadraticBezierCurve3(start, control, end);
-    let penalty = 0;
-    for (let index = 2; index < 38; index += 1) {
-      const point = curve.getPoint(index / 40);
-      const region = classifyPlannedTerrainRegion(plan, point.x, point.z);
-      if (!region.inside) penalty += 100;
-      if (region.water !== null) penalty += 80;
-      if (region.material === "shore") penalty += 14;
-      if (region.slopeDegrees > 18) penalty += region.slopeDegrees - 18;
-    }
-    if (!best || penalty < best.penalty) best = { curve, penalty };
-  }
-  return best && best.penalty < 18 ? best.curve : null;
-}
-
-function buildPathGeometry(
-  plan: WorldPlan,
-  edge: PlannedPathEdge,
-  layer: "border" | "surface",
-): THREE.BufferGeometry | null {
-  const curve = pathCurve(plan, edge);
-  if (!curve) return null;
-  const segments = 52;
-  const positions: number[] = [];
-  const indices: number[] = [];
-  for (let index = 0; index <= segments; index += 1) {
-    const progress = index / segments;
-    const point = curve.getPoint(progress);
-    const tangent = curve.getTangent(progress).normalize();
-    const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
-    const baseHalfWidth = edge.kind === "main" ? 1.72 : edge.kind === "courtyard" ? 1.18 : 0.68;
-    const halfWidth =
-      (baseHalfWidth +
-        Math.sin(progress * Math.PI) *
-          (edge.kind === "main" ? 0.24 : edge.kind === "courtyard" ? 0.12 : 0.06)) *
-      (layer === "border" ? 1.34 : 1);
-    for (const side of [-1, 1]) {
-      const x = point.x + normal.x * halfWidth * side;
-      const z = point.z + normal.z * halfWidth * side;
-      positions.push(
-        x,
-        samplePlannedTerrainHeight(plan, x, z) + (layer === "border" ? 0.065 : 0.095),
-        z,
-      );
-    }
-  }
-  for (let index = 0; index < segments; index += 1) {
-    const offset = index * 2;
-    indices.push(offset, offset + 2, offset + 3, offset, offset + 3, offset + 1);
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  return geometry;
 }
 
 function PlannedPaths({ plan, scatter }: Readonly<{ plan: WorldPlan; scatter: PlannedScatter }>) {
-  const paths = useMemo(
-    () =>
-      plannedPathEdges(plan, scatter).flatMap((edge) => {
-        const border = buildPathGeometry(plan, edge, "border");
-        const surface = buildPathGeometry(plan, edge, "surface");
-        return border && surface ? [{ id: edge.id, border, surface, kind: edge.kind }] : [];
-      }),
-    [plan, scatter],
-  );
-  useEffect(
-    () => () => paths.forEach(({ border, surface }) => (border.dispose(), surface.dispose())),
-    [paths],
-  );
+  const paths = useMemo(() => createPlannedHamletPathBatch(plan, scatter), [plan, scatter]);
+  useEffect(() => () => disposePlannedHamletPathBatch(paths), [paths]);
   const surfaceColor = useMemo(
     () =>
       new THREE.Color(plan.appearance.terrain.shore).lerp(
@@ -1853,100 +2420,23 @@ function PlannedPaths({ plan, scatter }: Readonly<{ plan: WorldPlan; scatter: Pl
     () => surfaceColor.clone().lerp(new THREE.Color("#6f5844"), 0.42),
     [surfaceColor],
   );
+  if (paths.drawCallCount === 0) return null;
   return (
     <group name="planned-hamlet-paths">
-      {paths.flatMap(({ id, border, surface, kind }) => [
-        <mesh key={`${id}:border`} geometry={border} receiveShadow>
-          <meshStandardMaterial color={borderColor} roughness={1} />
-        </mesh>,
-        <mesh key={`${id}:surface`} geometry={surface} receiveShadow>
-          <meshStandardMaterial
-            color={surfaceColor}
-            roughness={1}
-            emissive={surfaceColor}
-            emissiveIntensity={kind === "main" ? 0.035 : kind === "courtyard" ? 0.026 : 0.02}
-            polygonOffset
-            polygonOffsetFactor={-1}
-          />
-        </mesh>,
-      ])}
-    </group>
-  );
-}
-
-function Atmosphere({
-  plan,
-  season,
-  quality,
-  reducedMotion,
-}: Readonly<{
-  plan: WorldPlan;
-  season: KingdomSeason;
-  quality: Quality;
-  reducedMotion: boolean;
-}>) {
-  const { envelope } = plan.topology;
-  const { appearance } = plan;
-  const diagonal = Math.hypot(envelope.width, envelope.depth);
-  return (
-    <>
-      <color attach="background" args={[appearance.atmosphere.sky]} />
-      <fog attach="fog" args={[appearance.atmosphere.fog, diagonal * 0.78, diagonal * 2.25]} />
-      <hemisphereLight
-        args={[
-          appearance.atmosphere.horizon,
-          appearance.terrain.escarpment,
-          season === "spring" ? 0.94 : 0.82,
-        ]}
-      />
-      <ambientLight intensity={season === "spring" ? 0.18 : 0.1} />
-      <directionalLight
-        castShadow={quality === "high"}
-        color={appearance.atmosphere.sunlight}
-        intensity={appearance.atmosphere.sunlightIntensity * (season === "spring" ? 1.44 : 1.32)}
-        position={[
-          envelope.minX - envelope.width * 0.28,
-          diagonal * 0.76,
-          envelope.maxZ + envelope.depth * 0.24,
-        ]}
-        shadow-mapSize-width={quality === "high" ? 2048 : 768}
-        shadow-mapSize-height={quality === "high" ? 2048 : 768}
-        shadow-camera-far={diagonal * 3}
-        shadow-camera-left={-envelope.width * 0.78}
-        shadow-camera-right={envelope.width * 0.78}
-        shadow-camera-top={envelope.depth * 0.78}
-        shadow-camera-bottom={-envelope.depth * 0.78}
-        shadow-bias={-0.00008}
-        shadow-normalBias={0.035}
-      />
-      <mesh position={[envelope.center.x, -9, envelope.center.z]} rotation-x={-Math.PI / 2}>
-        <circleGeometry args={[diagonal * 1.3, 64]} />
-        <meshBasicMaterial color={appearance.atmosphere.horizon} />
+      <mesh name="hamlet-path-borders" geometry={paths.border} receiveShadow>
+        <meshStandardMaterial color={borderColor} roughness={1} />
       </mesh>
-      {season === "winter" || season === "autumn" ? (
-        <Sparkles
-          count={quality === "high" ? 150 : 70}
-          scale={[envelope.width, 20, envelope.depth]}
-          position={[envelope.center.x, 9, envelope.center.z]}
-          size={season === "winter" ? 2.2 : 1.2}
-          speed={reducedMotion ? 0 : 0.22}
-          color={season === "winter" ? "#f4fbff" : appearance.foliage.flowering[0]}
-          opacity={0.66}
+      <mesh name="hamlet-path-surfaces" geometry={paths.surface} receiveShadow>
+        <meshStandardMaterial
+          color={surfaceColor}
+          roughness={1}
+          emissive={surfaceColor}
+          emissiveIntensity={0.023}
+          polygonOffset
+          polygonOffsetFactor={-1}
         />
-      ) : null}
-      {season === "spring" ? (
-        <Sparkles
-          count={quality === "high" ? 64 : 30}
-          scale={[envelope.width * 0.78, 12, envelope.depth * 0.64]}
-          position={[envelope.center.x, 7, envelope.center.z + envelope.depth * 0.03]}
-          size={1.25}
-          speed={reducedMotion ? 0 : 0.1}
-          noise={0.7}
-          color={appearance.foliage.flowering[1] ?? "#f6d6dc"}
-          opacity={0.38}
-        />
-      ) : null}
-    </>
+      </mesh>
+    </group>
   );
 }
 
@@ -1965,76 +2455,61 @@ function PortalLayer({
   onHover: (selection: Selection) => void;
   onEnter: (portal: RepositoryPortal) => void;
 }>) {
-  return (
-    <group name="repository-portals">
-      {world.portals.map((portal) => (
-        <Portal
-          key={portal.id}
-          portal={portal}
-          plan={plan}
-          reducedMotion={reducedMotion}
-          onSelect={onSelect}
-          onHover={onHover}
-          onEnter={onEnter}
-        />
-      ))}
-    </group>
-  );
-}
-
-function Portal({
-  portal,
-  plan,
-  reducedMotion,
-  onSelect,
-  onHover,
-  onEnter,
-}: Readonly<{
-  portal: RepositoryPortal;
-  plan: WorldPlan;
-  reducedMotion: boolean;
-  onSelect: (selection: Selection) => void;
-  onHover: (selection: Selection) => void;
-  onEnter: (portal: RepositoryPortal) => void;
-}>) {
-  const root = useRef<THREE.Group>(null);
-  useFrame((_, delta) => {
-    if (!root.current || reducedMotion) return;
-    root.current.rotation.y += delta * 0.17;
+  const rings = useRef<THREE.InstancedMesh>(null);
+  const disks = useRef<THREE.InstancedMesh>(null);
+  const rotation = useRef(0);
+  const instances = useMemo(() => createPlannedPortalInstances(world, plan), [plan, world]);
+  const writeMatrices = () => {
+    if (!rings.current || !disks.current) return;
+    writePlannedPortalMatrices(instances, rotation.current, rings.current, disks.current);
+  };
+  useLayoutEffect(() => {
+    writeMatrices();
+    rings.current?.computeBoundingSphere();
+    disks.current?.computeBoundingSphere();
   });
-  const selection: Selection = { kind: "portal", portal };
-  const y = samplePlannedTerrainHeight(plan, portal.position.x, portal.position.z) + 2.3;
+  useFrame((_, delta) => {
+    if (reducedMotion) return;
+    rotation.current += delta * 0.17;
+    writeMatrices();
+  });
+  if (instances.length === 0) return null;
   return (
     <group
-      ref={root}
-      position={[portal.position.x, y, portal.position.z]}
+      name="repository-portals"
       onPointerDown={(event) => {
+        const portal = plannedPortalForInstance(instances, event.instanceId);
+        if (!portal) return;
         consumePointer(event);
-        onSelect(selection);
+        onSelect({ kind: "portal", portal });
       }}
       onDoubleClick={(event) => {
+        const portal = plannedPortalForInstance(instances, event.instanceId);
+        if (!portal) return;
         consumePointer(event);
         onEnter(portal);
       }}
       onPointerEnter={(event) => {
+        const portal = plannedPortalForInstance(instances, event.instanceId);
+        if (!portal) return;
         consumePointer(event);
         setCursor(true);
-        onHover(selection);
+        onHover({ kind: "portal", portal });
       }}
       onPointerLeave={() => {
         setCursor(false);
         onHover(null);
       }}
     >
-      <mesh>
+      <instancedMesh ref={rings} args={[undefined, undefined, instances.length]}>
         <torusGeometry args={[1.55, 0.19, 10, 32]} />
         <meshStandardMaterial
           color={plan.appearance.atmosphere.sunlight}
           emissive={plan.appearance.terrain.water}
           emissiveIntensity={1.1}
         />
-      </mesh>
-      <mesh rotation-y={Math.PI / 2}>
+      </instancedMesh>
+      <instancedMesh ref={disks} args={[undefined, undefined, instances.length]}>
         <circleGeometry args={[1.3, 32]} />
         <meshBasicMaterial
           color={plan.appearance.terrain.water}
@@ -2042,7 +2517,7 @@ function Portal({
           opacity={0.3}
           side={THREE.DoubleSide}
         />
-      </mesh>
+      </instancedMesh>
     </group>
   );
 }
@@ -2096,7 +2571,7 @@ function SelectionMarker({
   );
 }
 
-function CameraRig({
+function OrbitCameraRig({
   plan,
   scatter,
   selection,
@@ -2172,6 +2647,14 @@ function CameraRig({
         points.push(new THREE.Vector3(x, region.height, z));
       }
     }
+    // The interior sampling grid can miss a narrow peninsula between cells.
+    // Include the authored perimeter explicitly so full-silhouette fitting
+    // guarantees real phone edge clearance rather than sampled clearance.
+    for (const point of getPlannedTerrainDefinition(plan).outline) {
+      points.push(
+        new THREE.Vector3(point.x, samplePlannedTerrainHeight(plan, point.x, point.z), point.z),
+      );
+    }
     for (const structure of [...scatter.buildings, ...scatter.landmarks]) {
       const { x, z } = structure.transform.position;
       points.push(
@@ -2200,18 +2683,25 @@ function CameraRig({
     }
     const extentX = Math.max(1, maxX - minX);
     const extentY = Math.max(1, maxY - minY);
-    const margin = isPortrait ? 1.08 : 1.22;
+    const fit = fitPlannedOverview({
+      viewportWidth: size.width,
+      viewportHeight: size.height,
+      projectedWidth: extentX,
+      projectedHeight: extentY,
+      repositoryProgress: plan.topology.repositoryScale.logarithmicProgress,
+      portrait: isPortrait,
+    });
     const projectedCenterX = (minX + maxX) / 2;
     const projectedCenterY = (minY + maxY) / 2;
     const fittedTarget = target
       .clone()
       .addScaledVector(right, projectedCenterX)
-      .addScaledVector(cameraUp, projectedCenterY);
+      .addScaledVector(
+        cameraUp,
+        projectedCenterY + fit.verticalOffsetPixels / Math.max(1, fit.zoom),
+      );
     return {
-      zoom: Math.max(
-        1,
-        Math.min(size.width / (extentX * margin), size.height / (extentY * margin)),
-      ),
+      zoom: fit.zoom,
       target: fittedTarget,
       position: fittedTarget.clone().add(cameraOffset),
     };
@@ -2247,15 +2737,18 @@ function CameraRig({
 
   useFrame((_, delta) => {
     if (!animating.current || !controls.current || !camera.current) return;
-    const alpha = 1 - Math.exp(-delta * 3.7);
+    const alpha = plannedCameraTransitionAlpha(delta, reducedMotion);
     camera.current.position.lerp(goalPosition.current, alpha);
     controls.current.target.lerp(focus.current, alpha);
     camera.current.zoom = THREE.MathUtils.lerp(camera.current.zoom, goalZoom.current, alpha);
     camera.current.updateProjectionMatrix();
     controls.current.update();
     if (
-      camera.current.position.distanceTo(goalPosition.current) < 0.04 &&
-      controls.current.target.distanceTo(focus.current) < 0.03
+      isPlannedCameraTransitionSettled({
+        position: camera.current.position.distanceTo(goalPosition.current),
+        target: controls.current.target.distanceTo(focus.current),
+        zoom: Math.abs(camera.current.zoom - goalZoom.current),
+      })
     ) {
       animating.current = false;
     }
@@ -2304,6 +2797,116 @@ function LoadingMarker({ plan }: Readonly<{ plan: WorldPlan }>) {
   );
 }
 
+function PlannedWalkRuntime({
+  plan,
+  scatter,
+  enrichment,
+  themeLayer,
+  landUse,
+  obstacles,
+  targets,
+  walkTargetUpdaters,
+  runtime,
+  reducedMotion,
+  quality,
+  onLockChange,
+  onStatusChange,
+  onTargetSelect,
+}: Readonly<{
+  plan: WorldPlan;
+  scatter: PlannedScatter;
+  enrichment: PlannedVisualEnrichment;
+  themeLayer: PlannedWorldThemeLayer;
+  landUse: ReturnType<typeof createPlannedLandUse>;
+  obstacles: ReadonlyArray<WalkObstacle>;
+  targets: ReadonlyArray<WalkTarget>;
+  walkTargetUpdaters: ReadonlyMap<string, WalkTargetPositionUpdater>;
+  runtime: PlannedWalkRuntimePlan;
+  reducedMotion: boolean;
+  quality: Quality;
+  onLockChange: (locked: boolean) => void;
+  onStatusChange: (status: WalkViewStatus) => void;
+  onTargetSelect: (target: WalkTarget) => void;
+}>) {
+  return (
+    <>
+      <Suspense fallback={null}>
+        <WalkTreeHybridLayer
+          scatter={scatter}
+          plan={plan}
+          enrichment={enrichment}
+          themeLayer={themeLayer}
+          livingSpawn={runtime.livingSpawn}
+        />
+        <WildlifeLayer
+          scatter={scatter}
+          plan={plan}
+          reducedMotion={reducedMotion}
+          navigationMode="walk"
+          walkTargetUpdaters={walkTargetUpdaters}
+          livingSpawn={runtime.livingSpawn}
+        />
+      </Suspense>
+      <PlannedWalkDetail
+        plan={plan}
+        detail={runtime.detail}
+        reducedMotion={reducedMotion}
+        quality={quality}
+      />
+      {runtime.regional ? (
+        <>
+          <PlannedRegionalExperienceLayer
+            plan={plan}
+            regional={runtime.regional}
+            mount="far"
+            quality={quality}
+            reducedMotion={reducedMotion}
+          />
+          <Suspense fallback={null}>
+            <PlannedRegionalExperienceLayer
+              plan={plan}
+              regional={runtime.regional}
+              mount="near"
+              quality={quality}
+              reducedMotion={reducedMotion}
+            />
+          </Suspense>
+        </>
+      ) : null}
+      <KingdomWalkControls
+        plan={plan}
+        landUse={landUse}
+        obstacles={obstacles}
+        targets={targets}
+        navigationGrid={runtime.navigationGrid}
+        livingSpawn={runtime.livingSpawn}
+        reducedMotion={reducedMotion}
+        onLockChange={onLockChange}
+        onStatusChange={onStatusChange}
+        onTargetSelect={onTargetSelect}
+      />
+    </>
+  );
+}
+
+function PlannedWalkPreparationState({
+  plan,
+  failed,
+  onLockChange,
+  onStatusChange,
+}: Readonly<{
+  plan: WorldPlan;
+  failed: boolean;
+  onLockChange: (locked: boolean) => void;
+  onStatusChange: (status: WalkViewStatus) => void;
+}>) {
+  useEffect(() => {
+    onLockChange(false);
+    onStatusChange(failed ? FAILED_WALK_STATUS : PREPARING_WALK_STATUS);
+  }, [failed, onLockChange, onStatusChange]);
+  return failed ? null : <LoadingMarker plan={plan} />;
+}
+
 export function KingdomScenePlanned({
   world,
   season,
@@ -2314,38 +2917,106 @@ export function KingdomScenePlanned({
   resetToken,
   reducedMotion,
   quality,
+  navigationMode = "orbit",
+  onWalkLockChange = ignoreWalkLockChange,
+  onWalkStatusChange = ignoreWalkStatusChange,
+  onWalkTargetSelect,
 }: KingdomSceneProps) {
   const plan = useMemo(() => createWorldPlan(world), [world]);
   const scatter = useMemo(() => createPlannedScatter(world, plan), [plan, world]);
   const enrichment = useMemo(() => createPlannedVisualEnrichment(plan, scatter), [plan, scatter]);
+  const landUse = useMemo(
+    () => createPlannedLandUse(plan, scatter, enrichment),
+    [enrichment, plan, scatter],
+  );
   const themeLayer = useMemo(() => createPlannedWorldThemeLayer(plan, scatter), [plan, scatter]);
+  const walkObstacles = useMemo<ReadonlyArray<WalkObstacle>>(
+    () => [
+      ...[...scatter.buildings, ...scatter.landmarks].map((item) => ({
+        x: item.transform.position.x,
+        z: item.transform.position.z,
+        radius: item.footprintRadius,
+      })),
+      ...createLandUseWalkObstacles(landUse),
+    ],
+    [landUse, scatter],
+  );
+  const walkInteraction = useMemo(
+    () => createRepositoryWalkInteraction(world, plan, scatter),
+    [plan, scatter, world],
+  );
+  const walkRuntimeTargets = useMemo(
+    () => walkInteraction.targets.map(({ id, x, y, z }) => ({ id, x, y, z })),
+    [walkInteraction.targets],
+  );
+  const walkRuntimeInput = useMemo(
+    () => ({
+      plan,
+      landUse,
+      scatter,
+      enrichment,
+      obstacles: walkObstacles,
+      structures: walkInteraction.structures,
+      targets: walkRuntimeTargets,
+    }),
+    [
+      enrichment,
+      landUse,
+      plan,
+      scatter,
+      walkInteraction.structures,
+      walkObstacles,
+      walkRuntimeTargets,
+    ],
+  );
+  // Preparation begins while Orbit remains interactive. The module worker and
+  // its keyed cache keep both cold activation and repeated toggles off the main
+  // render thread.
+  const preparedWalkRuntime = usePreparedPlannedWalkRuntime(walkRuntimeInput);
+  const renderedNavigationMode =
+    navigationMode === "walk" && preparedWalkRuntime.status !== "ready" ? "orbit" : navigationMode;
   return (
     <>
-      <Atmosphere plan={plan} season={season} quality={quality} reducedMotion={reducedMotion} />
+      <PlannedCinematicEnvironment
+        plan={plan}
+        quality={quality}
+        navigationMode={renderedNavigationMode}
+      />
       <PlannedTerrain plan={plan} quality={quality} receiveShadow />
       <PlannedEscarpment plan={plan} quality={quality} />
       <PlannedWatershed plan={plan} quality={quality} reducedMotion={reducedMotion} />
       <PlannedPaths plan={plan} scatter={scatter} />
       <Suspense fallback={<LoadingMarker plan={plan} />}>
+        <PlannedLandUseLayer plan={plan} landUse={landUse} season={season} />
+        <PlannedLakeHabitat plan={plan} season={season} />
         <VegetationLayer
           scatter={scatter}
           plan={plan}
           enrichment={enrichment}
           themeLayer={themeLayer}
+          navigationMode={renderedNavigationMode}
         />
         <ArchitectureLayer
-          world={world}
           plan={plan}
           scatter={scatter}
-          onSelect={onSelect}
-          onHover={onHover}
+          navigationMode={renderedNavigationMode}
+          quality={quality}
         />
-        <WildlifeLayer scatter={scatter} plan={plan} reducedMotion={reducedMotion} />
+        {renderedNavigationMode === "orbit" ? (
+          <WildlifeLayer
+            scatter={scatter}
+            plan={plan}
+            reducedMotion={reducedMotion}
+            navigationMode="orbit"
+            walkTargetUpdaters={walkInteraction.animalTargetUpdaters}
+          />
+        ) : null}
         <EnchantedThemeLayer
           layer={themeLayer}
           plan={plan}
           reducedMotion={reducedMotion}
           quality={quality}
+          navigationMode={renderedNavigationMode}
         />
       </Suspense>
       <PlannedLife
@@ -2354,7 +3025,7 @@ export function KingdomScenePlanned({
         enrichment={enrichment}
         reducedMotion={reducedMotion}
       />
-      <SemanticHitZones
+      <PlannedInteractionIndex
         world={world}
         plan={plan}
         scatter={scatter}
@@ -2370,13 +3041,50 @@ export function KingdomScenePlanned({
         onEnter={onEnterPortal}
       />
       <SelectionMarker selection={selection} plan={plan} scatter={scatter} />
-      <CameraRig
-        plan={plan}
-        scatter={scatter}
-        selection={selection}
-        resetToken={resetToken}
-        reducedMotion={reducedMotion}
-      />
+      {navigationMode === "walk" ? (
+        preparedWalkRuntime.status === "ready" ? (
+          <PlannedWalkRuntime
+            plan={plan}
+            scatter={scatter}
+            enrichment={enrichment}
+            themeLayer={themeLayer}
+            landUse={landUse}
+            obstacles={walkObstacles}
+            targets={walkInteraction.targets}
+            walkTargetUpdaters={walkInteraction.animalTargetUpdaters}
+            runtime={preparedWalkRuntime.result}
+            reducedMotion={reducedMotion}
+            quality={quality}
+            onLockChange={onWalkLockChange}
+            onStatusChange={onWalkStatusChange}
+            onTargetSelect={(target) => (onWalkTargetSelect ?? onSelect)(target.selection)}
+          />
+        ) : (
+          <>
+            <PlannedWalkPreparationState
+              plan={plan}
+              failed={preparedWalkRuntime.status === "error"}
+              onLockChange={onWalkLockChange}
+              onStatusChange={onWalkStatusChange}
+            />
+            <OrbitCameraRig
+              plan={plan}
+              scatter={scatter}
+              selection={selection}
+              resetToken={resetToken}
+              reducedMotion={reducedMotion}
+            />
+          </>
+        )
+      ) : (
+        <OrbitCameraRig
+          plan={plan}
+          scatter={scatter}
+          selection={selection}
+          resetToken={resetToken}
+          reducedMotion={reducedMotion}
+        />
+      )}
     </>
   );
 }

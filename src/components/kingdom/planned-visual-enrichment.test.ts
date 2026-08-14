@@ -85,6 +85,17 @@ describe("createPlannedVisualEnrichment", () => {
       expect(region.height, rock.id).toBeGreaterThanOrEqual(3);
       expect(region.height, rock.id).toBeLessThanOrEqual(15);
     }
+    for (let firstIndex = 0; firstIndex < enrichment.cliffFormations.length; firstIndex += 1) {
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < enrichment.cliffFormations.length;
+        secondIndex += 1
+      ) {
+        const first = enrichment.cliffFormations[firstIndex]!.position;
+        const second = enrichment.cliffFormations[secondIndex]!.position;
+        expect(Math.hypot(first.x - second.x, first.z - second.z)).toBeGreaterThanOrEqual(12);
+      }
+    }
     for (const detail of enrichment.shoreDetails) {
       const region = classifyPlannedTerrainRegion(plan, detail.position.x, detail.position.z);
       expect(region.inside, detail.id).toBe(true);

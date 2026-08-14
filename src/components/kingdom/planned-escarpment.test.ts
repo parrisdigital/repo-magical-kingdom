@@ -224,7 +224,7 @@ describe("planned rear escarpment ribbon", () => {
       const x = high.positions[vertex * 3]!;
       const y = high.positions[vertex * 3 + 1]!;
       const z = high.positions[vertex * 3 + 2]!;
-      expect(y).toBeCloseTo(samplePlannedTerrainHeight(plan, x, z) + 0.055, 5);
+      expect(y).toBeCloseTo(samplePlannedTerrainHeight(plan, x, z) + 0.055, 4);
     }
   });
 

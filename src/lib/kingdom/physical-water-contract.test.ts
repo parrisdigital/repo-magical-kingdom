@@ -29,16 +29,21 @@ describe("canonical physical lake", () => {
       center,
       radiusX,
       radiusZ,
+      rotation: 0,
       surfaceHeight: 0,
       area: 0,
       footprintRatio: 0,
       inletAngle: -Math.PI / 2,
       perimeter,
       islet: {
+        enabled: true,
+        kind: "grove",
         center,
         radiusX: 1,
         radiusZ: 1,
         rotation: 0,
+        height: 1,
+        detailAnchors: [],
       },
     };
     let worldAngleMismatchCount = 0;
@@ -74,6 +79,59 @@ describe("canonical physical lake", () => {
     // The high-eccentricity fixture must exercise the regression: ordinary
     // world angles select different polygon edges through most of the ellipse.
     expect(worldAngleMismatchCount).toBeGreaterThan(segmentCount / 2);
+  });
+
+  it("classifies rotated shoreline chords at the angle wrap without leaving the perimeter", () => {
+    const center = { x: -11, z: 19 };
+    const radiusX = 31;
+    const radiusZ = 12;
+    const rotation = 0.63;
+    const segmentCount = 96;
+    const perimeter = Array.from({ length: segmentCount }, (_, index) => {
+      const angle = (index / segmentCount) * Math.PI * 2;
+      const localX = Math.cos(angle) * radiusX;
+      const localZ = Math.sin(angle) * radiusZ;
+      return {
+        x: center.x + localX * Math.cos(rotation) - localZ * Math.sin(rotation),
+        z: center.z + localX * Math.sin(rotation) + localZ * Math.cos(rotation),
+      };
+    });
+    const lake: PhysicalLakeContract = {
+      center,
+      radiusX,
+      radiusZ,
+      rotation,
+      surfaceHeight: 0,
+      area: 0,
+      footprintRatio: 0,
+      inletAngle: -Math.PI / 2,
+      perimeter,
+      islet: {
+        enabled: true,
+        kind: "grove",
+        center,
+        radiusX: 2,
+        radiusZ: 1,
+        rotation: 0,
+        height: 1,
+        detailAnchors: [],
+      },
+    };
+
+    for (const angle of [-Number.EPSILON, 0, Number.EPSILON, Math.PI * 2 - Number.EPSILON]) {
+      const localX = Math.cos(angle) * radiusX;
+      const localZ = Math.sin(angle) * radiusZ;
+      const x = center.x + localX * Math.cos(rotation) - localZ * Math.sin(rotation);
+      const z = center.z + localX * Math.sin(rotation) + localZ * Math.cos(rotation);
+      expect(canonicalLakeNormalizedRadius(lake, x, z)).toBeCloseTo(1, 9);
+      expect(
+        canonicalLakeNormalizedRadius(
+          lake,
+          center.x + (x - center.x) * 0.37,
+          center.z + (z - center.z) * 0.37,
+        ),
+      ).toBeCloseTo(0.37, 9);
+    }
   });
 });
 

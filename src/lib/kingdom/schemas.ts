@@ -20,7 +20,7 @@ const avatarUrlSchema = z.url({
   hostname: /^(?:avatars\.githubusercontent\.com|github\.com)$/i,
 });
 
-export const kingdomWorldSchema = z.object({
+const kingdomWorldObjectSchema = z.object({
   schema: z.literal("repo-kingdom/v1"),
   compilerVersion: z.literal("1.0.0"),
   buildKey: z.string().min(1),
@@ -132,6 +132,214 @@ export const kingdomWorldSchema = z.object({
     ),
   }),
   warnings: z.array(z.object({ code: z.string(), message: z.string() })),
+});
+
+type ParsedKingdomWorld = z.infer<typeof kingdomWorldObjectSchema>;
+
+function representedEntityFiles(world: ParsedKingdomWorld): number {
+  return world.entities.reduce((total, entity) => total + entity.representedFiles, 0);
+}
+
+function addCoverageIssue(
+  context: z.RefinementCtx,
+  path: ReadonlyArray<string | number>,
+  message: string,
+): void {
+  context.addIssue({ code: "custom", path: [...path], message });
+}
+
+function validateEntityCoverage(
+  world: ParsedKingdomWorld,
+  context: z.RefinementCtx,
+  strictCompilerOutput: boolean,
+): void {
+  const directEntities = world.entities.filter((entity) => !entity.aggregate).length;
+  const aggregateEntities = world.entities.length - directEntities;
+  const representedFiles = representedEntityFiles(world);
+  if (world.coverage.directEntities !== directEntities) {
+    addCoverageIssue(
+      context,
+      ["coverage", "directEntities"],
+      `Expected ${directEntities} direct entities from the entity collection.`,
+    );
+  }
+  if (world.coverage.aggregateEntities !== aggregateEntities) {
+    addCoverageIssue(
+      context,
+      ["coverage", "aggregateEntities"],
+      `Expected ${aggregateEntities} aggregate entities from the entity collection.`,
+    );
+  }
+  if (world.coverage.representedFiles !== representedFiles) {
+    addCoverageIssue(
+      context,
+      ["coverage", "representedFiles"],
+      `Expected ${representedFiles} represented files from the entity collection.`,
+    );
+  }
+  if (world.coverage.representedFiles > world.coverage.eligibleFiles) {
+    addCoverageIssue(
+      context,
+      ["coverage", "representedFiles"],
+      "Represented files cannot exceed eligible files.",
+    );
+  }
+  if (!strictCompilerOutput) return;
+
+  const omittedFiles = world.coverage.omissions.reduce(
+    (total, omission) => total + omission.files,
+    0,
+  );
+  const representedBytes = world.entities.reduce((total, entity) => total + entity.size, 0);
+  const provinceFiles = world.provinces.reduce(
+    (total, province) => total + province.representedFiles,
+    0,
+  );
+  const provinceBytes = world.provinces.reduce(
+    (total, province) => total + province.representedBytes,
+    0,
+  );
+  if (representedFiles !== world.coverage.eligibleFiles) {
+    addCoverageIssue(
+      context,
+      ["coverage", "eligibleFiles"],
+      "Every eligible file must be represented by exactly one direct or aggregate entity.",
+    );
+  }
+  if (world.coverage.omittedFiles !== omittedFiles) {
+    addCoverageIssue(
+      context,
+      ["coverage", "omittedFiles"],
+      `Expected ${omittedFiles} omitted files from the omission summaries.`,
+    );
+  }
+  if (
+    world.coverage.discoveredFiles !==
+    world.coverage.eligibleFiles + world.coverage.omittedFiles
+  ) {
+    addCoverageIssue(
+      context,
+      ["coverage", "discoveredFiles"],
+      "Discovered files must equal eligible plus intentionally omitted files.",
+    );
+  }
+  if (world.statistics.files !== world.coverage.eligibleFiles) {
+    addCoverageIssue(
+      context,
+      ["statistics", "files"],
+      "Repository statistics must use the same eligible-file count as coverage.",
+    );
+  }
+  if (world.statistics.bytes !== representedBytes) {
+    addCoverageIssue(
+      context,
+      ["statistics", "bytes"],
+      `Expected ${representedBytes} represented bytes from the entity collection.`,
+    );
+  }
+  if (world.statistics.provinces !== world.provinces.length) {
+    addCoverageIssue(
+      context,
+      ["statistics", "provinces"],
+      `Expected ${world.provinces.length} provinces from the province collection.`,
+    );
+  }
+  if (provinceFiles !== world.coverage.eligibleFiles) {
+    addCoverageIssue(
+      context,
+      ["provinces"],
+      "Province file totals must account for every eligible file exactly once.",
+    );
+  }
+  if (provinceBytes !== world.statistics.bytes) {
+    addCoverageIssue(
+      context,
+      ["provinces"],
+      "Province byte totals must reconcile with repository statistics.",
+    );
+  }
+}
+
+/**
+ * Reconciles older captured/synthetic v1 payloads whose summary counters were
+ * retained after their entity arrays were deliberately reduced. The mismatch
+ * remains visible as a warning; compiler output uses the strict schema below
+ * and can never rely on this compatibility path.
+ */
+export function migrateLegacyKingdomCoverage(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  const record = value as Record<string, unknown>;
+  if (!Array.isArray(record.entities) || typeof record.coverage !== "object") return value;
+  const coverage = record.coverage as Record<string, unknown> | null;
+  if (!coverage) return value;
+  const entities = record.entities;
+  if (
+    !entities.every(
+      (entity) =>
+        typeof entity === "object" &&
+        entity !== null &&
+        typeof (entity as Record<string, unknown>).aggregate === "boolean" &&
+        typeof (entity as Record<string, unknown>).representedFiles === "number",
+    )
+  ) {
+    return value;
+  }
+  const directEntities = entities.filter(
+    (entity) => !(entity as Record<string, unknown>).aggregate,
+  ).length;
+  const aggregateEntities = entities.length - directEntities;
+  const representedFiles = entities.reduce(
+    (total, entity) => total + Number((entity as Record<string, unknown>).representedFiles),
+    0,
+  );
+  if (
+    coverage.directEntities === directEntities &&
+    coverage.aggregateEntities === aggregateEntities &&
+    coverage.representedFiles === representedFiles
+  ) {
+    return value;
+  }
+  const warnings = Array.isArray(record.warnings) ? record.warnings : [];
+  const alreadyWarned = warnings.some(
+    (warning) =>
+      typeof warning === "object" &&
+      warning !== null &&
+      (warning as Record<string, unknown>).code === "LEGACY_COVERAGE_RECONCILED",
+  );
+  return {
+    ...record,
+    coverage: {
+      ...coverage,
+      directEntities,
+      aggregateEntities,
+      representedFiles,
+    },
+    warnings: alreadyWarned
+      ? warnings
+      : [
+          ...warnings,
+          {
+            code: "LEGACY_COVERAGE_RECONCILED",
+            message:
+              "Legacy summary counters were reconciled with the available entity collection; some eligible source details may be absent from this captured package.",
+          },
+        ],
+  };
+}
+
+export const kingdomWorldSchema = kingdomWorldObjectSchema.superRefine((world, context) => {
+  validateEntityCoverage(world, context, false);
+});
+
+/** Explicit opt-in parser for known legacy captured fixtures only. */
+export const legacyKingdomWorldSchema = z.preprocess(
+  migrateLegacyKingdomCoverage,
+  kingdomWorldSchema,
+);
+
+/** Strict serialization gate for newly compiled repository worlds. */
+export const compiledKingdomWorldSchema = kingdomWorldObjectSchema.superRefine((world, context) => {
+  validateEntityCoverage(world, context, true);
 });
 
 export const repositoryUniverseSchema = z.object({

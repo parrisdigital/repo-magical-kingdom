@@ -8,8 +8,11 @@ import { buildPlannedWaterGeometry } from "./planned-terrain-model";
 import {
   applyWaterDetailShader,
   createPlannedWaterSurfaceAttributes,
+  PLANNED_WATER_MATERIAL_CONTRACT,
   PLANNED_WATER_MATERIAL_SIDE,
+  PLANNED_WATER_PROGRAM_CACHE_KEY,
   resolvePlannedWaterAnimationTime,
+  updatePlannedWaterAnimationTime,
   type WaterShaderUniforms,
 } from "./planned-terrain";
 
@@ -20,8 +23,8 @@ describe("planned watershed presentation", () => {
       courseSegments: 28,
       courseCrossSegments: 5,
     });
-    const first = createPlannedWaterSurfaceAttributes(water, 5);
-    const repeated = createPlannedWaterSurfaceAttributes(water, 5);
+    const first = createPlannedWaterSurfaceAttributes(water);
+    const repeated = createPlannedWaterSurfaceAttributes(water);
 
     expect(Array.from(repeated.edge)).toEqual(Array.from(first.edge));
     expect(Array.from(repeated.region)).toEqual(Array.from(first.region));
@@ -45,8 +48,23 @@ describe("planned watershed presentation", () => {
       Array(water.vertexCount - first.firstLakeIndex).fill(1),
     );
     expect(first.edge[first.firstLakeIndex]).toBe(0);
-    expect(Array.from(first.edge.slice(first.firstLakeIndex + 1))).toEqual(
-      Array(water.vertexCount - first.firstLakeIndex - 1).fill(1),
+
+    // Regression: the old lake was one center vertex joined directly to the
+    // shoreline, so every non-center lake vertex had edge=1. That made the
+    // depth field interpolate as a handful of visible triangular wedges.
+    // A tessellated lake must carry several sampled interior shore distances.
+    const lakeEdges = Array.from(first.edge.slice(first.firstLakeIndex));
+    const interiorLakeEdges = lakeEdges.slice(1, -water.ranges.lakePerimeterSegments);
+    const distinctInteriorEdges = new Set(
+      interiorLakeEdges
+        .filter((value) => value > 0.001 && value < 0.999)
+        .map((value) => value.toFixed(4)),
+    );
+    expect(water.ranges.lakeRingCount).toBeGreaterThanOrEqual(5);
+    expect(interiorLakeEdges.length).toBeGreaterThan(water.ranges.lakePerimeterSegments * 3);
+    expect(distinctInteriorEdges.size).toBeGreaterThan(12);
+    expect(lakeEdges.slice(-water.ranges.lakePerimeterSegments)).toEqual(
+      Array(water.ranges.lakePerimeterSegments).fill(1),
     );
 
     const rowWidth = 6;
@@ -92,7 +110,26 @@ describe("planned watershed presentation", () => {
     expect(resolvePlannedWaterAnimationTime(Number.NaN, false)).toBe(0);
   });
 
-  it("injects depth, directional flow, fragment ripples, Fresnel, and inline foam", () => {
+  it("updates one stable time uniform and freezes it exactly for reduced motion", () => {
+    const time = { value: 4.5 };
+
+    expect(updatePlannedWaterAnimationTime(time, 12.75, false)).toBe(time);
+    expect(time.value).toBe(12.75);
+    expect(updatePlannedWaterAnimationTime(time, 99, true)).toBe(time);
+    expect(time.value).toBe(0);
+  });
+
+  it("keeps the watershed in one opaque depth-writing material contract", () => {
+    expect(PLANNED_WATER_MATERIAL_CONTRACT).toEqual({
+      transparent: false,
+      opacity: 1,
+      depthWrite: true,
+      side: THREE.BackSide,
+    });
+    expect(PLANNED_WATER_PROGRAM_CACHE_KEY).toBe("planned-watershed-directional-water-v5");
+  });
+
+  it("injects distinct non-grid lake waves and river flow with physical highlights", () => {
     const uniforms: WaterShaderUniforms = {
       time: { value: 0 },
       deepColor: { value: new THREE.Color("#459fb5") },
@@ -109,8 +146,8 @@ describe("planned watershed presentation", () => {
       ].join("\n"),
       fragmentShader: [
         "#include <common>",
-        "#include <normal_fragment_maps>",
         "#include <color_fragment>",
+        "#include <normal_fragment_maps>",
         "#include <emissivemap_fragment>",
         "#include <opaque_fragment>",
       ].join("\n"),
@@ -120,13 +157,66 @@ describe("planned watershed presentation", () => {
 
     expect(shader.uniforms.uKingdomWaterTime).toBe(uniforms.time);
     expect(shader.uniforms.uKingdomWaterDeepColor).toBe(uniforms.deepColor);
-    expect(shader.vertexShader).toContain("kingdomWaterProgress * 74.0");
+    expect(shader.vertexShader).toContain("kingdomLakeWave");
+    expect(shader.vertexShader).toContain("kingdomRiverWave");
     expect(shader.fragmentShader).toContain("kingdomWaterDepth");
-    expect(shader.fragmentShader).toContain("kingdomRiverThread");
-    expect(shader.fragmentShader).toContain("kingdomWaterRippleSlope");
+    expect(shader.fragmentShader).toContain("kingdomLakeWaveSlope");
+    expect(shader.fragmentShader).toContain("kingdomRiverFlowSlope");
     expect(shader.fragmentShader).toContain("kingdomFresnel");
-    expect(shader.fragmentShader).toContain("kingdomFoamThreshold");
+    expect(shader.fragmentShader).toContain("kingdomBroadReflectionModulation");
+    expect(shader.fragmentShader).toContain("kingdomSkyGradient");
+    expect(shader.fragmentShader).toContain("kingdomSunGlint");
+    expect(shader.fragmentShader).toContain("kingdomBrokenFoam");
+    expect(shader.fragmentShader).toContain("float interruption");
+    expect(shader.fragmentShader).toContain("kingdomFoam * 0.58");
+    expect(shader.fragmentShader).toContain(
+      "kingdomFresnel * kingdomBroadReflectionModulation * 0.28",
+    );
     expect(shader.fragmentShader).toContain("diffuseColor.a = 1.0");
     expect(shader.fragmentShader).not.toContain("discard");
+    expect(shader.fragmentShader).not.toContain("floor(");
+    expect(shader.fragmentShader).not.toContain("kingdomWaterNoise");
+    expect(shader.fragmentShader).not.toContain("kingdomLakeRippleA");
+    expect(shader.fragmentShader).not.toContain("kingdomRiverThread");
+    expect(shader.fragmentShader).not.toContain("kingdomFresnel * 0.54");
+
+    const slopeDeclaration = shader.fragmentShader.indexOf("vec2 kingdomWaterSlope =");
+    const colorUse = shader.fragmentShader.indexOf("vec3 kingdomWaterDetailWorldNormal");
+    const normalUse = shader.fragmentShader.indexOf("vec3 kingdomWaterDetailNormalView");
+    expect(slopeDeclaration).toBeGreaterThan(-1);
+    expect(slopeDeclaration).toBeLessThan(colorUse);
+    expect(slopeDeclaration).toBeLessThan(normalUse);
+    expect(shader.fragmentShader.match(/vec2 kingdomWaterSlope\s*=/g)).toHaveLength(1);
+  });
+
+  it("produces deterministic shader source and uniform bindings", () => {
+    const createShader = () =>
+      ({
+        uniforms: {},
+        vertexShader: "#include <common>\n#include <begin_vertex>\n#include <worldpos_vertex>",
+        fragmentShader: [
+          "#include <common>",
+          "#include <color_fragment>",
+          "#include <normal_fragment_maps>",
+          "#include <emissivemap_fragment>",
+          "#include <opaque_fragment>",
+        ].join("\n"),
+      }) as unknown as THREE.WebGLProgramParametersWithUniforms;
+    const uniforms: WaterShaderUniforms = {
+      time: { value: 0 },
+      deepColor: { value: new THREE.Color("#459fb5") },
+      shallowColor: { value: new THREE.Color("#b7e5e6") },
+      foamColor: { value: new THREE.Color("#f5fbef") },
+      skyColor: { value: new THREE.Color("#bcd9e8") },
+    };
+    const first = createShader();
+    const repeated = createShader();
+
+    applyWaterDetailShader(first, uniforms);
+    applyWaterDetailShader(repeated, uniforms);
+
+    expect(repeated.vertexShader).toBe(first.vertexShader);
+    expect(repeated.fragmentShader).toBe(first.fragmentShader);
+    expect(repeated.uniforms).toEqual(first.uniforms);
   });
 });

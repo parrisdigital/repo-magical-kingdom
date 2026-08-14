@@ -435,6 +435,142 @@
       "notes": "Attribution is not required by CC0; recognition is retained as project policy. Models by @Quaternius. Reviewed self-contained source glTF SHA-256 values: Deer b8afd0647e7a74332ce802c8326dfefe1a2b76da67ab925a631aaddb5ae9bdd4; Fox 2f36e3c9c75ecddda85c5f9944e98ee1e88e7c679a546534aff1cea8ecde64c7; Stag 170b964909d16d1ab4d428b1d714f25016913d32481acd9c3d62923192583be6."
     },
     {
+      "id": "poly-haven-terrain-pbr-atlas",
+      "name": "Poly Haven terrain PBR atlas",
+      "kind": "asset",
+      "relationship": "CC0 source of photographic grass, soil, exposed-rock, and damp-shore terrain materials for the desktop vertical slice.",
+      "canonicalUrl": "https://polyhaven.com/textures",
+      "version": "Reviewed 1K JPEG maps, retrieved 2026-08-14",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://polyhaven.com/license"
+      },
+      "authors": ["Poly Haven", "Amal Kumar", "eye-candy.xyz", "Rob Tuytel"],
+      "usage": "Guarded desktop and low-memory WebP atlases provide albedo, OpenGL tangent-space normal, and roughness channels in grass, soil, rock, and shore slots.",
+      "projectLocations": [
+        "public/assets/world/terrain/polyhaven",
+        "scripts/assets/build-terrain-pbr-assets.mjs",
+        "scripts/assets/verify-terrain-pbr-assets.mjs",
+        "package.json",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/assets/TERRAIN_PBR.md"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/terrain/polyhaven/terrain-albedo.webp",
+        "public/assets/world/terrain/polyhaven/terrain-normal-gl.webp",
+        "public/assets/world/terrain/polyhaven/terrain-roughness.webp",
+        "public/assets/world/terrain/polyhaven/terrain-albedo-low.webp",
+        "public/assets/world/terrain/polyhaven/terrain-normal-gl-low.webp",
+        "public/assets/world/terrain/polyhaven/terrain-roughness-low.webp",
+        "public/assets/world/terrain/polyhaven/terrain-atlas.json"
+      ],
+      "contentHashes": {
+        "public/assets/world/terrain/polyhaven/terrain-albedo.webp": "sha256:52b90ac53718455508b674af6eb933e599b0948c3705242134c5ad386fa9f545",
+        "public/assets/world/terrain/polyhaven/terrain-normal-gl.webp": "sha256:a80a459e2070d78b29b412a82411bc58db1b81dea1b7ce986df4ac6e3d99aa8f",
+        "public/assets/world/terrain/polyhaven/terrain-roughness.webp": "sha256:bb4d73ef50d09cceb15a9bb2a3315cd0ce68a3e1132615bc08b5828a93f8d226",
+        "public/assets/world/terrain/polyhaven/terrain-albedo-low.webp": "sha256:f136f7cfe350200e396c6087ec45d02dcf94048ec940c6d8e2f1dde21905db56",
+        "public/assets/world/terrain/polyhaven/terrain-normal-gl-low.webp": "sha256:c17702f44b314c1f1095a375013a7d7a3eb7894cdf3e59cd29cca8e43ac52d68",
+        "public/assets/world/terrain/polyhaven/terrain-roughness-low.webp": "sha256:4a7985b7d2c581a6da8259159409ecd7fe4b5809b5e9ec7da47b7c2838693b91",
+        "public/assets/world/terrain/polyhaven/terrain-atlas.json": "sha256:86a06a0e021ea9239ea1c8c1dc986f05ee519a42caac3be3094eaa48cfb5d456"
+      },
+      "modifications": "Selected only official 1K JPEG diffuse, OpenGL normal, and roughness maps; verified upstream MD5 and local SHA-256; resized tiles for proportional copied-edge gutters that protect bilinear sampling through at least mip level 6; packed four horizontal material slots; converted roughness to grayscale RGB; and encoded browser-native desktop and low-memory WebP atlases with Sharp 0.35.3.",
+      "notes": "The official Poly Haven asset pages and license page declare all four sources CC0. The exact asset pages, artists, physical dimensions, upstream URLs, source byte counts and hashes, atlas layout, output hashes, and conversion settings are preserved in terrain-atlas.json. Source JPEGs, archives, AO, displacement, metalness, previews, and terrain-source HDRIs are not redistributed as part of this atlas."
+    },
+    {
+      "id": "poly-haven-architecture-detail-atlas",
+      "name": "Poly Haven modular-home architecture detail atlas",
+      "kind": "asset",
+      "relationship": "CC0 source of photographic plaster, brick, wood, and roof-tile detail for the authored Quaternius modular homes.",
+      "canonicalUrl": "https://polyhaven.com/textures",
+      "version": "Reviewed 1K JPEG maps, retrieved 2026-08-14",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://polyhaven.com/license"
+      },
+      "authors": [
+        "Poly Haven",
+        "Rob Tuytel",
+        "Dario Barresi",
+        "Dimitrios Savva",
+        "Rico Cilliers",
+        "Stephan Seeliger"
+      ],
+      "usage": "Six guarded high/low WebP atlases stage albedo, OpenGL tangent-space normal, and roughness channels for exact plaster, brick, wood, and roof-tile material roles. High-quality Walk samples only the high normal and roughness atlases; Orbit and low quality keep the authored materials without additional texture reads.",
+      "projectLocations": [
+        "public/assets/world/architecture/polyhaven",
+        "scripts/assets/build-architecture-detail-assets.mjs",
+        "scripts/assets/verify-architecture-detail-assets.mjs",
+        "src/components/kingdom/planned-architecture-detail-material.ts",
+        "package.json",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/assets/ARCHITECTURE_DETAIL_PBR.md"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/architecture/polyhaven/architecture-detail-albedo-high.webp",
+        "public/assets/world/architecture/polyhaven/architecture-detail-normal-gl-high.webp",
+        "public/assets/world/architecture/polyhaven/architecture-detail-roughness-high.webp",
+        "public/assets/world/architecture/polyhaven/architecture-detail-albedo-low.webp",
+        "public/assets/world/architecture/polyhaven/architecture-detail-normal-gl-low.webp",
+        "public/assets/world/architecture/polyhaven/architecture-detail-roughness-low.webp",
+        "public/assets/world/architecture/polyhaven/architecture-detail-atlas.json"
+      ],
+      "contentHashes": {
+        "public/assets/world/architecture/polyhaven/architecture-detail-albedo-high.webp": "sha256:506cef1fcf416401da3d6445e010bfbb743c1a21d11ba1f03aeb1bf3389976b1",
+        "public/assets/world/architecture/polyhaven/architecture-detail-normal-gl-high.webp": "sha256:5a132c7094ca0d7cf1f0a1b26572f6c5fa315923d4ccf334f52abee24d4b0432",
+        "public/assets/world/architecture/polyhaven/architecture-detail-roughness-high.webp": "sha256:48f15db8761fceea6e7a7162ba560a4084089ce54793500bdeb800e67b85ee89",
+        "public/assets/world/architecture/polyhaven/architecture-detail-albedo-low.webp": "sha256:bd5c9b51d10a468cc44d975263db8952edc38f67aa8309b22a9a3f5d00088258",
+        "public/assets/world/architecture/polyhaven/architecture-detail-normal-gl-low.webp": "sha256:d6690326249a5e457c96f06707e0c1baa18a17ac023bddc55d4ec23005cf3f5b",
+        "public/assets/world/architecture/polyhaven/architecture-detail-roughness-low.webp": "sha256:5240b3cbda56cd45006e4f0a3af8e5084b54d8f993218534bd03c8b25f8511b3",
+        "public/assets/world/architecture/polyhaven/architecture-detail-atlas.json": "sha256:7292ec3c6eca5267d40b0e5b70ec345098394b59c558b0298b149e08db50c900"
+      },
+      "modifications": "Selected only official 1K JPEG diffuse, OpenGL normal, and roughness maps; verified upstream MD5 and local SHA-256; resized tiles for proportional copied-edge gutters; packed four exact material-family slots; converted roughness to grayscale RGB; and encoded deterministic browser-native high and low WebP atlases with Sharp 0.35.3. The additive runtime preserves the authored base material and samples only mean-centered normal and roughness detail in high-quality Walk.",
+      "notes": "Poly Haven and the four exact asset pages declare the sources CC0. architecture-detail-atlas.json preserves source pages, named artists and roles, physical dimensions, official download URLs, source byte counts and hashes, atlas layout, output hashes, conservative tuning, and exact Quaternius material-name mapping. The twelve source JPEGs, archives, AO, displacement, metalness, and previews are not redistributed."
+    },
+    {
+      "id": "poly-haven-kloofendal-overcast-pure-sky-1k",
+      "name": "Poly Haven Kloofendal Overcast (Pure Sky) 1K HDRI",
+      "kind": "asset",
+      "relationship": "CC0 source of neutral daylight reflections and image-based lighting for the desktop vertical slice.",
+      "canonicalUrl": "https://polyhaven.com/a/kloofendal_overcast_puresky",
+      "version": "Official 1K Radiance HDR, retrieved 2026-08-14",
+      "distribution": "bundled-runtime",
+      "license": {
+        "spdx": "CC0-1.0",
+        "status": "declared",
+        "url": "https://polyhaven.com/license"
+      },
+      "authors": ["Greg Zaal"],
+      "usage": "Optional scene.environment reflections and image-based lighting only; explicitly excluded from the visible scene background.",
+      "projectLocations": [
+        "public/assets/world/environment/polyhaven",
+        "scripts/assets/build-environment-hdri-assets.mjs",
+        "scripts/assets/verify-environment-hdri-assets.mjs",
+        "package.json",
+        "THIRD_PARTY_NOTICES.md",
+        "docs/CREDITS.md",
+        "docs/ASSET_PIPELINE.md",
+        "docs/assets/ENVIRONMENT_HDRI.md"
+      ],
+      "redistributedFiles": [
+        "public/assets/world/environment/polyhaven/kloofendal_overcast_puresky_1k.hdr",
+        "public/assets/world/environment/polyhaven/environment-manifest.json"
+      ],
+      "contentHashes": {
+        "public/assets/world/environment/polyhaven/kloofendal_overcast_puresky_1k.hdr": "sha256:5f98aa01d43a49cd899299751a978b3e5559a76300198b5dd2d9c68ecc4ad130",
+        "public/assets/world/environment/polyhaven/environment-manifest.json": "sha256:903930451bbbd2bba4ca827003afa761280add262a839ad9e1cc7dd38969ac39"
+      },
+      "modifications": "Verified the official Poly Haven API byte count and MD5 plus an independent SHA-256, retained the original 1024 x 512 RLE Radiance HDR filename, and redistributed the official bytes without image transformation.",
+      "notes": "Poly Haven and the exact asset page declare the HDRI CC0. The environment manifest records its official source, author, hashes, 5303 K white balance, 6 EV capture range, reflection-and-IBL-only use, and bounded HDRLoader/PMREM memory contract. No EXR, larger HDRI, preview, archive, or background image is redistributed."
+    },
+    {
       "id": "repo-magical-kingdom-app-logo",
       "name": "Repo Magical Kingdom Four-Season Cycle brand mark",
       "kind": "generated-media",
@@ -448,25 +584,31 @@
         "url": "https://creativecommons.org/licenses/by/4.0/"
       },
       "authors": ["Parris Digital", "OpenAI image generation tool"],
-      "usage": "Application HUD brand mark and 192/512-pixel installable web-app icons.",
+      "usage": "Application HUD, loading and renderer-fallback brand mark; Apple touch icon; and 192/512-pixel installable web-app icons.",
       "projectLocations": [
+        "README.md",
         "public/brand/app-logo-v2.png",
-        "public/icons/app-icon-192.png",
-        "public/icons/app-icon-512.png",
+        "public/icons/four-season-cycle-192.png",
+        "public/icons/four-season-cycle-512.png",
+        "src/app/apple-icon.png",
+        "src/app/globals.css",
         "src/app/manifest.ts",
+        "src/components/kingdom/kingdom-experience.module.css",
         "src/components/kingdom/kingdom-hud.tsx"
       ],
       "redistributedFiles": [
         "public/brand/app-logo-v2.png",
-        "public/icons/app-icon-192.png",
-        "public/icons/app-icon-512.png"
+        "public/icons/four-season-cycle-192.png",
+        "public/icons/four-season-cycle-512.png",
+        "src/app/apple-icon.png"
       ],
       "contentHashes": {
         "public/brand/app-logo-v2.png": "sha256:94ee570a5c39bf75053396f7a17209ad2fca16958f50d283a454a1266021250f",
-        "public/icons/app-icon-192.png": "sha256:711902894272cc14e0336406000ac6a5c3b24c983166df68f9bf3884fde71f8d",
-        "public/icons/app-icon-512.png": "sha256:aa91c84f5b87cd22304dd527744e33e762ad367f64ec4307dc0df9440439ab7c"
+        "public/icons/four-season-cycle-192.png": "sha256:711902894272cc14e0336406000ac6a5c3b24c983166df68f9bf3884fde71f8d",
+        "public/icons/four-season-cycle-512.png": "sha256:aa91c84f5b87cd22304dd527744e33e762ad367f64ec4307dc0df9440439ab7c",
+        "src/app/apple-icon.png": "sha256:d2932fce86f2ca703efa04fade33b9a2746774a01e7ad52a8e0f87b8d0ad8aee"
       },
-      "modifications": "The previously selected Seasonal Gateway mark was edited with OpenAI image generation to remove the central crystal and dark tile, enlarge the four-season ring, and place it on a controlled chroma background. The chroma background was removed locally to true alpha, then the approved transparent master was resized to 256, 192, and 512 pixels with macOS sips.",
+      "modifications": "The previously selected Seasonal Gateway mark was edited with OpenAI image generation to remove the central crystal and dark tile, enlarge the four-season ring, and place it on a controlled chroma background. The chroma background was removed locally to true alpha, then the approved transparent master was resized to 256, 192, and 512 pixels with macOS sips. A 180-pixel Apple touch icon was resized from the approved transparent 256-pixel mark without generative alteration. The manifest derivatives were renamed from generic app-icon filenames to content-specific Four-Season Cycle filenames so existing installations do not retain the superseded mark from browser caches.",
       "generatedMediaProvenance": {
         "generator": {
           "tool": "OpenAI image_gen built-in tool",
@@ -494,7 +636,9 @@
         ],
         "conversionSteps": [
           "Removed the generated #7F00FF chroma field from the 1254 × 1254 source with the project ImageGen skill's remove_chroma_key.py helper.",
-          "Resized the approved transparent master to 256 × 256 for the HUD brand mark and 192 × 192 and 512 × 512 for the web app manifest with macOS sips."
+          "Resized the approved transparent master to 256 × 256 for the HUD brand mark and 192 × 192 and 512 × 512 for the web app manifest with macOS sips.",
+          "Resized the approved transparent 256 × 256 HUD derivative to 180 × 180 for the Next.js Apple touch icon with macOS sips.",
+          "Renamed the 192 × 192 and 512 × 512 manifest derivatives to content-specific Four-Season Cycle filenames to invalidate stale platform-icon URLs without changing their pixels."
         ],
         "sourceContentHashes": {
           "prior-approved-mark-reference": "sha256:cd1fdc1e1ca25360d2878dd9274ef66c7ffd473ea095d8b3805528ee4d507b5b",

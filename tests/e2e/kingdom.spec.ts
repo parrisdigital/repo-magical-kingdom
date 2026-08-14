@@ -215,7 +215,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
     await expect(page.locator('main[data-mode="kingdom"]')).toBeVisible();
     await expect(page.getByRole("heading", { name: kingdomFixture.title })).toBeVisible();
     await expect(
-      page.getByText(`${kingdomFixture.coverage.representedFiles} files represented`, {
+      page.getByText(`${kingdomFixture.coverage.representedFiles} eligible files accounted for`, {
         exact: false,
       }),
     ).toBeVisible();
@@ -227,7 +227,7 @@ test.describe("Repo Magical Kingdom journeys", () => {
     await page.getByRole("button", { name: /Explore/ }).click();
     const explorer = page.getByRole("region", { name: "Kingdom explorer" });
     await expect(explorer).toBeVisible();
-    await explorer.getByPlaceholder("Search paths or provinces…").fill("city-scene.tsx");
+    await explorer.getByPlaceholder("Search files, groups, or provinces…").fill("city-scene.tsx");
     await explorer.getByRole("button").filter({ hasText: explorerSourcePath }).click();
 
     await expect(page.getByRole("heading", { name: "city-scene.tsx" })).toBeVisible();
@@ -267,6 +267,244 @@ test.describe("Repo Magical Kingdom journeys", () => {
     ).toHaveCount(0);
     expect(failures.pageErrors).toEqual([]);
     expect(failures.consoleErrors).toEqual([]);
+  });
+
+  test("makes file groups, coverage, focus, and return controls clear", async ({
+    page,
+  }, testInfo) => {
+    await page.route(/\/api\/kingdom(?:\?|$)/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ world: largeKingdomFixture }),
+      });
+    });
+
+    await page.goto(
+      `/kingdom/${largeKingdomFixture.source.owner}/${largeKingdomFixture.source.repository}/${largeKingdomFixture.source.commitSha}?season=spring`,
+    );
+    await expectWebGlKingdom(page);
+
+    await page.getByRole("button", { name: /Explore/ }).click();
+    const explorer = page.getByRole("region", { name: "Kingdom explorer" });
+    await expect(explorer).toBeVisible();
+    const explorerBox = await explorer.boundingBox();
+    expect(explorerBox).not.toBeNull();
+    expect(explorerBox!.x).toBeGreaterThanOrEqual(0);
+    expect(explorerBox!.y).toBeGreaterThanOrEqual(0);
+    expect(explorerBox!.x + explorerBox!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(explorerBox!.y + explorerBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    await expect(explorer.getByRole("heading")).toHaveText("Find files and file groups");
+    const identityHeading = page.getByRole("heading", {
+      name: largeKingdomFixture.title,
+      exact: true,
+    });
+    await expect(identityHeading).toBeVisible();
+    await expect(explorer).toContainText("Direct files");
+    await expect(explorer).toContainText("Aggregated files");
+    await expect(explorer).toContainText("Omitted files");
+
+    const coverage = explorer.locator('dl[aria-label="File representation coverage"]');
+    for (const item of await coverage.locator("dt, dd").all()) {
+      const text = await item.innerText();
+      const style = await item.evaluate((element) => {
+        const computed = getComputedStyle(element);
+        return { color: computed.color, fontSize: Number.parseFloat(computed.fontSize) };
+      });
+      expect(text.trim()).not.toBe("");
+      expect(style.color).not.toBe("rgba(0, 0, 0, 0)");
+      expect(style.fontSize).toBeGreaterThanOrEqual(9);
+    }
+
+    const search = explorer.getByRole("searchbox", { name: "Search files, groups, and provinces" });
+    await search.fill("crates");
+    const results = explorer.getByRole("list", { name: "Search results" });
+    const firstResult = results.getByRole("button").first();
+    await expect(firstResult).toContainText("files");
+    await expect(firstResult).toContainText("Aggregated group");
+    await testInfo.attach("kingdom-explorer-coverage.png", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+
+    await firstResult.click();
+    const details = page.getByRole("complementary");
+    await expect(details).toBeVisible({ timeout: 1_500 });
+    await expect(details).toContainText("Aggregated file group");
+    await expect(details).toContainText("Files represented");
+    await testInfo.attach("kingdom-focused-file-group.png", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+
+    await page.getByRole("button", { name: "Overview" }).click();
+    await expect(details).toBeHidden({ timeout: 1_500 });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: /Explore/ }).click();
+    await expect(explorer).toBeVisible();
+    await expect(identityHeading).toBeHidden();
+    const mobileBox = await explorer.boundingBox();
+    expect(mobileBox).not.toBeNull();
+    expect(mobileBox!.x).toBeGreaterThanOrEqual(0);
+    expect(mobileBox!.y).toBeGreaterThanOrEqual(0);
+    expect(mobileBox!.x + mobileBox!.width).toBeLessThanOrEqual(390);
+    expect(mobileBox!.y + mobileBox!.height).toBeLessThanOrEqual(844);
+    await expect(
+      explorer.getByRole("heading", { name: "Find files and file groups" }),
+    ).toBeVisible();
+    await expect(
+      explorer.getByText(
+        "Important files appear directly. Smaller eligible files are combined into searchable groups so the world stays responsive.",
+      ),
+    ).toBeVisible();
+    await expect(explorer.locator('dl[aria-label="File representation coverage"]')).toBeVisible();
+    await expect(explorer.getByRole("searchbox")).toBeVisible();
+    await testInfo.attach("kingdom-explorer-coverage-mobile.png", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+    await explorer.getByRole("button", { name: "Close explorer" }).click();
+    await expect(identityHeading).toBeVisible();
+  });
+
+  test("keeps one renderer alive across repository world changes", async ({ page }) => {
+    const failures = watchBrowserFailures(page);
+    let requestCount = 0;
+    await page.route(/\/api\/kingdom(?:\?|$)/, async (route) => {
+      requestCount += 1;
+      const requestUrl = new URL(route.request().url());
+      const requestedSeason = requestUrl.searchParams.get("season") ?? "spring";
+      const requestedWorld = requestUrl.searchParams.get("world") ?? "kingdom-valley";
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          world: {
+            ...largeKingdomFixture,
+            buildKey: `${largeKingdomFixture.buildKey}:${requestedWorld}:${requestedSeason}`,
+            season: requestedSeason,
+            worldTheme: requestedWorld,
+          },
+        }),
+      });
+    });
+
+    await page.goto(
+      `/kingdom/${largeKingdomFixture.source.owner}/${largeKingdomFixture.source.repository}/${largeKingdomFixture.source.commitSha}?world=kingdom-valley&season=spring`,
+    );
+    const canvas = await expectWebGlKingdom(page);
+    await canvas.evaluate((element) => element.setAttribute("data-renderer-identity", "initial"));
+
+    const summerResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/kingdom" && url.searchParams.get("season") === "summer";
+    });
+    await page
+      .getByRole("radiogroup", { name: /season/i })
+      .getByText("Summer", { exact: true })
+      .click();
+    await summerResponse;
+
+    await expect(page.getByRole("radio", { name: "Summer" })).toBeChecked({ timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "The kingdom needs WebGL." })).toHaveCount(0);
+    await expectWebGlKingdom(page);
+
+    const autumnResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/kingdom" && url.searchParams.get("season") === "autumn";
+    });
+    await page
+      .getByRole("radiogroup", { name: /season/i })
+      .getByText("Autumn", { exact: true })
+      .click();
+    await autumnResponse;
+
+    await expect(page.getByRole("radio", { name: "Autumn" })).toBeChecked({ timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "The kingdom needs WebGL." })).toHaveCount(0);
+    await expectWebGlKingdom(page);
+    await expect(page.locator("canvas")).toHaveAttribute("data-renderer-identity", "initial");
+    expect(requestCount).toBeGreaterThanOrEqual(3);
+    expect(failures.pageErrors).toEqual([]);
+    expect(failures.consoleErrors).toEqual([]);
+  });
+
+  test("mounts the renderer when startup has budget for one WebGL canvas", async ({ page }) => {
+    const failures = watchBrowserFailures(page);
+    await page.addInitScript(() => {
+      const nativeGetContext = HTMLCanvasElement.prototype.getContext;
+      const permittedCanvases = new WeakSet<HTMLCanvasElement>();
+      let hasPermittedCanvas = false;
+      const diagnostics = { deniedCanvasCount: 0, webglCanvasCount: 0 };
+      Object.defineProperty(window, "__kingdomWebGlBudget", { value: diagnostics });
+
+      Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+        configurable: true,
+        value(this: HTMLCanvasElement, contextId: string, options?: unknown) {
+          const isWebGl =
+            contextId === "webgl2" || contextId === "webgl" || contextId === "experimental-webgl";
+          if (!isWebGl) return Reflect.apply(nativeGetContext, this, [contextId, options]);
+
+          if (!hasPermittedCanvas) {
+            hasPermittedCanvas = true;
+            permittedCanvases.add(this);
+            diagnostics.webglCanvasCount += 1;
+          } else if (!permittedCanvases.has(this)) {
+            diagnostics.deniedCanvasCount += 1;
+            return null;
+          }
+          return Reflect.apply(nativeGetContext, this, [contextId, options]);
+        },
+      });
+    });
+    await page.route(/\/api\/kingdom(?:\?|$)/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ world: largeKingdomFixture }),
+      });
+    });
+
+    await page.goto(
+      `/kingdom/${largeKingdomFixture.source.owner}/${largeKingdomFixture.source.repository}/${largeKingdomFixture.source.commitSha}?season=spring`,
+    );
+
+    // Let the renderer's asynchronous context-loss/error boundary settle. The
+    // constrained budget emulates browsers that do not reclaim a deliberately
+    // discarded probe context before the real canvas asks for its context.
+    await page.waitForTimeout(1_000);
+    await expect(page.getByRole("heading", { name: "The kingdom needs WebGL." })).toHaveCount(0);
+    await expectWebGlKingdom(page);
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as unknown as {
+              __kingdomWebGlBudget: { deniedCanvasCount: number; webglCanvasCount: number };
+            }
+          ).__kingdomWebGlBudget,
+      ),
+    ).toEqual({ deniedCanvasCount: 0, webglCanvasCount: 1 });
+    expect(failures.pageErrors).toEqual([]);
+    expect(failures.consoleErrors).toEqual([]);
+  });
+
+  test("preserves the accessible fallback when the browser exposes no WebGL API", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperties(window, {
+        WebGLRenderingContext: { configurable: true, value: undefined },
+        WebGL2RenderingContext: { configurable: true, value: undefined },
+      });
+    });
+
+    await page.goto("/");
+
+    const fallback = page.getByRole("status");
+    await expect(fallback.getByRole("heading", { name: "The kingdom needs WebGL." })).toBeVisible();
+    await expect(fallback).toContainText("This browser could not open the 3D gateway.");
+    await expect(page.locator("canvas")).toHaveCount(0);
   });
 
   test("charts a mocked profile universe and lets explorers inspect a repository world", async ({
@@ -341,6 +579,46 @@ test.describe("Repo Magical Kingdom journeys", () => {
     expect(after.equals(before)).toBe(false);
     await page.getByRole("button", { name: /Overview/ }).click();
     await expect(page.getByRole("button", { name: /Overview/ })).toBeEnabled();
+    expect(failures.pageErrors).toEqual([]);
+    expect(failures.consoleErrors).toEqual([]);
+  });
+
+  test("switches safely between orbit overview and terrain-following walk mode", async ({
+    page,
+  }) => {
+    const failures = watchBrowserFailures(page);
+    await mockKingdomApi(page);
+    await page.goto(canonicalKingdomPath);
+    const canvas = await expectWebGlKingdom(page);
+    const app = page.locator('main[data-mode="kingdom"]');
+    const orbit = page.getByRole("button", { name: "Orbit", exact: true });
+    const walk = page.getByRole("button", { name: "Walk", exact: true });
+
+    await expect(orbit).toBeVisible();
+    await expect(orbit).toHaveAttribute("aria-pressed", "true");
+    await expect(walk).toBeEnabled();
+    await walk.click();
+    await expect(app).toHaveAttribute("data-navigation-mode", "walk");
+    await expect(walk).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("WASD", { exact: true })).toBeVisible();
+
+    const bounds = await canvas.boundingBox();
+    expect(bounds).not.toBeNull();
+    await canvas.click({
+      position: { x: bounds!.width * 0.5, y: bounds!.height * 0.58 },
+    });
+    await expect(app).toHaveAttribute("data-walk-locked", "true");
+    await page.keyboard.down("w");
+    await page.waitForTimeout(120);
+    await page.keyboard.up("w");
+    await page.keyboard.press("Escape");
+    await expect(app).toHaveAttribute("data-walk-locked", "false");
+
+    await page.getByRole("button", { name: "Overview", exact: true }).click();
+    await expect(app).toHaveAttribute("data-navigation-mode", "orbit");
+    await expect(orbit).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: /Explore/ }).click();
+    await expect(page.getByRole("region", { name: "Kingdom explorer" })).toBeVisible();
     expect(failures.pageErrors).toEqual([]);
     expect(failures.consoleErrors).toEqual([]);
   });

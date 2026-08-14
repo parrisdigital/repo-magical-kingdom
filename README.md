@@ -1,5 +1,11 @@
 <div align="center">
 
+<img
+  src="public/brand/app-logo-v2.png"
+  alt="Repo Magical Kingdom four-season cycle: spring blossom, summer leaves, autumn maple, and winter snow around open space"
+  width="132"
+/>
+
 # Repo Magical Kingdom
 
 **Turn a public GitHub repository into a living, explorable 3D world.**

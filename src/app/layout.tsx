@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   },
   description: "Turn any public GitHub repository into a living, selectable 3D world.",
   applicationName: "Repo Magical Kingdom",
+  appleWebApp: {
+    capable: true,
+    title: "Repo Magical Kingdom",
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     title: "Repo Magical Kingdom",
     description:

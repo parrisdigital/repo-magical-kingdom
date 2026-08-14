@@ -517,16 +517,26 @@ const ignoredDirectories = new Set([
   "test-results",
 ]);
 
-async function collectRepositoryAssets(directory) {
+// Visual gauntlet captures are reproducible, gitignored QA output rather than
+// redistributed project assets. Keep the attribution scan aligned with that
+// shipping boundary so a local review run cannot make license validation
+// nondeterministic.
+const ignoredAssetDirectoryPaths = new Set(["artifacts/visual-review"]);
+
+async function collectRepositoryAssets(directory, repositoryPath = "") {
   const directoryEntries = await readdir(directory, { withFileTypes: true });
   const assets = [];
 
   for (const entry of directoryEntries) {
     if (entry.name === ".DS_Store") continue;
     const fullPath = resolve(directory, entry.name);
+    const entryRepositoryPath = repositoryPath ? `${repositoryPath}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
-      if (!ignoredDirectories.has(entry.name)) {
-        assets.push(...(await collectRepositoryAssets(fullPath)));
+      if (
+        !ignoredDirectories.has(entry.name) &&
+        !ignoredAssetDirectoryPaths.has(entryRepositoryPath)
+      ) {
+        assets.push(...(await collectRepositoryAssets(fullPath, entryRepositoryPath)));
       }
       continue;
     }

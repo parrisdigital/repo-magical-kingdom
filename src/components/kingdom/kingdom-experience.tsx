@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { useRouter } from "next/navigation";
 import {
   Component,
@@ -33,11 +33,18 @@ import type {
 
 import styles from "./kingdom-experience.module.css";
 import { KingdomHud, type ExperienceMode } from "./kingdom-hud";
+import type { KingdomNavigationMode } from "./kingdom-navigation-model";
+import type { WalkViewStatus } from "./kingdom-walk-experience-model";
 import { KingdomScenePlanned as KingdomScene } from "./kingdom-scene-planned";
 import { RepositoryUniverseScene } from "./universe-scene";
 
 const DEMO_WORLD = createDemoKingdom(DEFAULT_KINGDOM_SEASON, "enchanted-forest");
 const DEMO_UNIVERSE = createDemoUniverse();
+const DEFAULT_WALK_VIEW_STATUS: WalkViewStatus = Object.freeze({
+  heading: "N",
+  locationLabel: "Repository frontier",
+  target: null,
+});
 
 type NavigateOptions = Readonly<{ replace?: boolean }>;
 
@@ -144,44 +151,47 @@ function useWebGlSupport(): boolean | null {
   const [supported, setSupported] = useState<boolean | null>(null);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      try {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
-        if (!context) {
-          setSupported(false);
-          return;
-        }
-        // Probe the same Three.js renderer construction used by R3F. A raw
-        // context can exist even when WebGLRenderer initialization fails.
-        const renderer = new THREE.WebGLRenderer({ canvas, context });
-        renderer.dispose();
-        renderer.forceContextLoss();
-        setSupported(true);
-      } catch {
-        setSupported(false);
-      }
+      // Capability detection must not consume a second GPU context before R3F
+      // creates the real renderer. Canvas creation errors are handled by the
+      // renderer boundary below, while this check preserves the no-WebGL copy
+      // for browsers that do not expose the API at all.
+      setSupported(
+        typeof window.WebGLRenderingContext !== "undefined" ||
+          typeof window.WebGL2RenderingContext !== "undefined",
+      );
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
   return supported;
 }
 
-function useQualityTier(reducedMotion: boolean): "low" | "high" {
-  // Begin with the inexpensive tier so a cold scene never compiles a high-DPR,
-  // shadowed frame that an effect immediately discards on compact, low-core,
-  // or reduced-motion devices.
-  const [quality, setQuality] = useState<"low" | "high">("low");
+function useQualityTier(): "low" | "high" {
+  // Desktop is the authored visual target. Core count is not a reliable GPU
+  // proxy (embedded browsers often report four cores on capable machines),
+  // and reduced motion must not silently remove PBR materials or shadows.
+  const [quality, setQuality] = useState<"low" | "high">("high");
   useEffect(() => {
     const update = () => {
       const compact = window.matchMedia("(max-width: 780px)").matches;
-      const fewerCores = navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4;
-      setQuality(compact || fewerCores || reducedMotion ? "low" : "high");
+      setQuality(compact ? "low" : "high");
     };
     update();
     window.addEventListener("resize", update, { passive: true });
     return () => window.removeEventListener("resize", update);
-  }, [reducedMotion]);
+  }, []);
   return quality;
+}
+
+function useDesktopWalkAvailability(): boolean {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(pointer: fine) and (hover: hover)");
+    const update = () => setAvailable(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return available;
 }
 
 function useProceduralAmbience(enabled: boolean) {
@@ -282,6 +292,33 @@ class RendererBoundary extends Component<RendererBoundaryProps, { failed: boolea
   }
 }
 
+type WebGlContextMonitorProps = Readonly<{
+  onLost: () => void;
+  onRestored: () => void;
+}>;
+
+function WebGlContextMonitor({ onLost, onRestored }: WebGlContextMonitorProps) {
+  const gl = useThree((state) => state.gl);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost: EventListener = (event) => {
+      event.preventDefault();
+      onLost();
+    };
+    const handleRestored = () => onRestored();
+
+    canvas.addEventListener("webglcontextlost", handleLost);
+    canvas.addEventListener("webglcontextrestored", handleRestored);
+    return () => {
+      canvas.removeEventListener("webglcontextlost", handleLost);
+      canvas.removeEventListener("webglcontextrestored", handleRestored);
+    };
+  }, [gl, onLost, onRestored]);
+
+  return null;
+}
+
 export function KingdomExperience({
   initialOwner,
   initialRepository,
@@ -300,7 +337,8 @@ export function KingdomExperience({
   const router = useRouter();
   const reducedMotion = useReducedMotion();
   const webglSupported = useWebGlSupport();
-  const quality = useQualityTier(reducedMotion);
+  const quality = useQualityTier();
+  const walkAvailable = useDesktopWalkAvailability();
   const [contextFailureCount, setContextFailureCount] = useState(0);
   const [failedSceneKey, setFailedSceneKey] = useState<string | null>(null);
   const [sceneAttempt, setSceneAttempt] = useState(0);
@@ -321,6 +359,9 @@ export function KingdomExperience({
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState(0);
+  const [navigationMode, setNavigationMode] = useState<KingdomNavigationMode>("orbit");
+  const [walkLocked, setWalkLocked] = useState(false);
+  const [walkStatus, setWalkStatus] = useState<WalkViewStatus>(DEFAULT_WALK_VIEW_STATUS);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [travel, setTravel] = useState<WorldTravelState>(null);
   const requestRef = useRef<AbortController | null>(null);
@@ -354,6 +395,7 @@ export function KingdomExperience({
   const setSelection = useCallback(
     (nextSelection: Selection) => {
       setSelectionState(nextSelection);
+      setHovered(null);
       onSelectionChange?.(nextSelection);
     },
     [onSelectionChange],
@@ -428,6 +470,9 @@ export function KingdomExperience({
         setWorldThemeChoice(nextWorld.worldTheme);
         setUniverse(null);
         setMode("kingdom");
+        setNavigationMode("orbit");
+        setWalkLocked(false);
+        setWalkStatus(DEFAULT_WALK_VIEW_STATUS);
         setRepositoryInput(`${nextWorld.source.owner}/${nextWorld.source.repository}`);
         setResetToken((token) => token + 1);
         onWorldLoaded?.(nextWorld);
@@ -523,6 +568,9 @@ export function KingdomExperience({
         setSceneAttempt((attempt) => attempt + 1);
         setUniverse(nextUniverse);
         setMode("universe");
+        setNavigationMode("orbit");
+        setWalkLocked(false);
+        setWalkStatus(DEFAULT_WALK_VIEW_STATUS);
         setRepositoryInput(nextUniverse.owner);
         setResetToken((token) => token + 1);
         onUniverseLoaded?.(nextUniverse);
@@ -697,7 +745,38 @@ export function KingdomExperience({
     if (selection?.kind === "portal") enterRepository(selection.portal);
   }, [enterRepository, selection]);
 
+  const changeNavigationMode = useCallback(
+    (nextMode: KingdomNavigationMode) => {
+      if (nextMode === "walk" && !walkAvailable) return;
+      setSelection(null);
+      setHovered(null);
+      setWalkLocked(false);
+      setWalkStatus(DEFAULT_WALK_VIEW_STATUS);
+      setNavigationMode(nextMode);
+    },
+    [setSelection, walkAvailable],
+  );
+
+  const handleWalkLockChange = useCallback(
+    (locked: boolean) => {
+      setWalkLocked(locked);
+      if (!locked) return;
+      setSelection(null);
+      setHovered(null);
+    },
+    [setSelection],
+  );
+
+  const handleContextLost = useCallback(() => {
+    setContextFailureCount((count) => count + 1);
+  }, []);
+  const handleContextRestored = useCallback(() => {
+    setContextFailureCount(0);
+  }, []);
+
   const activeUniverse = universe ?? DEMO_UNIVERSE;
+  const activeNavigationMode =
+    mode === "kingdom" && walkAvailable ? navigationMode : ("orbit" as const);
   const sceneKey =
     mode === "universe" ? `universe:${activeUniverse.owner}` : `kingdom:${world.buildKey}`;
   const sceneFailure = failedSceneKey === sceneKey;
@@ -711,40 +790,37 @@ export function KingdomExperience({
     <main
       className={rootClassName}
       data-mode={mode}
+      data-navigation-mode={activeNavigationMode}
+      data-quality={quality}
+      data-walk-locked={walkLocked ? "true" : "false"}
       data-travel-phase={travel?.phase ?? "idle"}
       aria-busy={travel !== null}
     >
       {webglSupported && contextFailureCount < 2 && !sceneFailure ? (
-        <RendererBoundary
-          key={`renderer:${sceneKey}:${sceneAttempt}`}
-          onError={() => setContextFailureCount(2)}
-          stage="canvas"
-        >
+        <RendererBoundary key="renderer" onError={() => setContextFailureCount(2)} stage="canvas">
           <div className={styles.canvasWrap} aria-hidden="true">
             <Canvas
+              data-kingdom-canvas="true"
               dpr={dpr}
               frameloop={reducedMotion ? "demand" : "always"}
-              shadows={quality === "high"}
+              shadows={quality === "high" ? "percentage" : false}
               performance={{ min: 0.55, max: 1, debounce: 220 }}
               gl={{
                 antialias: quality === "high",
                 alpha: false,
                 powerPreference: "high-performance",
               }}
-              onPointerMissed={() => setSelection(null)}
+              onPointerMissed={() => {
+                if (!walkLocked) setSelection(null);
+              }}
               onCreated={({ gl }) => {
                 gl.outputColorSpace = THREE.SRGBColorSpace;
                 gl.toneMapping = THREE.ACESFilmicToneMapping;
                 gl.toneMappingExposure = 1.1;
-                gl.domElement.addEventListener("webglcontextlost", (event) => {
-                  event.preventDefault();
-                  setContextFailureCount((count) => count + 1);
-                });
-                gl.domElement.addEventListener("webglcontextrestored", () => {
-                  setContextFailureCount(0);
-                });
+                setContextFailureCount(0);
               }}
             >
+              <WebGlContextMonitor onLost={handleContextLost} onRestored={handleContextRestored} />
               <RendererBoundary
                 key={`scene:${sceneKey}:${sceneAttempt}`}
                 onError={() => setFailedSceneKey(sceneKey)}
@@ -769,12 +845,20 @@ export function KingdomExperience({
                     world={world}
                     season={season}
                     selection={selection}
-                    onSelect={setSelection}
-                    onHover={setHovered}
+                    onSelect={(nextSelection) => {
+                      if (!walkLocked) setSelection(nextSelection);
+                    }}
+                    onHover={(nextSelection) => {
+                      if (!walkLocked) setHovered(nextSelection);
+                    }}
                     onEnterPortal={enterRepository}
                     resetToken={resetToken}
                     reducedMotion={reducedMotion}
                     quality={quality}
+                    navigationMode={activeNavigationMode}
+                    onWalkLockChange={handleWalkLockChange}
+                    onWalkStatusChange={setWalkStatus}
+                    onWalkTargetSelect={setSelection}
                   />
                 )}
               </RendererBoundary>
@@ -841,6 +925,10 @@ export function KingdomExperience({
         errorMessage={errorMessage}
         isDemo={isDemo}
         soundEnabled={soundEnabled}
+        navigationMode={activeNavigationMode}
+        walkAvailable={walkAvailable}
+        walkLocked={walkLocked}
+        walkStatus={walkStatus}
         season={season}
         worldTheme={worldThemeChoice}
         onRepositoryInput={setRepositoryInput}
@@ -849,12 +937,20 @@ export function KingdomExperience({
         onEnterSelection={enterSelection}
         onResetCamera={() => {
           setSelection(null);
+          setHovered(null);
+          setWalkLocked(false);
+          setWalkStatus(DEFAULT_WALK_VIEW_STATUS);
+          setNavigationMode("orbit");
           setResetToken((token) => token + 1);
         }}
+        onNavigationModeChange={changeNavigationMode}
         onShowLanding={() => {
           requestRef.current?.abort();
           setTravel(null);
           setMode("landing");
+          setNavigationMode("orbit");
+          setWalkLocked(false);
+          setWalkStatus(DEFAULT_WALK_VIEW_STATUS);
           setWorld(createDemoKingdom(season, worldThemeChoice ?? "enchanted-forest"));
           setUniverse(null);
           setSelection(null);

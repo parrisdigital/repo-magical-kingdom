@@ -6,6 +6,7 @@ import type {
   WorldPlanEnvelope,
   WorldPlanPoint,
 } from "./world-plan";
+import type { RepositoryTopologyFamily } from "./topology-family";
 
 export type PhysicalWaterTerrace = Readonly<{
   id: string;
@@ -18,16 +19,31 @@ export type PhysicalLakeContract = Readonly<{
   center: WorldPlanPoint;
   radiusX: number;
   radiusZ: number;
+  rotation: number;
   surfaceHeight: number;
   area: number;
   footprintRatio: number;
   inletAngle: number;
   perimeter: ReadonlyArray<WorldPlanPoint>;
   islet: Readonly<{
+    enabled: boolean;
+    kind: "grove" | "ruin";
     center: WorldPlanPoint;
     radiusX: number;
     radiusZ: number;
     rotation: number;
+    height: number;
+    detailAnchors: ReadonlyArray<
+      Readonly<{
+        id: string;
+        role: "rock" | "tree" | "ruin";
+        x: number;
+        y: number;
+        z: number;
+        rotation: number;
+        scale: number;
+      }>
+    >;
   }>;
 }>;
 
@@ -62,6 +78,7 @@ export type CreatePhysicalWaterContractInput = Readonly<{
   courseMask: CorridorRegionMask;
   lakeMask: EllipseRegionMask;
   terraces: ReadonlyArray<PhysicalWaterTerrace>;
+  topologyFamily?: RepositoryTopologyFamily;
 }>;
 
 export const PHYSICAL_LAKE_PERIMETER_SEGMENTS = 96;
@@ -71,6 +88,70 @@ export const PHYSICAL_LAKE_PERIMETER_SEGMENTS = 96;
 // a small but repeatable tail of terrain/v3 identities exceeded the public
 // fourteen-percent visible-footprint contract after polygon fitting.
 const PHYSICAL_LAKE_BASE_RADIUS_SCALE = 0.988;
+const PHYSICAL_LAKE_TERRACE_CLEARANCE = 5.75;
+
+function createPhysicalLakeIslet(
+  key: string,
+  lake: Pick<PhysicalLakeContract, "center" | "radiusX" | "radiusZ" | "rotation" | "surfaceHeight">,
+  lakeArea: number,
+  topologyFamily: RepositoryTopologyFamily | undefined,
+): PhysicalLakeContract["islet"] {
+  const enabled =
+    topologyFamily?.id === "eastern-lake-run" || topologyFamily?.id === "western-basin-watershed";
+  const kind = topologyFamily?.id === "western-basin-watershed" ? "ruin" : "grove";
+  const targetArea = lakeArea * (0.03 + stableFraction(`${key}:islet-area`) * 0.012);
+  const aspect = 1.25 + stableFraction(`${key}:islet-aspect`) * 0.5;
+  const unclampedRadiusZ = Math.sqrt(targetArea / Math.PI / aspect);
+  const radiusZ = Math.min(unclampedRadiusZ, lake.radiusZ * 0.3);
+  const radiusX = Math.min(radiusZ * aspect, lake.radiusX * 0.32);
+  const rotation = lake.rotation - 0.34 + stableFraction(`${key}:islet-rotation`) * 0.68;
+  const center = lakeLocalToWorld(
+    lake,
+    lake.radiusX * (-0.08 + stableFraction(`${key}:islet-x`) * 0.2),
+    lake.radiusZ * (-0.05 + stableFraction(`${key}:islet-z`) * 0.16),
+  );
+  const height = 1.05 + stableFraction(`${key}:islet-height`) * 0.48;
+  const anchorTemplates =
+    kind === "ruin"
+      ? ([
+          ["ruin", -0.1, -0.02, 1.08],
+          ["rock", 0.36, 0.2, 0.82],
+          ["rock", -0.38, 0.24, 0.72],
+          ["tree", 0.2, -0.32, 0.84],
+        ] as const)
+      : ([
+          ["tree", -0.16, -0.08, 1.04],
+          ["tree", 0.24, 0.16, 0.82],
+          ["rock", -0.38, 0.25, 0.72],
+          ["rock", 0.16, -0.36, 0.78],
+        ] as const);
+  const cosine = Math.cos(rotation);
+  const sine = Math.sin(rotation);
+  const detailAnchors = anchorTemplates.map(([role, localX, localZ, scale], index) => {
+    const offsetX = localX * radiusX;
+    const offsetZ = localZ * radiusZ;
+    const radial = Math.min(1, Math.hypot(localX, localZ));
+    return {
+      id: `lake-islet-${kind}-${index + 1}`,
+      role,
+      x: center.x + offsetX * cosine - offsetZ * sine,
+      y: lake.surfaceHeight + height * (1 - radial * 0.42),
+      z: center.z + offsetX * sine + offsetZ * cosine,
+      rotation: rotation + (stableFraction(`${key}:islet-anchor:${index}`) - 0.5) * 1.4,
+      scale,
+    };
+  });
+  return {
+    enabled,
+    kind,
+    center,
+    radiusX,
+    radiusZ,
+    rotation,
+    height,
+    detailAnchors,
+  };
+}
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -248,12 +329,17 @@ export function routePhysicalCourseSegmentsAroundTerraces(
   const start = normalizeEndpoint(requestedStart, "start");
   const target = normalizeEndpoint(requestedTarget, "target");
   const normalizedGuide = [start, ...points.slice(1, -1), target];
+  const requiredMeanderSpan = envelope.width * 0.09;
+  const normalizedGuideSpan =
+    Math.max(...normalizedGuide.map(({ x }) => x)) - Math.min(...normalizedGuide.map(({ x }) => x));
   // The authored course has at most twelve samples. Keep that curvature when
   // every authored chord is already valid: a shortest-path solver would
-  // otherwise collapse a clear meander to the direct start-to-target edge.
-  // Obstructed guides continue through the visibility graph below.
+  // otherwise collapse a clear meander to the direct start-to-target edge. A
+  // safe but narrow guide continues through the same graph so every repository
+  // retains a readable watershed rather than a nearly straight drainage cut.
   if (
     normalizedGuide.length <= 16 &&
+    normalizedGuideSpan + 0.000_01 >= requiredMeanderSpan &&
     normalizedGuide.slice(1).every((sample, index) => validEdge(normalizedGuide[index]!, sample))
   ) {
     return normalizedGuide;
@@ -273,7 +359,23 @@ export function routePhysicalCourseSegmentsAroundTerraces(
       );
     }),
   );
-  const candidates = [start, target, ...normalizedGuide.slice(1, -1), ...boundaryCandidates];
+  const meanderCandidates = [0.18, 0.34, 0.5, 0.66, 0.82].flatMap((progress) =>
+    [0.12, 0.18, 0.24].flatMap((magnitude) =>
+      [preferredSide, -preferredSide].map((side) =>
+        point(
+          envelope.center.x + side * envelope.width * magnitude,
+          mix(start.z, target.z, progress),
+        ),
+      ),
+    ),
+  );
+  const candidates = [
+    start,
+    target,
+    ...normalizedGuide.slice(1, -1),
+    ...meanderCandidates,
+    ...boundaryCandidates,
+  ];
   const nodes = candidates.filter((candidate, index) => {
     if (index < 2) return true;
     return (
@@ -289,81 +391,98 @@ export function routePhysicalCourseSegmentsAroundTerraces(
     );
   });
 
-  const distances = nodes.map(() => Number.POSITIVE_INFINITY);
-  const previous = nodes.map(() => -1);
-  const visited = nodes.map(() => false);
-  distances[0] = 0;
-  for (let visit = 0; visit < nodes.length; visit += 1) {
-    let currentIndex = -1;
-    for (let index = 0; index < nodes.length; index += 1) {
-      if (visited[index]) continue;
-      if (
-        currentIndex < 0 ||
-        distances[index]! < distances[currentIndex]! - 0.000_001 ||
-        (Math.abs(distances[index]! - distances[currentIndex]!) <= 0.000_001 &&
-          index < currentIndex)
-      ) {
-        currentIndex = index;
-      }
-    }
-    if (currentIndex < 0 || !Number.isFinite(distances[currentIndex]!)) break;
-    if (currentIndex === 1) break;
-    visited[currentIndex] = true;
-    const current = nodes[currentIndex]!;
-    for (let nextIndex = 1; nextIndex < nodes.length; nextIndex += 1) {
-      if (visited[nextIndex] || nextIndex === currentIndex) continue;
-      const next = nodes[nextIndex]!;
-      if (!validEdge(current, next)) continue;
-      const sidePenalty =
-        Math.sign(next.x - envelope.center.x) === preferredSide ? 0 : envelope.width * 0.000_1;
-      const candidateDistance =
-        distances[currentIndex]! + Math.hypot(next.x - current.x, next.z - current.z) + sidePenalty;
-      if (
-        candidateDistance < distances[nextIndex]! - 0.000_001 ||
-        (Math.abs(candidateDistance - distances[nextIndex]!) <= 0.000_001 &&
-          currentIndex < previous[nextIndex]!)
-      ) {
-        distances[nextIndex] = candidateDistance;
-        previous[nextIndex] = currentIndex;
-      }
+  // Every shortest-route query uses the same immutable visibility graph.
+  // Cache each symmetric edge once so the meander fallback does not repeat
+  // full terrace and coastline geometry checks for every candidate anchor.
+  const visibleEdges = nodes.map(() => nodes.map(() => false));
+  for (let firstIndex = 0; firstIndex < nodes.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < nodes.length; secondIndex += 1) {
+      const visible = validEdge(nodes[firstIndex]!, nodes[secondIndex]!);
+      visibleEdges[firstIndex]![secondIndex] = visible;
+      visibleEdges[secondIndex]![firstIndex] = visible;
     }
   }
-  if (!Number.isFinite(distances[1]!)) {
+
+  const shortestRouteIndices = (
+    sourceIndex: number,
+    destinationIndex: number,
+  ): ReadonlyArray<number> | null => {
+    const distances = nodes.map(() => Number.POSITIVE_INFINITY);
+    const previous = nodes.map(() => -1);
+    const visited = nodes.map(() => false);
+    distances[sourceIndex] = 0;
+    for (let visit = 0; visit < nodes.length; visit += 1) {
+      let currentIndex = -1;
+      for (let index = 0; index < nodes.length; index += 1) {
+        if (visited[index]) continue;
+        if (
+          currentIndex < 0 ||
+          distances[index]! < distances[currentIndex]! - 0.000_001 ||
+          (Math.abs(distances[index]! - distances[currentIndex]!) <= 0.000_001 &&
+            index < currentIndex)
+        ) {
+          currentIndex = index;
+        }
+      }
+      if (currentIndex < 0 || !Number.isFinite(distances[currentIndex]!)) break;
+      if (currentIndex === destinationIndex) break;
+      visited[currentIndex] = true;
+      const current = nodes[currentIndex]!;
+      for (let nextIndex = 0; nextIndex < nodes.length; nextIndex += 1) {
+        if (visited[nextIndex] || nextIndex === currentIndex) continue;
+        const next = nodes[nextIndex]!;
+        if (!visibleEdges[currentIndex]![nextIndex]) continue;
+        const sidePenalty =
+          Math.sign(next.x - envelope.center.x) === preferredSide ? 0 : envelope.width * 0.000_1;
+        const candidateDistance =
+          distances[currentIndex]! +
+          Math.hypot(next.x - current.x, next.z - current.z) +
+          sidePenalty;
+        if (
+          candidateDistance < distances[nextIndex]! - 0.000_001 ||
+          (Math.abs(candidateDistance - distances[nextIndex]!) <= 0.000_001 &&
+            currentIndex < previous[nextIndex]!)
+        ) {
+          distances[nextIndex] = candidateDistance;
+          previous[nextIndex] = currentIndex;
+        }
+      }
+    }
+    if (!Number.isFinite(distances[destinationIndex]!)) return null;
+    const route: number[] = [];
+    let routeIndex = destinationIndex;
+    for (let step = 0; step <= nodes.length; step += 1) {
+      route.push(routeIndex);
+      if (routeIndex === sourceIndex) break;
+      routeIndex = previous[routeIndex]!;
+    }
+    if (route.at(-1) !== sourceIndex) return null;
+    return route.reverse();
+  };
+
+  const directRouteIndices = shortestRouteIndices(0, 1);
+  if (!directRouteIndices) {
     throw invalidRoute("course-visibility-graph", {
       candidateCount: nodes.length,
       terraceCount: terraces.length,
     });
   }
+  const resolved = directRouteIndices.map((index) => nodes[index]!);
 
-  const resolved: WorldPlanPoint[] = [];
-  let routeIndex = 1;
-  for (let step = 0; step <= nodes.length; step += 1) {
-    const routePoint = nodes[routeIndex];
-    if (!routePoint) {
-      throw invalidRoute("course-route-reconstruction", {
-        candidateCount: nodes.length,
-        routeIndex,
-      });
-    }
-    resolved.push(routePoint);
-    if (routeIndex === 0) break;
-    routeIndex = previous[routeIndex]!;
-  }
-  if (resolved.at(-1) !== start) {
-    throw invalidRoute("course-route-reconstruction", {
-      candidateCount: nodes.length,
-      routeIndex,
-    });
-  }
-  resolved.reverse();
-
-  const requiredMeanderSpan = envelope.width * 0.09;
   const resolvedSpan =
     Math.max(...resolved.map(({ x }) => x)) - Math.min(...resolved.map(({ x }) => x));
   if (resolvedSpan + 0.000_01 < requiredMeanderSpan) {
     const guideAnchor = normalizedGuide
       .slice(1, -1)
-      .filter((candidate) => validEdge(start, candidate) && validEdge(candidate, target))
+      .filter((candidate) => {
+        const span =
+          Math.max(start.x, candidate.x, target.x) - Math.min(start.x, candidate.x, target.x);
+        return (
+          span + 0.000_01 >= requiredMeanderSpan &&
+          validEdge(start, candidate) &&
+          validEdge(candidate, target)
+        );
+      })
       .sort((first, second) => {
         const firstSpan =
           Math.max(start.x, first.x, target.x) - Math.min(start.x, first.x, target.x);
@@ -373,6 +492,56 @@ export function routePhysicalCourseSegmentsAroundTerraces(
       })[0];
     if (guideAnchor) {
       resolved.splice(1, Math.max(0, resolved.length - 2), guideAnchor);
+    } else {
+      // A shortest visibility route can safely skim one side of a terrace yet
+      // flatten a broad authored river into a nearly straight shortcut. Route
+      // through the shortest reachable lateral anchor instead. Both halves use
+      // the same proven graph, so every returned chord retains the exact land
+      // and expanded-terrace guarantees of the ordinary fallback.
+      const authoredAnchors = new Set(normalizedGuide.slice(1, -1));
+      const generatedMeanderAnchors = new Set(meanderCandidates);
+      const meanderRoutes = nodes
+        .map((anchor, anchorIndex) => ({ anchor, anchorIndex }))
+        .filter(({ anchor, anchorIndex }) => {
+          if (anchorIndex <= 1) return false;
+          if (!authoredAnchors.has(anchor) && !generatedMeanderAnchors.has(anchor)) return false;
+          const span =
+            Math.max(start.x, anchor.x, target.x) - Math.min(start.x, anchor.x, target.x);
+          return span + 0.000_01 >= requiredMeanderSpan;
+        })
+        .flatMap(({ anchor, anchorIndex }) => {
+          const firstHalf = shortestRouteIndices(0, anchorIndex);
+          const secondHalf = shortestRouteIndices(anchorIndex, 1);
+          if (!firstHalf || !secondHalf) return [];
+          const indices = [...firstHalf, ...secondHalf.slice(1)];
+          if (indices.length > 16 || new Set(indices).size !== indices.length) return [];
+          const points = indices.map((index) => nodes[index]!);
+          const span =
+            Math.max(...points.map(({ x }) => x)) - Math.min(...points.map(({ x }) => x));
+          if (span + 0.000_01 < requiredMeanderSpan) return [];
+          const length = points.slice(1).reduce((total, sample, index) => {
+            const previousPoint = points[index]!;
+            return total + Math.hypot(sample.x - previousPoint.x, sample.z - previousPoint.z);
+          }, 0);
+          return [
+            {
+              points,
+              authored: authoredAnchors.has(anchor),
+              preferred: Math.sign(anchor.x - envelope.center.x) === preferredSide,
+              length,
+              anchorIndex,
+            },
+          ];
+        })
+        .sort(
+          (first, second) =>
+            Number(second.authored) - Number(first.authored) ||
+            Number(second.preferred) - Number(first.preferred) ||
+            first.length - second.length ||
+            first.anchorIndex - second.anchorIndex,
+        );
+      const meanderRoute = meanderRoutes[0];
+      if (meanderRoute) resolved.splice(0, resolved.length, ...meanderRoute.points);
     }
   }
   for (let index = 1; index < resolved.length; index += 1) {
@@ -430,6 +599,7 @@ function parametricTerrainPoint(
   parameters: ReturnType<typeof boundaryParameters>,
   signedX: number,
   progressZ: number,
+  topologyFamily?: RepositoryTopologyFamily,
 ): WorldPlanPoint {
   const s = clamp(signedX, -1, 1);
   const t = clamp(progressZ, 0, 1);
@@ -438,8 +608,13 @@ function parametricTerrainPoint(
     Math.sin(t * Math.PI * 2.17 + parameters.phaseA) * 0.045 +
     Math.sin(t * Math.PI * 5.03 + parameters.phaseB) * 0.021 +
     Math.sin(t * Math.PI * 8.1 + parameters.phaseC) * 0.006;
+  // Families bend the canonical coast without sacrificing the broad land
+  // envelope that guarantees physical settlement support.
+  const basinProgress = mix(0.8, topologyFamily?.coast.basinProgress ?? 0.8, 0.14);
+  const waistProgress = mix(0.53, topologyFamily?.coast.waistProgress ?? 0.53, 0.14);
   const valleySwell =
-    Math.exp(-(((t - 0.23) / 0.22) ** 2)) * 0.13 + Math.exp(-(((t - 0.8) / 0.2) ** 2)) * 0.2;
+    Math.exp(-(((t - 0.23) / 0.22) ** 2)) * 0.13 +
+    Math.exp(-(((t - basinProgress) / 0.2) ** 2)) * 0.2;
   const leftBay = -Math.exp(-(((t - 0.61) / 0.18) ** 2)) * 0.14;
   const leftPeninsula = Math.exp(-(((t - 0.82) / 0.15) ** 2)) * 0.12;
   const rightBay = -Math.exp(-(((t - 0.37) / 0.16) ** 2)) * 0.09;
@@ -447,9 +622,9 @@ function parametricTerrainPoint(
   const asymmetricCoast =
     valleySwell + (side < 0 ? leftBay + leftPeninsula : rightBay + rightPeninsula);
   const authoredWidthProfile =
-    -Math.exp(-(((t - 0.42) / 0.13) ** 2)) * 0.1 -
-    Math.exp(-(((t - 0.59) / 0.105) ** 2)) * 0.11 +
-    Math.exp(-(((t - 0.81) / 0.14) ** 2)) * 0.105;
+    -Math.exp(-(((t - (waistProgress - 0.11)) / 0.13) ** 2)) * 0.1 -
+    Math.exp(-(((t - (waistProgress + 0.06)) / 0.105) ** 2)) * 0.11 +
+    Math.exp(-(((t - (basinProgress + 0.03)) / 0.14) ** 2)) * 0.105;
   const endTaper =
     1 - 0.22 * Math.exp(-(((t - 0.03) / 0.13) ** 2)) - 0.1 * Math.exp(-(((t - 0.96) / 0.12) ** 2));
   const halfWidth =
@@ -459,7 +634,8 @@ function parametricTerrainPoint(
     envelope.width *
     (Math.sin(t * Math.PI * 1.43 + parameters.phaseC) * 0.025 +
       Math.sin(t * Math.PI * 3.61 + parameters.phaseA) * 0.018 +
-      Math.exp(-(((t - 0.76) / 0.14) ** 2)) * 0.035);
+      Math.exp(-(((t - basinProgress) / 0.14) ** 2)) *
+        (0.035 + (topologyFamily?.coast.frontOpeningX ?? 0.2) * 0.008));
   const interiorWarp =
     (1 - Math.abs(s)) *
     envelope.width *
@@ -471,6 +647,7 @@ function parametricTerrainPoint(
     envelope.maxX - envelope.safeMargin * 0.2,
   );
   const normalizedX = (s + 1) / 2;
+  const openingX = mix(0.72, ((topologyFamily?.coast.frontOpeningX ?? 0.44) + 1) * 0.5, 0.22);
   const rearInset =
     envelope.safeMargin * 0.47 +
     envelope.depth *
@@ -483,8 +660,8 @@ function parametricTerrainPoint(
       (0.019 +
         0.034 * Math.sin(normalizedX * Math.PI * 2.3 + parameters.phaseA) +
         0.018 * Math.sin(normalizedX * Math.PI * 5.7 + parameters.phaseC) -
-        0.025 * Math.exp(-(((normalizedX - 0.72) / 0.11) ** 2)) -
-        0.018 * Math.exp(-(((normalizedX - 0.28) / 0.09) ** 2)));
+        0.029 * Math.exp(-(((normalizedX - openingX) / 0.11) ** 2)) -
+        0.015 * Math.exp(-(((normalizedX - (1 - openingX)) / 0.1) ** 2)));
   const rearZ = envelope.minZ + clamp(rearInset, envelope.safeMargin * 0.2, envelope.depth * 0.07);
   const frontZ =
     envelope.maxZ - clamp(frontInset, envelope.safeMargin * 0.25, envelope.depth * 0.085);
@@ -496,24 +673,36 @@ function parametricTerrainPoint(
   return point(x, mix(rearZ, frontZ, t) + zBow);
 }
 
+/** Canonical terrain sampler shared by outline validation and render geometry. */
+export function createPhysicalTerrainPointSampler(
+  envelope: WorldPlanEnvelope,
+  key: string,
+  topologyFamily?: RepositoryTopologyFamily,
+): (signedX: number, progressZ: number) => WorldPlanPoint {
+  const parameters = boundaryParameters(key);
+  return (signedX, progressZ) =>
+    parametricTerrainPoint(envelope, parameters, signedX, progressZ, topologyFamily);
+}
+
 export function buildPhysicalTerrainOutline(
   envelope: WorldPlanEnvelope,
   key: string,
   samplesPerEdge = 32,
+  topologyFamily?: RepositoryTopologyFamily,
 ): ReadonlyArray<WorldPlanPoint> {
-  const parameters = boundaryParameters(key);
+  const sample = createPhysicalTerrainPointSampler(envelope, key, topologyFamily);
   const result: WorldPlanPoint[] = [];
   for (let index = 0; index <= samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, -1 + (index / samplesPerEdge) * 2, 0));
+    result.push(sample(-1 + (index / samplesPerEdge) * 2, 0));
   }
   for (let index = 1; index <= samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, 1, index / samplesPerEdge));
+    result.push(sample(1, index / samplesPerEdge));
   }
   for (let index = 1; index <= samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, 1 - (index / samplesPerEdge) * 2, 1));
+    result.push(sample(1 - (index / samplesPerEdge) * 2, 1));
   }
   for (let index = 1; index < samplesPerEdge; index += 1) {
-    result.push(parametricTerrainPoint(envelope, parameters, -1, 1 - index / samplesPerEdge));
+    result.push(sample(-1, 1 - index / samplesPerEdge));
   }
   return result;
 }
@@ -537,8 +726,52 @@ function polygonContains(subject: WorldPlanPoint, polygon: ReadonlyArray<WorldPl
   return inside;
 }
 
+/**
+ * Proves that a circular footprint is fully contained by the canonical land
+ * polygon. This is shared by planning so settlement capacity cannot depend on
+ * a renderer-only outline approximation.
+ */
+export function physicalTerrainCircleIsContained(
+  outline: ReadonlyArray<WorldPlanPoint>,
+  center: WorldPlanPoint,
+  radius: number,
+  clearance = 0,
+): boolean {
+  if (!polygonContains(center, outline)) return false;
+  const requiredDistance = radius + clearance;
+  const edges = preparePolygonEdges(outline);
+  return edges.every(
+    (edge) => Math.sqrt(squaredDistanceToEdge(edge, center.x, center.z)) >= requiredDistance,
+  );
+}
+
 function angularDistance(first: number, second: number): number {
   return Math.abs(Math.atan2(Math.sin(first - second), Math.cos(first - second)));
+}
+
+function lakeLocalToWorld(
+  lake: Pick<PhysicalLakeContract, "center" | "rotation">,
+  localX: number,
+  localZ: number,
+): WorldPlanPoint {
+  const cosine = Math.cos(lake.rotation);
+  const sine = Math.sin(lake.rotation);
+  return point(
+    lake.center.x + localX * cosine - localZ * sine,
+    lake.center.z + localX * sine + localZ * cosine,
+  );
+}
+
+function lakeWorldToLocal(
+  lake: Pick<PhysicalLakeContract, "center" | "rotation">,
+  x: number,
+  z: number,
+): WorldPlanPoint {
+  const deltaX = x - lake.center.x;
+  const deltaZ = z - lake.center.z;
+  const cosine = Math.cos(lake.rotation);
+  const sine = Math.sin(lake.rotation);
+  return point(deltaX * cosine + deltaZ * sine, -deltaX * sine + deltaZ * cosine);
 }
 
 function lakeRadiusMultiplier(contract: PhysicalWaterContract, angle: number): number {
@@ -564,15 +797,20 @@ function lakeRadiusMultiplier(contract: PhysicalWaterContract, angle: number): n
   );
   const directionX = Math.cos(angle);
   const directionZ = Math.sin(angle);
+  const worldDirection = lakeLocalToWorld(
+    { center: point(0, 0), rotation: contract.lake.rotation },
+    directionX * contract.lake.radiusX,
+    directionZ * contract.lake.radiusZ,
+  );
   for (const terrace of contract.terraces) {
-    const centerX = (terrace.center.x - contract.lake.center.x) / contract.lake.radiusX;
-    const centerZ = (terrace.center.z - contract.lake.center.z) / contract.lake.radiusZ;
-    const clearance = Math.max(8, Math.max(terrace.radiusX, terrace.radiusZ) * 1.65 + 5);
-    const radiusX = (terrace.radiusX + clearance) / contract.lake.radiusX;
-    const radiusZ = (terrace.radiusZ + clearance) / contract.lake.radiusZ;
-    const a = directionX ** 2 / radiusX ** 2 + directionZ ** 2 / radiusZ ** 2;
+    const radiusX = terrace.radiusX + PHYSICAL_LAKE_TERRACE_CLEARANCE;
+    const radiusZ = terrace.radiusZ + PHYSICAL_LAKE_TERRACE_CLEARANCE;
+    const centerX = terrace.center.x - contract.lake.center.x;
+    const centerZ = terrace.center.z - contract.lake.center.z;
+    const a = worldDirection.x ** 2 / radiusX ** 2 + worldDirection.z ** 2 / radiusZ ** 2;
     const b =
-      (-2 * directionX * centerX) / radiusX ** 2 + (-2 * directionZ * centerZ) / radiusZ ** 2;
+      (-2 * worldDirection.x * centerX) / radiusX ** 2 +
+      (-2 * worldDirection.z * centerZ) / radiusZ ** 2;
     const c = centerX ** 2 / radiusX ** 2 + centerZ ** 2 / radiusZ ** 2 - 1;
     const discriminant = b * b - 4 * a * c;
     if (discriminant < 0) continue;
@@ -585,9 +823,10 @@ function lakeRadiusMultiplier(contract: PhysicalWaterContract, angle: number): n
 function fittedLakeRadiusMultiplier(contract: PhysicalWaterContract, angle: number): number {
   const requested = lakeRadiusMultiplier(contract, angle);
   const pointAt = (multiplier: number) =>
-    point(
-      contract.lake.center.x + Math.cos(angle) * contract.lake.radiusX * multiplier,
-      contract.lake.center.z + Math.sin(angle) * contract.lake.radiusZ * multiplier,
+    lakeLocalToWorld(
+      contract.lake,
+      Math.cos(angle) * contract.lake.radiusX * multiplier,
+      Math.sin(angle) * contract.lake.radiusZ * multiplier,
     );
   if (polygonContains(pointAt(requested), contract.outline)) return requested;
   let lower = 0;
@@ -693,16 +932,17 @@ export function canonicalLakeNormalizedRadius(
 ): number {
   const deltaX = x - lake.center.x;
   const deltaZ = z - lake.center.z;
-  const subjectRadius = Math.hypot(deltaX, deltaZ);
-  if (subjectRadius <= Number.EPSILON || lake.perimeter.length === 0) return 0;
-  const directionX = deltaX / subjectRadius;
-  const directionZ = deltaZ / subjectRadius;
+  const worldSubjectRadius = Math.hypot(deltaX, deltaZ);
+  if (worldSubjectRadius <= Number.EPSILON || lake.perimeter.length === 0) return 0;
+  const directionX = deltaX / worldSubjectRadius;
+  const directionZ = deltaZ / worldSubjectRadius;
   // The perimeter fan is sampled at equal angles in the lake's normalized
   // ellipse space, not at equal world-space angles. Recover that same
   // parameter before selecting the shoreline chord; world-space angles pick
   // the wrong edge whenever radiusX and radiusZ differ substantially.
-  const angle = Math.atan2(deltaZ / lake.radiusZ, deltaX / lake.radiusX);
-  const normalizedAngle = angle < 0 ? angle + Math.PI * 2 : angle;
+  const local = lakeWorldToLocal(lake, x, z);
+  const angle = Math.atan2(local.z / lake.radiusZ, local.x / lake.radiusX);
+  const normalizedAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
   const index =
     Math.floor((normalizedAngle / (Math.PI * 2)) * lake.perimeter.length) % lake.perimeter.length;
   const first = lake.perimeter[index]!;
@@ -714,7 +954,7 @@ export function canonicalLakeNormalizedRadius(
   const fromCenterX = first.x - lake.center.x;
   const fromCenterZ = first.z - lake.center.z;
   const boundaryRadius = (fromCenterX * segmentZ - fromCenterZ * segmentX) / denominator;
-  return subjectRadius / Math.max(Number.EPSILON, boundaryRadius);
+  return worldSubjectRadius / Math.max(Number.EPSILON, boundaryRadius);
 }
 
 export function physicalLakePolygonArea(perimeter: ReadonlyArray<WorldPlanPoint>): number {
@@ -812,12 +1052,12 @@ export function physicalWaterCircleHasClearance(
 export function createPhysicalWaterContract(
   input: CreatePhysicalWaterContractInput,
 ): PhysicalWaterContract {
-  const { key, envelope, courseMask, lakeMask, terraces } = input;
-  const outline = buildPhysicalTerrainOutline(envelope, key);
+  const { key, envelope, courseMask, lakeMask, terraces, topologyFamily } = input;
+  const outline = buildPhysicalTerrainOutline(envelope, key, 32, topologyFamily);
   const targetLakeArea =
     envelope.width * envelope.depth * (0.135 + stableFraction(`${key}:lake-area`) * 0.025);
-  const aspect = clamp(envelope.width / envelope.depth, 0.78, 1.12);
-  const inletAngle = -Math.PI / 2 - 0.16 + (stableFraction(`${key}:inlet-angle`) - 0.5) * 0.1;
+  const aspect = clamp(topologyFamily?.lake.aspect ?? envelope.width / envelope.depth, 0.68, 1.58);
+  const rotation = topologyFamily?.lake.rotation ?? lakeMask.rotation;
   const headwaterSurfaceHeight = 4.25;
   const outletSurfaceHeight = -0.35;
   const targetRadiusX = Math.sqrt((targetLakeArea * aspect) / Math.PI);
@@ -834,19 +1074,23 @@ export function createPhysicalWaterContract(
   const lakeAtScale = (scale: number): PhysicalLakeContract => {
     const radiusX = baseRadiusX * scale;
     const radiusZ = baseRadiusZ * scale;
+    const cosine = Math.cos(rotation);
+    const sine = Math.sin(rotation);
+    const extentX = Math.sqrt(radiusX ** 2 * cosine ** 2 + radiusZ ** 2 * sine ** 2);
+    const extentZ = Math.sqrt(radiusX ** 2 * sine ** 2 + radiusZ ** 2 * cosine ** 2);
     const preferredLakeCenter = point(
-      mix(lakeMask.center.x, envelope.center.x, 0.16),
+      mix(lakeMask.center.x, envelope.center.x, 0.04),
       clamp(
-        mix(lakeMask.center.z, envelope.center.z, 0.18),
-        envelope.center.z + envelope.depth * 0.12,
-        envelope.maxZ - envelope.safeMargin - radiusZ - envelope.depth * 0.01,
+        mix(lakeMask.center.z, envelope.center.z, 0.04),
+        envelope.minZ + envelope.depth * 0.43,
+        envelope.maxZ - envelope.safeMargin - extentZ - envelope.depth * 0.01,
       ),
     );
     const center = point(
       clamp(
         preferredLakeCenter.x,
-        envelope.minX + envelope.safeMargin + radiusX * 1.16,
-        envelope.maxX - envelope.safeMargin - radiusX * 1.16,
+        envelope.minX + envelope.safeMargin + extentX * 1.08,
+        envelope.maxX - envelope.safeMargin - extentX * 1.08,
       ),
       preferredLakeCenter.z,
     );
@@ -854,38 +1098,181 @@ export function createPhysicalWaterContract(
       center,
       radiusX,
       radiusZ,
+      rotation,
       surfaceHeight: 0,
       area: 0,
       footprintRatio: 0,
-      inletAngle,
+      inletAngle: 0,
       perimeter: [],
       islet: {
-        center: point(center.x + radiusX * 0.17, center.z + radiusZ * 0.13),
-        radiusX: clamp(radiusX * 0.105, 3.4, 5.2),
-        radiusZ: clamp(radiusZ * 0.058, 2.6, 4.1),
-        rotation: -0.48 + stableFraction(`${key}:islet-rotation`) * 0.34,
+        enabled: false,
+        kind: "grove",
+        center,
+        radiusX: 0,
+        radiusZ: 0,
+        rotation,
+        height: 0,
+        detailAnchors: [],
       },
     };
   };
+  const sourceGuide = courseMask.points[0] ?? point(envelope.center.x, envelope.minZ);
+  const measureLakeAtScale = (scale: number): PhysicalLakeContract => {
+    const unmeasuredLake = lakeAtScale(scale);
+    const sourceGuideLocal = lakeWorldToLocal(unmeasuredLake, sourceGuide.x, sourceGuide.z);
+    const estimatedInletAngle = Math.atan2(
+      sourceGuideLocal.z / unmeasuredLake.radiusZ,
+      sourceGuideLocal.x / unmeasuredLake.radiusX,
+    );
+    const inletAngle = estimatedInletAngle + (stableFraction(`${key}:inlet-angle`) - 0.5) * 0.08;
+    const angledLake = { ...unmeasuredLake, inletAngle };
+    const contract: PhysicalWaterContract = {
+      key,
+      envelope,
+      outline,
+      terraces,
+      lake: angledLake,
+      course,
+    };
+    const perimeter = Array.from({ length: PHYSICAL_LAKE_PERIMETER_SEGMENTS }, (_, index) => {
+      const angle = (index / PHYSICAL_LAKE_PERIMETER_SEGMENTS) * Math.PI * 2;
+      const multiplier = fittedLakeRadiusMultiplier(contract, angle);
+      return lakeLocalToWorld(
+        angledLake,
+        Math.cos(angle) * angledLake.radiusX * multiplier,
+        Math.sin(angle) * angledLake.radiusZ * multiplier,
+      );
+    });
+    const area = physicalLakePolygonArea(perimeter);
+    return {
+      ...angledLake,
+      perimeter,
+      area,
+      footprintRatio: area / (envelope.width * envelope.depth),
+      islet: createPhysicalLakeIslet(key, angledLake, area, topologyFamily),
+    };
+  };
+  const desiredFootprintRatio = 0.122 + stableFraction(`${key}:fitted-lake-area`) * 0.004;
+  let lakeScale = 1;
+  let provisionalLake = measureLakeAtScale(lakeScale);
+  let bestLake = provisionalLake;
+  for (let iteration = 0; iteration < 6; iteration += 1) {
+    const correctedScale = clamp(
+      lakeScale *
+        Math.sqrt(desiredFootprintRatio / Math.max(0.001, provisionalLake.footprintRatio)),
+      0.48,
+      1.9,
+    );
+    const correctedLake = measureLakeAtScale(correctedScale);
+    if (
+      Math.abs(correctedLake.footprintRatio - desiredFootprintRatio) >=
+      Math.abs(provisionalLake.footprintRatio - desiredFootprintRatio)
+    ) {
+      if (bestLake.footprintRatio >= 0.1) break;
+      lakeScale = Math.min(1.9, lakeScale * 1.08);
+      provisionalLake = measureLakeAtScale(lakeScale);
+      if (
+        Math.abs(provisionalLake.footprintRatio - desiredFootprintRatio) <
+        Math.abs(bestLake.footprintRatio - desiredFootprintRatio)
+      ) {
+        bestLake = provisionalLake;
+      }
+      continue;
+    }
+    lakeScale = correctedScale;
+    provisionalLake = correctedLake;
+    bestLake = correctedLake;
+  }
+  if (bestLake.footprintRatio < 0.1) {
+    for (let iteration = 0; iteration < 8 && lakeScale < 1.9; iteration += 1) {
+      lakeScale = Math.min(1.9, lakeScale * 1.08);
+      const expandedLake = measureLakeAtScale(lakeScale);
+      if (expandedLake.footprintRatio > bestLake.footprintRatio) bestLake = expandedLake;
+      if (bestLake.footprintRatio >= 0.1) break;
+    }
+  }
+  if (bestLake.footprintRatio > 0.14) {
+    for (let iteration = 0; iteration < 10; iteration += 1) {
+      const correctedScale = clamp(
+        lakeScale * Math.sqrt(desiredFootprintRatio / bestLake.footprintRatio),
+        0.48,
+        1.9,
+      );
+      const correctedLake = measureLakeAtScale(correctedScale);
+      if (correctedLake.footprintRatio >= 0.1 && correctedLake.footprintRatio <= 0.14) {
+        bestLake = correctedLake;
+        break;
+      }
+      lakeScale = correctedScale;
+      if (
+        correctedLake.footprintRatio <= 0.14 &&
+        (bestLake.footprintRatio > 0.14 ||
+          Math.abs(correctedLake.footprintRatio - desiredFootprintRatio) <
+            Math.abs(bestLake.footprintRatio - desiredFootprintRatio))
+      ) {
+        bestLake = correctedLake;
+      }
+    }
+  }
+  const scaleProbes = Array.from({ length: 25 }, (_, index) => 0.5 + index * 0.058);
+  for (const candidateScale of scaleProbes) {
+    const candidateLake = measureLakeAtScale(candidateScale);
+    const candidateValid =
+      candidateLake.footprintRatio >= 0.1 && candidateLake.footprintRatio <= 0.14;
+    const bestValid = bestLake.footprintRatio >= 0.1 && bestLake.footprintRatio <= 0.14;
+    if (
+      (candidateValid && !bestValid) ||
+      (candidateValid === bestValid &&
+        Math.abs(candidateLake.footprintRatio - desiredFootprintRatio) <
+          Math.abs(bestLake.footprintRatio - desiredFootprintRatio))
+    ) {
+      bestLake = candidateLake;
+    }
+  }
+  if (bestLake.footprintRatio > 0.14) {
+    for (let probe = 0; probe <= 48; probe += 1) {
+      const candidateScale = 0.25 + probe * 0.041;
+      const candidateLake = measureLakeAtScale(candidateScale);
+      const candidateValid =
+        candidateLake.footprintRatio >= 0.1 && candidateLake.footprintRatio <= 0.14;
+      const bestValid = bestLake.footprintRatio >= 0.1 && bestLake.footprintRatio <= 0.14;
+      if (
+        (candidateValid && !bestValid) ||
+        (candidateValid === bestValid &&
+          Math.abs(candidateLake.footprintRatio - desiredFootprintRatio) <
+            Math.abs(bestLake.footprintRatio - desiredFootprintRatio))
+      ) {
+        bestLake = candidateLake;
+      }
+    }
+  }
+  provisionalLake = bestLake;
+  const { center: lakeCenter, radiusX, radiusZ } = provisionalLake;
   const baseContract: PhysicalWaterContract = {
     key,
     envelope,
     outline,
     terraces,
-    lake: lakeAtScale(1),
+    lake: provisionalLake,
     course,
   };
-  const provisionalLake = baseContract.lake;
-  const { center: lakeCenter, radiusX, radiusZ } = provisionalLake;
+  const inletAngle = provisionalLake.inletAngle;
   const inletRadius = fittedLakeRadiusMultiplier(baseContract, inletAngle);
-  const inletPoint = point(
-    lakeCenter.x + Math.cos(inletAngle) * radiusX * inletRadius * 1.01,
-    lakeCenter.z + Math.sin(inletAngle) * radiusZ * inletRadius * 1.01,
+  const inletPoint = lakeLocalToWorld(
+    baseContract.lake,
+    Math.cos(inletAngle) * radiusX * inletRadius * 1.01,
+    Math.sin(inletAngle) * radiusZ * inletRadius * 1.01,
   );
   const rearFaceZ = input.horizonZ + envelope.depth * 0.025;
-  const headwaterX =
-    envelope.center.x +
-    envelope.width * (-0.055 + (stableFraction(`${key}:headwater-x`) - 0.5) * 0.035);
+  // Start inside the central rear watershed band. Repository-scale/v2 can
+  // widen the semantic guide substantially; carrying that full lateral offset
+  // into the source produced edge-biased headwaters rather than a readable
+  // mountain-to-basin course.
+  const headwaterX = clamp(
+    sourceGuide.x + (stableFraction(`${key}:headwater-x`) - 0.5) * envelope.width * 0.025,
+    envelope.center.x - envelope.width * 0.139,
+    envelope.center.x + envelope.width * 0.139,
+  );
   const headwaterZ = rearFaceZ + envelope.depth * 0.035;
   const coursePhase = stableFraction(`${key}:course-meander`) * Math.PI * 2;
   const semanticCourseSide =
@@ -922,6 +1309,11 @@ export function createPhysicalWaterContract(
     const progress = index / 11;
     const meanderEnvelope = Math.sin(progress * Math.PI);
     const meander =
+      // Keep one complete, phase-independent bend in every repository course.
+      // The keyed harmonics vary its shoulders, but cannot cancel the broad
+      // mountain-to-basin meander when a composition key happens to align the
+      // two random phases.
+      Math.sin(progress * Math.PI * 2) * envelope.width * 0.05 +
       Math.sin(progress * Math.PI * 3.4 + coursePhase) * envelope.width * 0.058 +
       Math.sin(progress * Math.PI * 6.2 - coursePhase * 0.5) * envelope.width * 0.018;
     const semanticGuide = samplePhysicalCoursePolyline(courseMask.points, progress);
@@ -969,9 +1361,10 @@ export function createPhysicalWaterContract(
   const perimeter = Array.from({ length: PHYSICAL_LAKE_PERIMETER_SEGMENTS }, (_, index) => {
     const angle = (index / PHYSICAL_LAKE_PERIMETER_SEGMENTS) * Math.PI * 2;
     const multiplier = fittedLakeRadiusMultiplier(radialContract, angle);
-    return point(
-      lakeCenter.x + Math.cos(angle) * radiusX * multiplier,
-      lakeCenter.z + Math.sin(angle) * radiusZ * multiplier,
+    return lakeLocalToWorld(
+      radialContract.lake,
+      Math.cos(angle) * radiusX * multiplier,
+      Math.sin(angle) * radiusZ * multiplier,
     );
   });
   const fittedLakeArea = physicalLakePolygonArea(perimeter);
@@ -980,6 +1373,10 @@ export function createPhysicalWaterContract(
     perimeter,
     area: fittedLakeArea,
     footprintRatio: fittedLakeArea / (envelope.width * envelope.depth),
+    // The fitted lake receives its physical surface height only after the
+    // routed course is known. Rebuild habitat anchors here so their world Y
+    // follows that final surface instead of the zero-height sizing probe.
+    islet: createPhysicalLakeIslet(key, unmeasuredLake, fittedLakeArea, topologyFamily),
   };
   const temporaryContract: PhysicalWaterContract = { ...radialContract, lake };
   let basinEntryProgress = clamp(lakeClosestProgress - 0.08, 0.35, 0.88);
@@ -988,17 +1385,12 @@ export function createPhysicalWaterContract(
   for (let step = 1; step <= 160; step += 1) {
     const progress = step / 160;
     const coursePoint = samplePhysicalCoursePolyline(plannedCoursePoints, progress);
+    const courseLocal = lakeWorldToLocal(lake, coursePoint.x, coursePoint.z);
     const normalizedRadius =
-      Math.hypot(
-        (coursePoint.x - lake.center.x) / lake.radiusX,
-        (coursePoint.z - lake.center.z) / lake.radiusZ,
-      ) /
+      Math.hypot(courseLocal.x / lake.radiusX, courseLocal.z / lake.radiusZ) /
       fittedLakeRadiusMultiplier(
         temporaryContract,
-        Math.atan2(
-          (coursePoint.z - lake.center.z) / lake.radiusZ,
-          (coursePoint.x - lake.center.x) / lake.radiusX,
-        ),
+        Math.atan2(courseLocal.z / lake.radiusZ, courseLocal.x / lake.radiusX),
       );
     if (normalizedRadius <= 1.16 && previousRadius > 1.16) {
       let lower = previousProgress;
@@ -1006,8 +1398,9 @@ export function createPhysicalWaterContract(
       for (let iteration = 0; iteration < 14; iteration += 1) {
         const middle = (lower + upper) / 2;
         const middlePoint = samplePhysicalCoursePolyline(plannedCoursePoints, middle);
-        const normalizedX = (middlePoint.x - lake.center.x) / lake.radiusX;
-        const normalizedZ = (middlePoint.z - lake.center.z) / lake.radiusZ;
+        const middleLocal = lakeWorldToLocal(lake, middlePoint.x, middlePoint.z);
+        const normalizedX = middleLocal.x / lake.radiusX;
+        const normalizedZ = middleLocal.z / lake.radiusZ;
         const middleRadius =
           Math.hypot(normalizedX, normalizedZ) /
           fittedLakeRadiusMultiplier(temporaryContract, Math.atan2(normalizedZ, normalizedX));

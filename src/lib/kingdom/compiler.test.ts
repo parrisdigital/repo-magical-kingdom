@@ -4,6 +4,11 @@ import type { RepositorySnapshot } from "@/lib/github";
 
 import { compileKingdom } from "./compiler";
 import { createDemoKingdom, createDemoUniverse } from "./demo-world";
+import {
+  compiledKingdomWorldSchema,
+  kingdomWorldSchema,
+  legacyKingdomWorldSchema,
+} from "./schemas";
 import { KINGDOM_SEASONS } from "./types";
 
 function snapshot(paths: ReadonlyArray<string>, repositoryId = 77): RepositorySnapshot {
@@ -284,6 +289,48 @@ describe("compileKingdom", () => {
     expect(world.coverage.aggregateEntities).toBeGreaterThan(0);
     expect(represented).toBe(1_200);
     expect(world.coverage.representedFiles).toBe(1_200);
+    expect(compiledKingdomWorldSchema.safeParse(world).success).toBe(true);
+  });
+
+  it("strictly reconciles compiler coverage and explicitly migrates legacy summary counters", () => {
+    const world = compileKingdom(
+      snapshot(Array.from({ length: 1_200 }, (_, index) => `src/file-${index}.ts`)),
+    );
+    const actualDirect = world.entities.filter((entity) => !entity.aggregate).length;
+    const actualAggregates = world.entities.filter((entity) => entity.aggregate).length;
+    const actualRepresented = world.entities.reduce(
+      (total, entity) => total + entity.representedFiles,
+      0,
+    );
+    const legacy = {
+      ...world,
+      coverage: {
+        ...world.coverage,
+        directEntities: actualDirect + 7,
+        aggregateEntities: actualAggregates + 3,
+        representedFiles: actualRepresented + 11,
+      },
+    };
+
+    expect(compiledKingdomWorldSchema.safeParse(legacy).success).toBe(false);
+    expect(kingdomWorldSchema.safeParse(legacy).success).toBe(false);
+    const compatible = legacyKingdomWorldSchema.safeParse(legacy);
+    expect(compatible.success).toBe(true);
+    if (!compatible.success) return;
+    expect(compatible.data.coverage).toMatchObject({
+      directEntities: actualDirect,
+      aggregateEntities: actualAggregates,
+      representedFiles: actualRepresented,
+    });
+    expect(compatible.data.warnings).toContainEqual(
+      expect.objectContaining({ code: "LEGACY_COVERAGE_RECONCILED" }),
+    );
+
+    const wrongBytes = {
+      ...world,
+      statistics: { ...world.statistics, bytes: world.statistics.bytes + 1 },
+    };
+    expect(compiledKingdomWorldSchema.safeParse(wrongBytes).success).toBe(false);
   });
 
   it("reports intentional omissions by reason", () => {

@@ -49,7 +49,24 @@ it("creates a bounded, repository-specific world for captured vercel/next.js dat
 
   expect(plan.identity.scaleTier).toBe("vast");
   expect(plan.topology.hamlets).toHaveLength(5);
-  expect(scatter.buildings).toHaveLength(30);
+  expect(plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)).toEqual([6, 6, 6, 6, 4]);
+  expect(
+    plan.topology.hamlets.slice(0, 4).every((hamlet) => hamlet.role !== "commons-hamlet"),
+  ).toBe(true);
+  const satellite = plan.topology.hamlets[4]!;
+  expect(satellite.role).toBe("commons-hamlet");
+  expect(satellite.mask.radiusX).toBeLessThan(
+    Math.min(...plan.topology.hamlets.slice(0, 4).map((hamlet) => hamlet.mask.radiusX)),
+  );
+  expect(satellite.terrainMask!.radiusX).toBeLessThan(
+    Math.min(...plan.topology.hamlets.slice(0, 4).map((hamlet) => hamlet.terrainMask!.radiusX)),
+  );
+  expect(scatter.buildings).toHaveLength(28);
+  expect(scatter.landmarkRuntime).toEqual({
+    targetInstances: plan.topology.landmarks.length,
+    emittedInstances: plan.topology.landmarks.length,
+    omittedLandmarkIds: [],
+  });
   expect(scatter.trees.length).toBeLessThanOrEqual(plan.topology.visualBudgets.maxTrees);
   expect(scatter.wildlife.length).toBeLessThanOrEqual(
     plan.topology.visualBudgets.maxWildlifeActors,

@@ -21,6 +21,8 @@ import {
 } from "@/lib/kingdom/types";
 
 import styles from "./kingdom-experience.module.css";
+import type { KingdomNavigationMode } from "./kingdom-navigation-model";
+import type { WalkViewStatus } from "./kingdom-walk-experience-model";
 import { BIOME_COLORS, BIOME_LABELS, CATEGORY_LABELS } from "./world-utils";
 
 export type ExperienceMode = "landing" | "kingdom" | "universe";
@@ -36,6 +38,10 @@ type KingdomHudProps = Readonly<{
   errorMessage: string | null;
   isDemo: boolean;
   soundEnabled: boolean;
+  navigationMode?: KingdomNavigationMode;
+  walkAvailable?: boolean;
+  walkLocked?: boolean;
+  walkStatus?: WalkViewStatus;
   season: KingdomSeason;
   worldTheme: KingdomWorldTheme | null;
   onRepositoryInput: (value: string) => void;
@@ -43,6 +49,7 @@ type KingdomHudProps = Readonly<{
   onSelect: (selection: Selection) => void;
   onEnterSelection: () => void;
   onResetCamera: () => void;
+  onNavigationModeChange?: (mode: KingdomNavigationMode) => void;
   onShowLanding: () => void;
   onShowUniverse: () => void;
   onToggleSound: () => void;
@@ -54,6 +61,42 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function FileRepresentationCoverage({
+  world,
+  compact = false,
+}: Readonly<{ world: KingdomWorld; compact?: boolean }>) {
+  const directFiles = world.coverage.directEntities;
+  const groupedFiles = Math.max(0, world.coverage.representedFiles - directFiles);
+  const aggregateGroups = world.coverage.aggregateEntities;
+  if (compact) {
+    return (
+      <p className={styles.worldCoverage} aria-label="File representation coverage">
+        {directFiles.toLocaleString()} direct · {groupedFiles.toLocaleString()} grouped (
+        {aggregateGroups.toLocaleString()} groups) · {world.coverage.omittedFiles.toLocaleString()}{" "}
+        omitted.
+      </p>
+    );
+  }
+  return (
+    <dl className={styles.explorerCoverage} aria-label="File representation coverage">
+      <div>
+        <dt>Direct files</dt>
+        <dd>{directFiles.toLocaleString()}</dd>
+      </div>
+      <div>
+        <dt>Aggregated files</dt>
+        <dd>
+          {groupedFiles.toLocaleString()} in {aggregateGroups.toLocaleString()} groups
+        </dd>
+      </div>
+      <div>
+        <dt>Omitted files</dt>
+        <dd>{world.coverage.omittedFiles.toLocaleString()}</dd>
+      </div>
+    </dl>
+  );
 }
 
 function SeasonPicker({
@@ -259,7 +302,14 @@ function Brand({ mode, isDemo }: Readonly<{ mode: ExperienceMode; isDemo: boolea
   return (
     <div className={styles.brand}>
       <span className={styles.brandSigil} aria-hidden="true">
-        <Image src="/brand/app-logo-v2.png" alt="" width={112} height={112} sizes="56px" />
+        <Image
+          src="/brand/app-logo-v2.png"
+          alt=""
+          width={160}
+          height={160}
+          sizes="(max-width: 780px) 52px, 72px"
+          loading="eager"
+        />
       </span>
       <div>
         <p>Repo Magical Kingdom</p>
@@ -289,6 +339,34 @@ function ExplorerDrawer({
   const results = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return [];
+    const entities = world.entities
+      .filter((entity) =>
+        `${entity.label} ${entity.path} ${entity.category} ${entity.language}`
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
+      .sort((first, second) => {
+        const rank = (label: string, path: string) => {
+          if (path.toLowerCase() === normalizedQuery) return 0;
+          if (label.toLowerCase() === normalizedQuery) return 1;
+          if (path.toLowerCase().startsWith(normalizedQuery)) return 2;
+          return 3;
+        };
+        return (
+          rank(first.label, first.path) - rank(second.label, second.path) ||
+          second.representedFiles - first.representedFiles ||
+          first.path.localeCompare(second.path)
+        );
+      })
+      .slice(0, 8)
+      .map((entity) => ({
+        key: entity.id,
+        label: entity.label,
+        detail: entity.aggregate
+          ? `Aggregated group · ${entity.representedFiles.toLocaleString()} ${CATEGORY_LABELS[entity.category].toLowerCase()} files · ${entity.path}`
+          : `Direct file · ${CATEGORY_LABELS[entity.category]} · ${entity.path}`,
+        selection: { kind: "entity", entity } as const,
+      }));
     const provinces = world.provinces
       .filter((province) =>
         `${province.label} ${province.description} ${province.biome}`
@@ -299,23 +377,12 @@ function ExplorerDrawer({
       .map((province) => ({
         key: province.id,
         label: province.label,
-        detail: `${BIOME_LABELS[province.biome]} realm`,
+        detail: `Province · ${BIOME_LABELS[province.biome]} realm`,
         selection: { kind: "province", province } as const,
       }));
-    const entities = world.entities
-      .filter((entity) =>
-        `${entity.label} ${entity.path} ${entity.category} ${entity.language}`
-          .toLowerCase()
-          .includes(normalizedQuery),
-      )
-      .slice(0, 8)
-      .map((entity) => ({
-        key: entity.id,
-        label: entity.label,
-        detail: entity.path,
-        selection: { kind: "entity", entity } as const,
-      }));
-    return [...provinces, ...entities].slice(0, 10);
+    // A matching province is useful context, but should never conceal a more
+    // specific file or aggregated file-group result.
+    return [...entities, ...provinces].slice(0, 10);
   }, [query, world.entities, world.provinces]);
 
   return (
@@ -330,11 +397,15 @@ function ExplorerDrawer({
         Explore
       </button>
       {open ? (
-        <section className={styles.explorer} aria-label="Kingdom explorer">
+        <section
+          className={styles.explorer}
+          aria-label="Kingdom explorer"
+          data-kingdom-explorer="open"
+        >
           <div className={styles.drawerHeading}>
             <div>
-              <span className={styles.kicker}>Kingdom atlas</span>
-              <h2>Find a landmark</h2>
+              <span className={styles.kicker}>Files, groups, and provinces</span>
+              <h2>Find files and file groups</h2>
             </div>
             <button
               className={styles.iconButton}
@@ -345,33 +416,43 @@ function ExplorerDrawer({
               ×
             </button>
           </div>
+          <p className={styles.explorerDescription}>
+            Important files appear directly. Smaller eligible files are combined into searchable
+            groups so the world stays responsive.
+          </p>
+          <FileRepresentationCoverage world={world} />
           <label className={styles.searchField}>
-            <span className={styles.srOnly}>Search paths and provinces</span>
+            <span className={styles.srOnly}>Search files, groups, and provinces</span>
             <input
+              name="kingdom-search"
+              type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search paths or provinces…"
+              placeholder="Search files, groups, or provinces…"
               autoFocus
             />
           </label>
           {query ? (
             <div className={styles.searchResults} aria-live="polite">
               {results.length ? (
-                results.map((result) => (
-                  <button
-                    key={result.key}
-                    type="button"
-                    onClick={() => {
-                      onSelect(result.selection);
-                      setOpen(false);
-                    }}
-                  >
-                    <strong>{result.label}</strong>
-                    <span>{result.detail}</span>
-                  </button>
-                ))
+                <ul role="list" aria-label="Search results">
+                  {results.map((result) => (
+                    <li key={result.key}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelect(result.selection);
+                          setOpen(false);
+                        }}
+                      >
+                        <strong>{result.label}</strong>
+                        <span>{result.detail}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <p>No landmarks match that search.</p>
+                <p>No files, groups, or provinces match that search.</p>
               )}
             </div>
           ) : (
@@ -555,14 +636,16 @@ function SelectionCard({
     );
   } else if (selection.kind === "entity") {
     const { entity } = selection;
-    kicker = entity.aggregate ? "Aggregated landmark" : CATEGORY_LABELS[entity.category];
+    kicker = entity.aggregate
+      ? "Aggregated file group"
+      : `Direct file · ${CATEGORY_LABELS[entity.category]}`;
     title = entity.label;
     description = entity.path;
     sourceUrl = entity.sourceUrl;
     facts.push(
       ["Language", entity.language || "Unknown"],
       [
-        entity.aggregate ? "Represents" : "Size",
+        entity.aggregate ? "Files represented" : "Size",
         entity.aggregate ? `${entity.representedFiles} files` : formatBytes(entity.size),
       ],
     );
@@ -633,18 +716,33 @@ function SelectionCard({
 }
 
 function HoverHint({ selection }: Readonly<{ selection: NonNullable<Selection> }>) {
-  const text =
-    selection.kind === "province"
-      ? selection.province.label
-      : selection.kind === "entity"
-        ? selection.entity.path
-        : selection.kind === "portal"
-          ? `Portal to ${selection.portal.owner}/${selection.portal.repository}`
-          : `${selection.repository.owner}/${selection.repository.repository}`;
+  let type = "Repository world";
+  let title = "";
+  let detail = "Select to focus";
+  if (selection.kind === "province") {
+    type = "Province";
+    title = selection.province.label;
+    detail = `${selection.province.representedFiles.toLocaleString()} represented files · ${BIOME_LABELS[selection.province.biome]} realm`;
+  } else if (selection.kind === "entity") {
+    type = selection.entity.aggregate ? "Aggregated file group" : "Direct file";
+    title = selection.entity.path;
+    detail = selection.entity.aggregate
+      ? `${selection.entity.representedFiles.toLocaleString()} ${CATEGORY_LABELS[selection.entity.category].toLowerCase()} files · Select to focus`
+      : `${selection.entity.language || "Unknown language"} · ${CATEGORY_LABELS[selection.entity.category]} · ${formatBytes(selection.entity.size)}`;
+  } else if (selection.kind === "portal") {
+    type = "Repository portal";
+    title = `${selection.portal.owner}/${selection.portal.repository}`;
+    detail = "Select for details · Double-select to enter";
+  } else {
+    type = "Repository world";
+    title = `${selection.repository.owner}/${selection.repository.repository}`;
+    detail = "Select for details · Double-select to enter";
+  }
   return (
-    <div className={styles.hoverHint}>
-      <span>{text}</span>
-      <small>select to focus</small>
+    <div className={styles.hoverHint} aria-hidden="true">
+      <small>{type}</small>
+      <span>{title}</span>
+      <p>{detail}</p>
     </div>
   );
 }
@@ -660,6 +758,14 @@ export function KingdomHud({
   errorMessage,
   isDemo,
   soundEnabled,
+  navigationMode = "orbit",
+  walkAvailable = false,
+  walkLocked = false,
+  walkStatus = {
+    heading: "N",
+    locationLabel: "Repository frontier",
+    target: null,
+  },
   season,
   worldTheme,
   onRepositoryInput,
@@ -667,6 +773,7 @@ export function KingdomHud({
   onSelect,
   onEnterSelection,
   onResetCamera,
+  onNavigationModeChange,
   onShowLanding,
   onShowUniverse,
   onToggleSound,
@@ -684,7 +791,7 @@ export function KingdomHud({
   const subtitle =
     mode === "universe"
       ? `${universe?.repositoryCount ?? 0} explorable worlds`
-      : `${KINGDOM_WORLD_THEME_LABELS[world.worldTheme]} · ${KINGDOM_SEASON_LABELS[season]} · ${worldIdentity.scaleTier} realm · ${world.coverage.representedFiles.toLocaleString()} files represented`;
+      : `${KINGDOM_WORLD_THEME_LABELS[world.worldTheme]} · ${KINGDOM_SEASON_LABELS[season]} · ${worldIdentity.scaleTier} realm · ${world.coverage.representedFiles.toLocaleString()} eligible files accounted for`;
 
   return (
     <div className={styles.hud}>
@@ -705,6 +812,36 @@ export function KingdomHud({
             <UniverseDrawer universe={universe} selection={selection} onSelect={onSelect} />
           ) : null}
           {mode === "kingdom" ? <CoveragePanel world={world} /> : null}
+          {mode === "kingdom" ? (
+            <div className={styles.navigationModes} role="group" aria-label="Navigation mode">
+              <button
+                className={styles.toolButton}
+                type="button"
+                aria-pressed={navigationMode === "orbit"}
+                data-active={navigationMode === "orbit" ? "true" : "false"}
+                onClick={() => onNavigationModeChange?.("orbit")}
+              >
+                <span aria-hidden="true">◎</span>
+                Orbit
+              </button>
+              <button
+                className={styles.toolButton}
+                type="button"
+                aria-pressed={navigationMode === "walk"}
+                data-active={navigationMode === "walk" ? "true" : "false"}
+                disabled={!walkAvailable}
+                title={
+                  walkAvailable
+                    ? "Walk the repository terrain"
+                    : "Walk mode requires a keyboard and fine pointer"
+                }
+                onClick={() => onNavigationModeChange?.("walk")}
+              >
+                <span aria-hidden="true">↟</span>
+                Walk
+              </button>
+            </div>
+          ) : null}
           <button className={styles.toolButton} type="button" onClick={onResetCamera}>
             <span aria-hidden="true">⌂</span>
             Overview
@@ -772,14 +909,17 @@ export function KingdomHud({
           <h1>{title}</h1>
           <p>{subtitle}</p>
           {mode === "kingdom" ? (
-            <div className={styles.worldControlsCompact}>
-              <WorldThemePicker
-                worldTheme={world.worldTheme}
-                onChange={onWorldThemeChange}
-                compact
-              />
-              <SeasonPicker season={season} onChange={onSeasonChange} compact />
-            </div>
+            <>
+              <FileRepresentationCoverage world={world} compact />
+              <div className={styles.worldControlsCompact}>
+                <WorldThemePicker
+                  worldTheme={world.worldTheme}
+                  onChange={onWorldThemeChange}
+                  compact
+                />
+                <SeasonPicker season={season} onChange={onSeasonChange} compact />
+              </div>
+            </>
           ) : null}
         </section>
       )}
@@ -813,16 +953,65 @@ export function KingdomHud({
         />
       ) : null}
 
+      {mode === "kingdom" && navigationMode === "walk" ? (
+        <>
+          <div className={styles.walkStatus} role="status" aria-label="Walk exploration status">
+            <span aria-label={`Facing ${walkStatus.heading}`}>{walkStatus.heading}</span>
+            <strong>{walkStatus.locationLabel}</strong>
+            <small>{walkLocked ? "Exploring" : "Click the world to look"}</small>
+          </div>
+          <div
+            className={styles.walkReticle}
+            data-active-target={walkStatus.target ? "true" : "false"}
+            aria-hidden="true"
+          >
+            <i />
+          </div>
+          {walkLocked && walkStatus.target ? (
+            <div className={styles.walkTargetPrompt} role="status" aria-live="polite">
+              <small>
+                {walkStatus.target.kind} · {walkStatus.target.distance}m
+              </small>
+              <strong>{walkStatus.target.label}</strong>
+              <span>{walkStatus.target.detail}</span>
+              <kbd>Enter or click to inspect</kbd>
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
       <footer className={styles.controlHint}>
-        <span>
-          <b>Drag</b> orbit
-        </span>
-        <span>
-          <b>Scroll</b> zoom
-        </span>
-        <span>
-          <b>Select</b> discover
-        </span>
+        {mode === "kingdom" && navigationMode === "walk" ? (
+          <>
+            <span>
+              <b>{walkLocked ? "Mouse" : "Click world"}</b> look
+            </span>
+            <span>
+              <b>WASD</b> move
+            </span>
+            <span>
+              <b>Shift</b> sprint
+            </span>
+            <span>
+              <b>Enter</b> inspect
+            </span>
+            <span>
+              <b>Esc</b> release
+            </span>
+          </>
+        ) : (
+          <>
+            <span>
+              <b>Drag</b> orbit
+            </span>
+            <span>
+              <b>Scroll</b> zoom
+            </span>
+            <span>
+              <b>Select</b> discover
+            </span>
+          </>
+        )}
       </footer>
     </div>
   );

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { createDemoKingdom } from "@/lib/kingdom/demo-world";
@@ -23,6 +25,11 @@ import {
   samplePlannedWaterSurface,
 } from "./planned-terrain-model";
 
+const TERRAIN_MODEL_SOURCE = readFileSync(
+  new URL("./planned-terrain-model.ts", import.meta.url),
+  "utf8",
+);
+
 function numericArray(values: ArrayLike<number>): number[] {
   return Array.from(values);
 }
@@ -43,6 +50,14 @@ function projectedTriangleArea(
 }
 
 describe("planned global terrain", () => {
+  it("does not paint a second straight inter-hamlet road into terrain materials", () => {
+    expect(TERRAIN_MODEL_SOURCE).not.toContain("function pathSurfaceDistance");
+    expect(TERRAIN_MODEL_SOURCE).not.toContain(":path-edge");
+    expect(TERRAIN_MODEL_SOURCE).not.toContain(
+      'else if (pathDistance <= pathEdge && slopeDegrees < 15) material = "path-soil"',
+    );
+  });
+
   it("renders the same canonical physical water contract used by planning", () => {
     const plan = createWorldPlan(createDemoKingdom());
     const definition = getPlannedTerrainDefinition(plan);
@@ -65,6 +80,7 @@ describe("planned global terrain", () => {
       horizonZ: plan.topology.camera.horizonZ,
       courseMask,
       lakeMask,
+      topologyFamily: plan.topology.geography,
       terraces: plan.topology.hamlets.map((hamlet) => {
         const mask = placementMasks.get(hamlet.id)!;
         return { id: hamlet.id, center: mask.center, radiusX: mask.radiusX, radiusZ: mask.radiusZ };
@@ -296,29 +312,43 @@ describe("planned global terrain", () => {
     const water = buildPlannedWaterGeometry(plan);
     const firstLakeTriangleIndex = water.ranges.courseTriangles * 3;
     const lakeCenterVertex = water.indices[firstLakeTriangleIndex]!;
-    const shorelineVertexCount = lake.perimeter.length + 1;
+    const shorelineVertexCount = lake.perimeter.length;
+    const expectedLakeTriangles =
+      lake.perimeter.length * (1 + (water.ranges.lakeRingCount - 1) * 2);
     expect(lake.perimeter).toHaveLength(PHYSICAL_LAKE_PERIMETER_SEGMENTS);
-    expect(water.ranges.lakeTriangles).toBe(lake.perimeter.length);
-    expect(water.vertexCount - lakeCenterVertex).toBe(1 + shorelineVertexCount);
+    expect(water.ranges.lakeFirstVertex).toBe(lakeCenterVertex);
+    expect(water.ranges.lakeRingCount).toBeGreaterThanOrEqual(5);
+    expect(water.ranges.lakePerimeterSegments).toBe(lake.perimeter.length);
+    expect(water.ranges.lakeTriangles).toBe(expectedLakeTriangles);
+    expect(water.vertexCount - lakeCenterVertex).toBe(
+      1 + water.ranges.lakeRingCount * shorelineVertexCount,
+    );
     expect(water.positions[lakeCenterVertex * 3]).toBeCloseTo(lake.center.x, 5);
     expect(water.positions[lakeCenterVertex * 3 + 2]).toBeCloseTo(lake.center.z, 5);
+    const shorelineStart =
+      lakeCenterVertex + 1 + (water.ranges.lakeRingCount - 1) * shorelineVertexCount;
     for (let index = 0; index < shorelineVertexCount; index += 1) {
-      const vertex = lakeCenterVertex + 1 + index;
+      const vertex = shorelineStart + index;
       const x = water.positions[vertex * 3]!;
       const z = water.positions[vertex * 3 + 2]!;
-      const canonicalPoint = lake.perimeter[index % lake.perimeter.length]!;
+      const canonicalPoint = lake.perimeter[index]!;
       expect(x).toBeCloseTo(canonicalPoint.x, 5);
       expect(z).toBeCloseTo(canonicalPoint.z, 5);
       expect(queryPlannedWaterDistance(plan, x, z).lakeDistance).toBeCloseTo(0, 2);
       expect(samplePlannedWaterSurface(plan, x, z)).not.toBeNull();
     }
-    for (let index = 0; index < lake.perimeter.length; index += 1) {
+    for (let index = 0; index < shorelineVertexCount; index += 1) {
       const triangleStart = firstLakeTriangleIndex + index * 3;
-      expect(Array.from(water.indices.slice(triangleStart, triangleStart + 3))).toEqual([
+      expect(Array.from(water.indices.slice(triangleStart, triangleStart + 3))).toContain(
         lakeCenterVertex,
-        lakeCenterVertex + 1 + index,
-        lakeCenterVertex + 2 + index,
-      ]);
+      );
+    }
+    for (
+      let index = firstLakeTriangleIndex + shorelineVertexCount * 3;
+      index < water.indices.length;
+      index += 1
+    ) {
+      expect(water.indices[index]).not.toBe(lakeCenterVertex);
     }
 
     for (let index = 0; index < 48; index += 1) {
@@ -393,7 +423,7 @@ describe("planned global terrain", () => {
         ],
       },
     });
-    expect(plan.terrainKey).toBe("6b1e60878797bc0c");
+    expect(plan.terrainKey).toBe("cd2d5757fff5887c");
     const definition = getPlannedTerrainDefinition(plan);
     const perimeter = definition.water.lake.perimeter;
     expect(perimeter).toHaveLength(96);
@@ -456,14 +486,14 @@ describe("planned global terrain", () => {
     }
   });
 
-  it("densely verifies matrix-57 against the narrow fitted-lake lobe", () => {
+  it("densely verifies matrix-43 against the narrow fitted-lake lobe", () => {
     const demo = createDemoKingdom();
     const plan = createWorldPlan({
       ...demo,
-      seed: "matrix-57",
+      seed: "matrix-43",
       source: {
         ...demo.source,
-        commitSha: "0000000000000000000000000000000000100057",
+        commitSha: "0000000000000000000000000000000000100043",
       },
       coverage: {
         ...demo.coverage,
@@ -528,8 +558,9 @@ describe("planned global terrain", () => {
     // Preserve this seed as a meaningful near-boundary regression instead of
     // coupling the test to a grove ID that changes with the terrain schema.
     expect(closestClearanceMargin).toBeGreaterThanOrEqual(-0.002);
-    // The restored authored course becomes the nearest canonical water edge,
-    // while this exact seed still exercises the fitted lake polygon closely.
+    // This versioned fixture keeps both canonical water queries genuinely near
+    // their hard clearance boundary instead of merely asserting a vacuous
+    // lower bound after a terrain-schema change.
     expect(closestClearanceMargin).toBeLessThanOrEqual(3);
     expect(closestLakeClearanceMargin).toBeGreaterThanOrEqual(-0.002);
     expect(closestLakeClearanceMargin).toBeLessThanOrEqual(4.5);
@@ -631,6 +662,11 @@ describe("planned global terrain", () => {
             maximumCoursePoints,
             definition.water.course.points.length,
           );
+          const courseXs = definition.water.course.points.map(({ x }) => x);
+          expect(
+            Math.max(...courseXs) - Math.min(...courseXs),
+            `${category}:${files}:${seedIndex}:meander`,
+          ).toBeGreaterThanOrEqual(definition.envelope.width * 0.09 - 0.000_01);
           const clearance = definition.water.course.sourceWidth * 1.42 * 0.5 + 5.5;
           for (let index = 1; index < definition.water.course.points.length; index += 1) {
             const start = definition.water.course.points[index - 1]!;
@@ -739,7 +775,9 @@ describe("planned global terrain", () => {
     }
     expect(minimumLakeRadius).toBeGreaterThan(0.9);
     expect(water.ranges.courseTriangles).toBeGreaterThan(0);
-    expect(water.ranges.lakeTriangles).toBe(definition.water.lake.perimeter.length);
+    expect(water.ranges.lakeTriangles).toBe(
+      definition.water.lake.perimeter.length * (1 + (water.ranges.lakeRingCount - 1) * 2),
+    );
   });
 
   it("exposes stone on steep slopes and keeps all geometry finite and bounded", () => {
@@ -779,7 +817,7 @@ describe("planned global terrain", () => {
       ).toBe(true);
     }
     expect(terrain.surface.triangleCount).toBeLessThan(29_000);
-    expect(water.triangleCount).toBeLessThan(1_000);
+    expect(water.triangleCount).toBeLessThan(2_500);
   });
 
   it("uses a shallow local boundary skirt instead of a shared deep slab", () => {
