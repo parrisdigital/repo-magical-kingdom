@@ -1,0 +1,20 @@
+attribution/registry.json
+  s_57e29531c752a5::t_155aad53c23c49 921-988
+  s_57e29531c752a5::t_f2212254a3b319 920
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "2851ee4cacd14a5c910474aedf9c26eace31536e",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
