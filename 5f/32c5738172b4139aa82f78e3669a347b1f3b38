@@ -1,0 +1,29 @@
+src/app/asset-lab/page.tsx
+  s_57e29531c752a5::t_a4ee986067eea9 4-5,15-23
+docs/worlds-v2/README.md
+  s_57e29531c752a5::t_a4ee986067eea9 41-42
+src/app/worlds-v2-lab/page.tsx
+  s_57e29531c752a5::t_a4ee986067eea9 7,29-35
+src/lib/kingdom-v2/lab-access.ts
+  s_57e29531c752a5::t_a4ee986067eea9 1-15
+src/lib/kingdom-v2/index.ts
+  s_57e29531c752a5::t_a4ee986067eea9 2
+src/lib/kingdom-v2/lab-access.test.ts
+  s_57e29531c752a5::t_a4ee986067eea9 1-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "5f32c5738172b4139aa82f78e3669a347b1f3b38",
+  "prompts": {},
+  "sessions": {
+    "s_57e29531c752a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ff645-8136-75e3-a8fc-a6980288e808",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Parris Digital <parrisdigital@gmail.com>"
+    }
+  }
+}
