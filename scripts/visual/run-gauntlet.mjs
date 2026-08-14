@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -16,10 +16,67 @@ const WORLD_DEFINITIONS = [
     defaultWorldTheme: "enchanted-forest",
   },
   {
+    id: "medium-magical-kingdom",
+    scale: "medium",
+    fixture: "src/components/kingdom/test-fixtures/magical-kingdom-medium-world.json",
+    defaultWorldTheme: "enchanted-forest",
+  },
+  {
     id: "vast-nextjs",
     scale: "vast",
     fixture: "src/components/kingdom/test-fixtures/nextjs-large-world.json",
     defaultWorldTheme: "kingdom-valley",
+  },
+];
+
+const CAPTURE_VIEW_DEFINITIONS = [
+  {
+    id: "orbit-overview",
+    label: "Orbit overview",
+    navigationMode: "orbit",
+    mobile: true,
+    intent:
+      "Read the complete repository silhouette, terrain hierarchy, watershed, and settlement spacing.",
+  },
+  {
+    id: "orbit-close",
+    label: "Orbit close",
+    navigationMode: "orbit",
+    mobile: true,
+    intent:
+      "Inspect mid-distance material scale, object grounding, grove shape, and building readability.",
+  },
+  {
+    id: "walk-spawn",
+    label: "Walk spawn",
+    navigationMode: "walk",
+    mobile: false,
+    intent:
+      "Judge the first playable frame, eye-level scale, depth, control clarity, and immediate life.",
+  },
+  {
+    id: "walk-settlement",
+    label: "Walk settlement",
+    navigationMode: "walk",
+    mobile: false,
+    intent:
+      "Judge a path-side building cluster, architectural variety, contact, props, and lived-in density.",
+  },
+  {
+    id: "walk-forest",
+    label: "Walk forest",
+    navigationMode: "walk",
+    mobile: false,
+    intent:
+      "Judge vegetation silhouettes, understory, spacing, ground cover, and navigable clearings.",
+  },
+  {
+    id: "walk-shoreline",
+    label: "Walk shoreline",
+    navigationMode: "walk",
+    mobile: false,
+    intent:
+      "Judge visible water, bank shape, shoreline transition, reflections, and terrain contact.",
   },
 ];
 
@@ -45,14 +102,46 @@ const VIEW_DEFINITIONS = [
 ];
 
 const VISUAL_REVIEW_AREAS = [
-  ["world-composition", "World composition and repository-scale read"],
-  ["terrain-materials", "Terrain, grass, rock, shoreline, and water coherence"],
-  ["settlements", "Settlement hierarchy, spacing, routes, and negative space"],
-  ["ecology", "Tree, vegetation, wildlife, and prop distribution"],
-  ["life-motion", "Grounded, varied, and legible living motion"],
-  ["season", "Seasonal assets, light, atmosphere, and visual consistency"],
-  ["hud", "HUD restraint, label legibility, and world dominance"],
-  ["framing", "Desktop or mobile framing, navigation, and exploration clarity"],
+  {
+    id: "world-composition",
+    label: "World composition and repository-scale read",
+    viewIds: ["orbit-overview", "orbit-close"],
+  },
+  {
+    id: "terrain-materials",
+    label: "Terrain, grass, rock, shoreline, and water coherence",
+    viewIds: ["orbit-close", "walk-spawn", "walk-shoreline"],
+  },
+  {
+    id: "settlements",
+    label: "Settlement hierarchy, spacing, routes, and negative space",
+    viewIds: ["orbit-overview", "orbit-close", "walk-settlement"],
+  },
+  {
+    id: "ecology",
+    label: "Tree, vegetation, wildlife, and prop distribution",
+    viewIds: ["orbit-close", "walk-forest"],
+  },
+  {
+    id: "life-motion",
+    label: "Grounded, varied, and legible living motion",
+    viewIds: ["orbit-close", "walk-spawn", "walk-settlement", "walk-forest", "walk-shoreline"],
+  },
+  {
+    id: "season",
+    label: "Seasonal assets, light, atmosphere, and visual consistency",
+    viewIds: ["orbit-overview", "orbit-close", "walk-spawn", "walk-forest"],
+  },
+  {
+    id: "hud",
+    label: "HUD restraint, label legibility, and world dominance",
+    viewIds: ["orbit-overview", "walk-spawn"],
+  },
+  {
+    id: "framing",
+    label: "Desktop or mobile framing, navigation, and exploration clarity",
+    viewIds: CAPTURE_VIEW_DEFINITIONS.map((view) => view.id),
+  },
 ];
 
 function printHelp() {
@@ -72,6 +161,9 @@ Options:
   --strict-review        Exit non-zero until every visual row is explicitly reviewed PASS
   --headed               Show Chromium while the sequential run executes
   --help                 Show this message
+
+Stable capture view ids:
+  ${CAPTURE_VIEW_DEFINITIONS.map((view) => view.id).join(", ")}
 `);
 }
 
@@ -151,19 +243,105 @@ function relativeArtifact(artifactDirectory, file) {
   return path.relative(artifactDirectory, file);
 }
 
+async function bounded(operation, timeoutMs, label) {
+  let timeout;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`${label} exceeded its ${timeoutMs}ms stage deadline.`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function logScenarioStage(scenarioId, startedAt, stage, status) {
+  console.log(`  STAGE ${scenarioId} +${Date.now() - startedAt}ms ${stage} ${status}`);
+}
+
+async function captureCanvasBytes(canvas, options = {}) {
+  await canvas.waitFor({ state: "visible", timeout: 5_000 });
+  const page = canvas.page();
+  await bounded(
+    canvas.evaluate((element) => {
+      const main = element.closest("main");
+      if (!main) throw new Error("Canvas is not mounted inside the product surface.");
+      let owner = element;
+      while (owner.parentElement && owner.parentElement !== main) owner = owner.parentElement;
+      if (owner.parentElement !== main) {
+        throw new Error("Could not resolve the canvas owner inside the product surface.");
+      }
+      main.setAttribute("data-gauntlet-canvas-capture", "true");
+      owner.setAttribute("data-gauntlet-canvas-owner", "true");
+      let style = document.querySelector("style[data-gauntlet-canvas-style]");
+      if (!style) {
+        style = document.createElement("style");
+        style.setAttribute("data-gauntlet-canvas-style", "true");
+        style.textContent =
+          'main[data-gauntlet-canvas-capture="true"] > :not([data-gauntlet-canvas-owner="true"]) { visibility: hidden !important; }';
+        document.head.append(style);
+      }
+    }),
+    15_000,
+    "Canvas-only capture setup",
+  );
+  try {
+    return await bounded(
+      page.screenshot({
+        animations: "disabled",
+        caret: "hide",
+        fullPage: false,
+        timeout: 20_000,
+        ...options,
+      }),
+      22_000,
+      "Canvas-only viewport screenshot",
+    );
+  } finally {
+    await bounded(
+      page.evaluate(() => {
+        document
+          .querySelector('main[data-gauntlet-canvas-capture="true"]')
+          ?.removeAttribute("data-gauntlet-canvas-capture");
+        document
+          .querySelector('[data-gauntlet-canvas-owner="true"]')
+          ?.removeAttribute("data-gauntlet-canvas-owner");
+      }),
+      5_000,
+      "Canvas-only capture cleanup",
+    ).catch(() => undefined);
+  }
+}
+
 async function writeScreenshot(page, artifactDirectory, filename) {
   const file = path.join(artifactDirectory, filename);
-  const bytes = await page.screenshot({
-    path: file,
-    animations: "disabled",
-    caret: "hide",
-    fullPage: false,
-  });
+  const bytes = await bounded(
+    page.screenshot({
+      path: file,
+      animations: "disabled",
+      caret: "hide",
+      fullPage: false,
+      timeout: 20_000,
+    }),
+    22_000,
+    `Page screenshot ${filename}`,
+  );
   return {
     file: relativeArtifact(artifactDirectory, file),
     sha256: hash(bytes),
     bytes: bytes.byteLength,
   };
+}
+
+async function duplicateScreenshot(artifactDirectory, capture, filename) {
+  const file = path.join(artifactDirectory, filename);
+  await copyFile(path.join(artifactDirectory, capture.file), file);
+  return { ...capture, file: relativeArtifact(artifactDirectory, file) };
 }
 
 async function writeCanvasScreenshot(canvas, artifactDirectory, filename) {
@@ -172,8 +350,12 @@ async function writeCanvasScreenshot(canvas, artifactDirectory, filename) {
   let lastError;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      await canvas.waitFor({ state: "visible", timeout: 10_000 });
-      bytes = await canvas.screenshot({ path: file, animations: "disabled", caret: "hide" });
+      // Locator.screenshot waits for element stability. A continuously
+      // animated WebGL canvas can remain intentionally unstable, so capture
+      // its current viewport bounds through Page.screenshot instead.
+      bytes = await captureCanvasBytes(canvas, {
+        path: file,
+      });
       break;
     } catch (error) {
       lastError = error;
@@ -190,6 +372,48 @@ async function writeCanvasScreenshot(canvas, artifactDirectory, filename) {
     file: relativeArtifact(artifactDirectory, file),
     sha256: hash(bytes),
     bytes: bytes.byteLength,
+  };
+}
+
+function captureViewDefinition(viewId) {
+  const definition = CAPTURE_VIEW_DEFINITIONS.find((view) => view.id === viewId);
+  if (!definition) throw new Error(`Unknown capture view id: ${viewId}`);
+  return definition;
+}
+
+function applicableCaptureViews(scenario) {
+  return CAPTURE_VIEW_DEFINITIONS.filter((view) => view.mobile || !scenario.view.mobile);
+}
+
+async function writeCaptureView(
+  page,
+  canvas,
+  artifactDirectory,
+  scenarioId,
+  viewId,
+  filenames = {},
+) {
+  const definition = captureViewDefinition(viewId);
+  const pageCapture = await writeScreenshot(
+    page,
+    artifactDirectory,
+    filenames.page ?? `${scenarioId}--${viewId}.png`,
+  );
+  const canvasCapture =
+    filenames.captureCanvas === false
+      ? null
+      : await writeCanvasScreenshot(
+          canvas,
+          artifactDirectory,
+          filenames.canvas ?? `${scenarioId}--${viewId}--canvas.png`,
+        );
+  return {
+    id: definition.id,
+    label: definition.label,
+    navigationMode: definition.navigationMode,
+    intent: definition.intent,
+    page: pageCapture,
+    ...(canvasCapture ? { canvas: canvasCapture } : {}),
   };
 }
 
@@ -291,13 +515,42 @@ async function readWorld(definition) {
   const absoluteFixture = path.join(repositoryRoot, definition.fixture);
   const fixtureBytes = await readFile(absoluteFixture);
   const fixture = JSON.parse(fixtureBytes.toString("utf8"));
-  const world = {
+  const themedFixture = {
     ...fixture,
     // The Repository City capture predates the required worldTheme field. The
     // harness supplies the same deterministic default in memory and never
     // rewrites the historical fixture.
     worldTheme: fixture.worldTheme ?? definition.defaultWorldTheme,
   };
+  const directEntities = themedFixture.entities.filter((entity) => !entity.aggregate).length;
+  const aggregateEntities = themedFixture.entities.length - directEntities;
+  const representedFiles = themedFixture.entities.reduce(
+    (total, entity) => total + entity.representedFiles,
+    0,
+  );
+  const coverageNeedsReconciliation =
+    themedFixture.coverage.directEntities !== directEntities ||
+    themedFixture.coverage.aggregateEntities !== aggregateEntities ||
+    themedFixture.coverage.representedFiles !== representedFiles;
+  const world = coverageNeedsReconciliation
+    ? {
+        ...themedFixture,
+        coverage: {
+          ...themedFixture.coverage,
+          directEntities,
+          aggregateEntities,
+          representedFiles,
+        },
+        warnings: [
+          ...themedFixture.warnings,
+          {
+            code: "LEGACY_COVERAGE_RECONCILED",
+            message:
+              "Legacy summary counters were reconciled with the available entity collection; some eligible source details may be absent from this captured package.",
+          },
+        ],
+      }
+    : themedFixture;
 
   return {
     ...definition,
@@ -435,6 +688,8 @@ async function createScenarioPage(browser, scenario, baseUrl) {
     isMobile: scenario.view.mobile,
   });
   const page = await context.newPage();
+  page.setDefaultTimeout(10_000);
+  page.setDefaultNavigationTimeout(45_000);
   const failures = watchBrowserFailures(page, baseUrl);
   await installRuntimeInstrumentation(page);
   await page.route(/\/api\/kingdom(?:\?|$)/, async (route) => {
@@ -448,18 +703,22 @@ async function createScenarioPage(browser, scenario, baseUrl) {
 }
 
 async function waitAnimationFrames(page, frameCount) {
-  await page.evaluate(
-    (count) =>
-      new Promise((resolve) => {
-        let remaining = count;
-        const nextFrame = () => {
-          remaining -= 1;
-          if (remaining <= 0) resolve(undefined);
-          else requestAnimationFrame(nextFrame);
-        };
-        requestAnimationFrame(nextFrame);
-      }),
-    frameCount,
+  await bounded(
+    page.evaluate(
+      (count) =>
+        new Promise((resolve) => {
+          let remaining = count;
+          const nextFrame = () => {
+            remaining -= 1;
+            if (remaining <= 0) resolve(undefined);
+            else requestAnimationFrame(nextFrame);
+          };
+          requestAnimationFrame(nextFrame);
+        }),
+      frameCount,
+    ),
+    20_000,
+    `Animation-frame wait (${frameCount})`,
   );
 }
 
@@ -480,34 +739,42 @@ async function openSettledWorld(page, scenario, baseUrl, settleMs, settleFrames)
     state: "visible",
     timeout: 30_000,
   });
-  await page.waitForFunction(() => {
-    const visible = (element) => {
-      const style = window.getComputedStyle(element);
-      const bounds = element.getBoundingClientRect();
-      return (
-        style.display !== "none" &&
-        style.visibility !== "hidden" &&
-        Number(style.opacity) !== 0 &&
-        bounds.width > 0 &&
-        bounds.height > 0
-      );
-    };
-    return ![...document.querySelectorAll('[role="status"], body *')].some((element) => {
-      if (!visible(element)) return false;
-      const directText = [...element.childNodes]
-        .filter((node) => node.nodeType === Node.TEXT_NODE)
-        .map((node) => node.textContent ?? "")
-        .join(" ")
-        .trim();
-      return /^Rendering(?:…|\.\.\.)?$/i.test(directText);
-    });
-  });
+  await page.waitForFunction(
+    () => {
+      const visible = (element) => {
+        const style = window.getComputedStyle(element);
+        const bounds = element.getBoundingClientRect();
+        return (
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          Number(style.opacity) !== 0 &&
+          bounds.width > 0 &&
+          bounds.height > 0
+        );
+      };
+      return ![...document.querySelectorAll('[role="status"], body *')].some((element) => {
+        if (!visible(element)) return false;
+        const directText = [...element.childNodes]
+          .filter((node) => node.nodeType === Node.TEXT_NODE)
+          .map((node) => node.textContent ?? "")
+          .join(" ")
+          .trim();
+        return /^Rendering(?:…|\.\.\.)?$/i.test(directText);
+      });
+    },
+    undefined,
+    { timeout: 30_000 },
+  );
   const canvas = page.locator("canvas").first();
   await canvas.waitFor({ state: "visible", timeout: 30_000 });
-  await page.waitForFunction(() => {
-    const element = document.querySelector("canvas");
-    return element instanceof HTMLCanvasElement && element.width > 0 && element.height > 0;
-  });
+  await page.waitForFunction(
+    () => {
+      const element = document.querySelector("canvas");
+      return element instanceof HTMLCanvasElement && element.width > 0 && element.height > 0;
+    },
+    undefined,
+    { timeout: 30_000 },
+  );
   const canvasReadyMs = Date.now() - startedAt;
 
   // Next development mode keeps HMR traffic open. A fixed time plus a fixed
@@ -576,68 +843,80 @@ async function collectFrameIntervals(page, sampleCount, maximumWindowMs) {
   );
 }
 
-async function inspectRuntime(page, canvas, failures) {
-  const canvasState = await canvas.evaluate((element) => {
-    const context =
-      element.getContext("webgl2") ??
-      element.getContext("webgl") ??
-      element.getContext("experimental-webgl");
-    const bounds = element.getBoundingClientRect();
-    return {
-      visible: bounds.width > 0 && bounds.height > 0,
-      cssWidth: roundForBrowser(bounds.width),
-      cssHeight: roundForBrowser(bounds.height),
-      pixelWidth: element.width,
-      pixelHeight: element.height,
-      hasContext: Boolean(context),
-      contextLost: context && "isContextLost" in context ? context.isContextLost() : null,
-      drawingBufferWidth:
-        context && "drawingBufferWidth" in context ? context.drawingBufferWidth : 0,
-      drawingBufferHeight:
-        context && "drawingBufferHeight" in context ? context.drawingBufferHeight : 0,
-      renderer: context ? String(context.getParameter(context.RENDERER)) : null,
-      version: context ? String(context.getParameter(context.VERSION)) : null,
-    };
+async function inspectRuntime(page, _canvas, failures) {
+  const canvasState = await bounded(
+    page.evaluate(() => {
+      const element = document.querySelector("canvas");
+      if (!(element instanceof HTMLCanvasElement)) {
+        throw new Error("Runtime canvas is not mounted.");
+      }
+      const context =
+        element.getContext("webgl2") ??
+        element.getContext("webgl") ??
+        element.getContext("experimental-webgl");
+      const bounds = element.getBoundingClientRect();
+      return {
+        visible: bounds.width > 0 && bounds.height > 0,
+        cssWidth: roundForBrowser(bounds.width),
+        cssHeight: roundForBrowser(bounds.height),
+        pixelWidth: element.width,
+        pixelHeight: element.height,
+        hasContext: Boolean(context),
+        contextLost: context && "isContextLost" in context ? context.isContextLost() : null,
+        drawingBufferWidth:
+          context && "drawingBufferWidth" in context ? context.drawingBufferWidth : 0,
+        drawingBufferHeight:
+          context && "drawingBufferHeight" in context ? context.drawingBufferHeight : 0,
+        renderer: context ? String(context.getParameter(context.RENDERER)) : null,
+        version: context ? String(context.getParameter(context.VERSION)) : null,
+      };
 
-    function roundForBrowser(value) {
-      return Math.round(value * 1000) / 1000;
-    }
-  });
+      function roundForBrowser(value) {
+        return Math.round(value * 1000) / 1000;
+      }
+    }),
+    12_000,
+    "Runtime canvas inspection",
+  );
 
-  const pageState = await page.evaluate(() => {
-    const diagnostics = window.__repoMagicalKingdomGauntlet ?? null;
-    const root = document.documentElement;
-    const body = document.body;
-    const viewport = { width: window.innerWidth, height: window.innerHeight };
-    const navigation = performance.getEntriesByType("navigation")[0];
-    return {
-      mainMode: document.querySelector("main")?.getAttribute("data-mode") ?? null,
-      canvasCount: document.querySelectorAll("canvas").length,
-      fallbackHeadingCount: [...document.querySelectorAll("h1, h2")].filter((heading) =>
-        /kingdom needs webgl|kingdom could not be assembled/i.test(heading.textContent ?? ""),
-      ).length,
-      overflow: {
-        documentWidth: Math.max(root.scrollWidth, body.scrollWidth),
-        documentHeight: Math.max(root.scrollHeight, body.scrollHeight),
-        viewportWidth: viewport.width,
-        viewportHeight: viewport.height,
-      },
-      navigation: navigation
-        ? {
-            domContentLoadedMs: Math.round(navigation.domContentLoadedEventEnd * 1000) / 1000,
-            loadMs: Math.round(navigation.loadEventEnd * 1000) / 1000,
-          }
-        : null,
-      instrumentation: diagnostics
-        ? {
-            ...diagnostics,
-            longTasksMs: diagnostics.longTasksMs.map(
-              (duration) => Math.round(duration * 1000) / 1000,
-            ),
-          }
-        : null,
-    };
-  });
+  const pageState = await bounded(
+    page.evaluate(() => {
+      const diagnostics = window.__repoMagicalKingdomGauntlet ?? null;
+      const root = document.documentElement;
+      const body = document.body;
+      const viewport = { width: window.innerWidth, height: window.innerHeight };
+      const navigation = performance.getEntriesByType("navigation")[0];
+      return {
+        mainMode: document.querySelector("main")?.getAttribute("data-mode") ?? null,
+        canvasCount: document.querySelectorAll("canvas").length,
+        fallbackHeadingCount: [...document.querySelectorAll("h1, h2")].filter((heading) =>
+          /kingdom needs webgl|kingdom could not be assembled/i.test(heading.textContent ?? ""),
+        ).length,
+        overflow: {
+          documentWidth: Math.max(root.scrollWidth, body.scrollWidth),
+          documentHeight: Math.max(root.scrollHeight, body.scrollHeight),
+          viewportWidth: viewport.width,
+          viewportHeight: viewport.height,
+        },
+        navigation: navigation
+          ? {
+              domContentLoadedMs: Math.round(navigation.domContentLoadedEventEnd * 1000) / 1000,
+              loadMs: Math.round(navigation.loadEventEnd * 1000) / 1000,
+            }
+          : null,
+        instrumentation: diagnostics
+          ? {
+              ...diagnostics,
+              longTasksMs: diagnostics.longTasksMs.map(
+                (duration) => Math.round(duration * 1000) / 1000,
+              ),
+            }
+          : null,
+      };
+    }),
+    8_000,
+    "Runtime page inspection",
+  );
 
   const checks = [
     automatedCheck("kingdom-mode-mounted", pageState.mainMode === "kingdom", pageState.mainMode),
@@ -700,7 +979,7 @@ async function inspectRuntime(page, canvas, failures) {
 }
 
 async function probeHoverLabel(page, canvas, config) {
-  const bounds = await canvas.boundingBox();
+  const bounds = await bounded(canvas.boundingBox(), 10_000, "Hover canvas bounds query");
   if (!bounds) {
     return {
       attempted: false,
@@ -776,7 +1055,7 @@ async function probeHoverLabel(page, canvas, config) {
 }
 
 async function probeCamera(page, canvas, scenario, config) {
-  const bounds = await canvas.boundingBox();
+  const bounds = await bounded(canvas.boundingBox(), 10_000, "Orbit canvas bounds query");
   if (!bounds) {
     return {
       attempted: false,
@@ -789,7 +1068,7 @@ async function probeCamera(page, canvas, scenario, config) {
     };
   }
 
-  const before = await canvas.screenshot({ animations: "disabled" });
+  const before = scenario.view.reducedMotion ? await captureCanvasBytes(canvas) : null;
   const dispatchTimings = [];
   const timeDispatch = async (dispatch) => {
     const gestureStartedAt = performance.now();
@@ -812,18 +1091,260 @@ async function probeCamera(page, canvas, scenario, config) {
     config.postGestureFrameSamples,
     config.frameSampleWindowMs,
   );
-  const after = await canvas.screenshot({ animations: "disabled" });
-  const beforeSha256 = hash(before);
-  const afterSha256 = hash(after);
+  const after = scenario.view.reducedMotion ? await captureCanvasBytes(canvas) : null;
+  const beforeSha256 = before ? hash(before) : null;
+  const afterSha256 = after ? hash(after) : null;
 
   return {
     attempted: true,
     input: scenario.view.mobile ? "touch-compatible pointer drag + wheel" : "mouse drag + wheel",
+    pixelComparisonCaptured: scenario.view.reducedMotion,
     beforeSha256,
     afterSha256,
-    frameChanged: beforeSha256 !== afterSha256,
+    frameChanged:
+      beforeSha256 !== null && afterSha256 !== null ? beforeSha256 !== afterSha256 : null,
     dispatchTimingMs: distribution(dispatchTimings),
     postGestureFrameIntervalsMs: distribution(postGestureFrameIntervals),
+  };
+}
+
+async function inspectWalkUi(page) {
+  return bounded(
+    page.evaluate(() => {
+      const walkButton = [...document.querySelectorAll("button")].find((button) =>
+        button.textContent?.trim().endsWith("Walk"),
+      );
+      const status = document.querySelector('[aria-label="Walk exploration status"]');
+      return {
+        walkButtonPresent: walkButton instanceof HTMLButtonElement,
+        walkButtonEnabled: walkButton instanceof HTMLButtonElement ? !walkButton.disabled : false,
+        walkButtonPressed: walkButton?.getAttribute("aria-pressed") === "true",
+        statusVisible:
+          status instanceof HTMLElement &&
+          status.getBoundingClientRect().width > 0 &&
+          status.getBoundingClientRect().height > 0,
+        locationLabel: status?.querySelector("strong")?.textContent?.trim() ?? null,
+        interactionLabel: status?.querySelector("small")?.textContent?.trim() ?? null,
+        pointerLocked: document.pointerLockElement instanceof HTMLCanvasElement,
+      };
+    }),
+    12_000,
+    "Walk UI inspection",
+  );
+}
+
+async function releasePointerLock(page) {
+  const locked = await bounded(
+    page.evaluate(() => document.pointerLockElement instanceof HTMLCanvasElement),
+    12_000,
+    "Pointer-lock state inspection",
+  );
+  if (!locked) return;
+  await bounded(page.keyboard.press("Escape"), 8_000, "Pointer-lock release key");
+  await page
+    .waitForFunction(() => document.pointerLockElement === null, undefined, { timeout: 1_500 })
+    .catch(() => undefined);
+}
+
+async function activateNavigationMode(page, mode, config) {
+  await releasePointerLock(page);
+  // The HUD remains visibly actionable during Walk, but locator actionability
+  // probes can starve behind the continuously rendering WebGL branch. Inspect
+  // the real DOM button and queue its real React click in one bounded task.
+  const transition = await bounded(
+    page.evaluate(
+      ({ requestedLabel, requestedMode }) => {
+        const navigationRoot = document.querySelector('main[data-mode="kingdom"]');
+        const target = [...(navigationRoot?.querySelectorAll("button") ?? [])].find((candidate) =>
+          candidate.textContent?.trim().endsWith(requestedLabel),
+        );
+        const bounds = target?.getBoundingClientRect();
+        const style = target ? window.getComputedStyle(target) : null;
+        const visible = Boolean(
+          bounds &&
+          bounds.width > 0 &&
+          bounds.height > 0 &&
+          style?.display !== "none" &&
+          style?.visibility !== "hidden" &&
+          Number(style?.opacity ?? 1) !== 0,
+        );
+        const enabled = target instanceof HTMLButtonElement && !target.disabled;
+        const currentMode = navigationRoot?.getAttribute("data-navigation-mode") ?? null;
+        if (visible && enabled && currentMode !== requestedMode) {
+          window.setTimeout(() => target.click(), 0);
+        }
+        return {
+          currentMode,
+          enabled,
+          present: target instanceof HTMLButtonElement,
+          visible,
+        };
+      },
+      { requestedLabel: mode === "walk" ? "Walk" : "Orbit", requestedMode: mode },
+    ),
+    12_000,
+    `${mode} navigation button inspection and queue`,
+  );
+  if (!transition.present || !transition.visible) {
+    throw new Error(`${mode} navigation button is not visibly mounted.`);
+  }
+  if (!transition.enabled) return { available: false, ui: await inspectWalkUi(page) };
+  await page
+    .locator(`main[data-mode="kingdom"][data-navigation-mode="${mode}"]`)
+    .waitFor({ state: "visible", timeout: 12_000 });
+  await page.waitForTimeout(mode === "walk" ? config.walkSettleMs : config.cameraSettleMs);
+  await waitAnimationFrames(page, config.navigationSettleFrames);
+  return { available: true, ui: await inspectWalkUi(page) };
+}
+
+async function runWalkViewGesture(page, _canvas, action, config) {
+  const bounds = await bounded(
+    page.evaluate(() => {
+      const element = document.querySelector("canvas");
+      if (!(element instanceof HTMLCanvasElement)) return null;
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }),
+    12_000,
+    "Walk canvas bounds query",
+  );
+  if (!bounds) return { attempted: false, pointerLockAccepted: false, action };
+  const centerX = bounds.x + bounds.width * 0.5;
+  const centerY = bounds.y + bounds.height * 0.5;
+  await bounded(page.mouse.click(centerX, centerY), 8_000, "Walk pointer-lock click");
+  const pointerLockAccepted = await page
+    .waitForFunction(() => document.pointerLockElement instanceof HTMLCanvasElement, undefined, {
+      timeout: 1_500,
+    })
+    .then(() => true)
+    .catch(() => false);
+  if (pointerLockAccepted) {
+    await bounded(page.mouse.move(centerX, centerY), 8_000, "Walk pointer centering");
+    await bounded(
+      page.mouse.move(centerX + action.lookX, centerY + action.lookY, { steps: 8 }),
+      8_000,
+      "Walk look gesture",
+    );
+    if (action.forwardMs > 0) {
+      if (action.sprint) {
+        await bounded(page.keyboard.down("Shift"), 8_000, "Walk sprint key down");
+      }
+      await bounded(page.keyboard.down("w"), 8_000, "Walk forward key down");
+      if (action.strafe) {
+        await bounded(page.keyboard.down(action.strafe), 8_000, "Walk strafe key down");
+      }
+      await page.waitForTimeout(action.forwardMs);
+      if (action.strafe) {
+        await bounded(page.keyboard.up(action.strafe), 8_000, "Walk strafe key up");
+      }
+      await bounded(page.keyboard.up("w"), 8_000, "Walk forward key up");
+      if (action.sprint) {
+        await bounded(page.keyboard.up("Shift"), 8_000, "Walk sprint key up");
+      }
+    }
+    await page.waitForTimeout(config.walkGestureSettleMs);
+    await waitAnimationFrames(page, config.navigationSettleFrames);
+  }
+  const ui = await inspectWalkUi(page);
+  await releasePointerLock(page);
+  return { attempted: true, pointerLockAccepted, action, ui };
+}
+
+async function captureWalkViews(page, canvas, scenario, config, scenarioStartedAt) {
+  const captures = {};
+  const probes = {};
+  logScenarioStage(scenario.id, scenarioStartedAt, "walk-spawn", "PREPARE");
+  const initial = await activateNavigationMode(page, "walk", config);
+  if (!initial.available || !initial.ui.statusVisible) {
+    return {
+      available: false,
+      captures,
+      probes,
+      ui: initial.ui,
+      checks: [automatedCheck("walk-mode-mounted", false, initial.ui)],
+    };
+  }
+
+  captures["walk-spawn"] = {
+    ...(await writeCaptureView(page, canvas, config.artifactDirectory, scenario.id, "walk-spawn", {
+      captureCanvas: false,
+    })),
+    probe: { attempted: false, pointerLockAccepted: null, ui: initial.ui },
+  };
+  logScenarioStage(scenario.id, scenarioStartedAt, "walk-spawn", "DONE");
+
+  const actions = {
+    "walk-settlement": {
+      description: "Small path-side look adjustment from the deterministic living spawn.",
+      lookX: -42,
+      lookY: -8,
+      forwardMs: 0,
+      sprint: false,
+      strafe: null,
+    },
+    "walk-forest": {
+      description: "Quarter-turn sprint excursion from a reset living spawn.",
+      lookX: 230,
+      lookY: 4,
+      forwardMs: config.walkForestTravelMs,
+      sprint: true,
+      strafe: "a",
+    },
+    "walk-shoreline": {
+      description: "Downward shoreline-biased look from a reset water-aware living spawn.",
+      lookX: 0,
+      lookY: 72,
+      forwardMs: 0,
+      sprint: false,
+      strafe: null,
+    },
+  };
+
+  for (const [viewId, action] of Object.entries(actions)) {
+    logScenarioStage(scenario.id, scenarioStartedAt, viewId, "PREPARE");
+    await activateNavigationMode(page, "orbit", config);
+    const reset = await activateNavigationMode(page, "walk", config);
+    const probe = await runWalkViewGesture(page, canvas, action, config);
+    probes[viewId] = { ...probe, resetUi: reset.ui };
+    captures[viewId] = {
+      ...(await writeCaptureView(page, canvas, config.artifactDirectory, scenario.id, viewId, {
+        captureCanvas: false,
+      })),
+      probe: probes[viewId],
+    };
+    logScenarioStage(
+      scenario.id,
+      scenarioStartedAt,
+      viewId,
+      `DONE pointerLock=${probe.pointerLockAccepted}`,
+    );
+  }
+
+  const expectedIds = applicableCaptureViews(scenario)
+    .filter((view) => view.navigationMode === "walk")
+    .map((view) => view.id);
+  return {
+    available: true,
+    captures,
+    probes,
+    ui: await inspectWalkUi(page),
+    checks: [
+      automatedCheck("walk-mode-mounted", true, initial.ui),
+      automatedCheck(
+        "walk-capture-view-set-complete",
+        expectedIds.every((viewId) => captures[viewId]),
+        { expectedIds, capturedIds: Object.keys(captures) },
+      ),
+      informationalCheck(
+        "walk-pointer-lock-gesture-results",
+        Object.fromEntries(
+          Object.entries(probes).map(([viewId, probe]) => [
+            viewId,
+            { attempted: probe.attempted, pointerLockAccepted: probe.pointerLockAccepted },
+          ]),
+        ),
+      ),
+    ],
   };
 }
 
@@ -851,7 +1372,7 @@ async function probePopulatedScene(page, canvas, failures, config) {
         .getEntriesByType("resource")
         .filter((entry) => /\.(?:glb|gltf)(?:\?|$)/i.test(entry.name)).length,
   );
-  const contentProbe = await canvas.screenshot({ animations: "disabled" });
+  const contentProbe = await captureCanvasBytes(canvas);
   const hover = await probeHoverLabel(page, canvas, config);
   const checks = [
     automatedCheck(
@@ -934,6 +1455,7 @@ async function captureRepeat(browser, scenario, config, filename) {
 }
 
 async function runScenario(browser, scenario, config) {
+  const scenarioStartedAt = Date.now();
   const session = await createScenarioPage(browser, scenario, config.baseUrl);
   let deadlineExpired = false;
   const deadline = setTimeout(() => {
@@ -941,6 +1463,7 @@ async function runScenario(browser, scenario, config) {
     void session.context.close();
   }, config.scenarioTimeoutMs);
   try {
+    logScenarioStage(scenario.id, scenarioStartedAt, "world-open", "BEGIN");
     const opened = await openSettledWorld(
       session.page,
       scenario,
@@ -948,6 +1471,7 @@ async function runScenario(browser, scenario, config) {
       config.settleMs,
       config.settleFrames,
     );
+    logScenarioStage(scenario.id, scenarioStartedAt, "world-open", "DONE");
     console.log(`  CANVAS ${scenario.id} ${opened.canvasReadyMs}ms`);
     const initialInspection = await inspectRuntime(session.page, opened.canvas, session.failures);
     const readiness = await probePopulatedScene(
@@ -956,6 +1480,7 @@ async function runScenario(browser, scenario, config) {
       session.failures,
       config,
     );
+    logScenarioStage(scenario.id, scenarioStartedAt, "population", "DONE");
     console.log(
       `  POPULATED ${scenario.id} models=${readiness.modelResourceCount} hover=${readiness.hover.found}`,
     );
@@ -965,17 +1490,26 @@ async function runScenario(browser, scenario, config) {
       readiness.hover.attempted && readiness.hover.found,
       readiness.hover,
     );
-    const primary = await writeScreenshot(
+    logScenarioStage(scenario.id, scenarioStartedAt, "orbit-overview", "CAPTURE");
+    const orbitOverview = await writeCaptureView(
       session.page,
-      config.artifactDirectory,
-      `${scenario.id}--overview.png`,
-    );
-    console.log(`  CAPTURED ${scenario.id} ${primary.sha256.slice(0, 12)}`);
-    const overviewCanvas = await writeCanvasScreenshot(
       opened.canvas,
       config.artifactDirectory,
+      scenario.id,
+      "orbit-overview",
+    );
+    if (!orbitOverview.canvas) throw new Error("Orbit overview canvas evidence is missing.");
+    const primary = await duplicateScreenshot(
+      config.artifactDirectory,
+      orbitOverview.page,
+      `${scenario.id}--overview.png`,
+    );
+    const overviewCanvas = await duplicateScreenshot(
+      config.artifactDirectory,
+      orbitOverview.canvas,
       `${scenario.id}--overview-canvas.png`,
     );
+    console.log(`  CAPTURED ${scenario.id} ${primary.sha256.slice(0, 12)}`);
     if (prerequisiteChecks.some((check) => check.status === "FAIL")) {
       return {
         id: scenario.id,
@@ -995,7 +1529,11 @@ async function runScenario(browser, scenario, config) {
         instrumentation: initialInspection.pageState.instrumentation,
         hoverProbe: readiness.hover,
         cameraProbe: null,
-        screenshots: { overview: primary, overviewCanvas },
+        screenshots: {
+          overview: primary,
+          overviewCanvas,
+          views: { "orbit-overview": orbitOverview },
+        },
         automatedChecks: [...prerequisiteChecks, hoverCheck],
       };
     }
@@ -1016,13 +1554,47 @@ async function runScenario(browser, scenario, config) {
         `${scenario.id}--same-page-stability.png`,
       );
     }
+    logScenarioStage(scenario.id, scenarioStartedAt, "orbit-close", "INTERACT");
     const camera = await probeCamera(session.page, opened.canvas, scenario, config);
-    const exploration = await writeScreenshot(
+    const orbitClosePage = await writeScreenshot(
       session.page,
       config.artifactDirectory,
+      `${scenario.id}--orbit-close.png`,
+    );
+    const exploration = await duplicateScreenshot(
+      config.artifactDirectory,
+      orbitClosePage,
       `${scenario.id}--exploration.png`,
     );
+    const orbitCloseDefinition = captureViewDefinition("orbit-close");
+    const orbitClose = {
+      id: orbitCloseDefinition.id,
+      label: orbitCloseDefinition.label,
+      navigationMode: orbitCloseDefinition.navigationMode,
+      intent: orbitCloseDefinition.intent,
+      page: orbitClosePage,
+      probe: camera,
+    };
+    logScenarioStage(scenario.id, scenarioStartedAt, "orbit-close", "DONE");
     const finalInspection = await inspectRuntime(session.page, opened.canvas, session.failures);
+
+    const walk = scenario.view.mobile
+      ? {
+          available: false,
+          captures: {},
+          probes: {},
+          ui: await inspectWalkUi(session.page),
+          checks: [
+            informationalCheck(
+              "walk-capture-views-not-applicable-on-mobile",
+              "The production surface intentionally requires a fine pointer and keyboard for Walk.",
+            ),
+          ],
+        }
+      : await captureWalkViews(session.page, opened.canvas, scenario, config, scenarioStartedAt);
+    const postWalkInspection = scenario.view.mobile
+      ? null
+      : await inspectRuntime(session.page, opened.canvas, session.failures);
 
     const checks = [
       ...prerequisiteChecks,
@@ -1035,9 +1607,14 @@ async function runScenario(browser, scenario, config) {
             "The gesture was dispatched, but active world animation makes screenshot deltas non-causal.",
           ),
       ...finalInspection.checks.map((check) => ({ ...check, id: `post-gesture:${check.id}` })),
+      ...walk.checks,
+      ...(postWalkInspection
+        ? postWalkInspection.checks.map((check) => ({ ...check, id: `post-walk:${check.id}` }))
+        : []),
     ];
 
-    const longTasks = finalInspection.pageState.instrumentation?.longTasksMs ?? [];
+    const lastInspection = postWalkInspection ?? finalInspection;
+    const longTasks = lastInspection.pageState.instrumentation?.longTasksMs ?? [];
     return {
       id: scenario.id,
       repositoryScale: scenario.world.scale,
@@ -1056,14 +1633,24 @@ async function runScenario(browser, scenario, config) {
         postGestureFrameIntervalsMs: camera.postGestureFrameIntervalsMs,
         observedLongTasksMs: distribution(longTasks),
       },
-      renderer: finalInspection.canvasState,
-      instrumentation: finalInspection.pageState.instrumentation,
+      renderer: lastInspection.canvasState,
+      instrumentation: lastInspection.pageState.instrumentation,
       hoverProbe: readiness.hover,
       cameraProbe: camera,
+      walkProbe: {
+        available: walk.available,
+        ui: walk.ui,
+        views: walk.probes,
+      },
       screenshots: {
         overview: primary,
         overviewCanvas,
         exploration,
+        views: {
+          "orbit-overview": orbitOverview,
+          "orbit-close": orbitClose,
+          ...walk.captures,
+        },
         ...(samePageReducedMotion ? { samePageReducedMotion } : {}),
       },
       automatedChecks: checks,
@@ -1080,12 +1667,25 @@ async function runScenario(browser, scenario, config) {
 }
 
 function createVisualRows(scenario, automatedPassed, explicitReviews) {
-  return VISUAL_REVIEW_AREAS.map(([id, label]) => {
+  const applicableViewIds = new Set(applicableCaptureViews(scenario).map((view) => view.id));
+  const definitions = [
+    ...VISUAL_REVIEW_AREAS.map((area) => ({
+      ...area,
+      viewIds: area.viewIds.filter((viewId) => applicableViewIds.has(viewId)),
+    })),
+    ...applicableCaptureViews(scenario).map((view) => ({
+      id: `view-${view.id}`,
+      label: `${view.label} evidence: ${view.intent}`,
+      viewIds: [view.id],
+    })),
+  ];
+  return definitions.map(({ id, label, viewIds }) => {
     if (!automatedPassed) {
       return {
         scenarioId: scenario.id,
         id,
         label,
+        viewIds,
         status: "REVISE",
         notes: "Automated capture prerequisites failed; this visual row cannot be approved.",
         reviewedBy: null,
@@ -1110,6 +1710,7 @@ function createVisualRows(scenario, automatedPassed, explicitReviews) {
         scenarioId: scenario.id,
         id,
         label,
+        viewIds,
         status: explicit.status,
         notes: explicit.notes.trim(),
         reviewedBy: explicitReviews.reviewedBy,
@@ -1121,6 +1722,7 @@ function createVisualRows(scenario, automatedPassed, explicitReviews) {
       scenarioId: scenario.id,
       id,
       label,
+      viewIds,
       status: "HUMAN_REVIEW",
       notes: "Automation captured evidence but did not make an aesthetic judgment.",
       reviewedBy: null,
@@ -1207,9 +1809,16 @@ const config = {
   populationTimeoutMs: smoke ? 35_000 : 75_000,
   postGestureFrameSamples: smoke ? 12 : 60,
   reducedMotionStabilityGapMs: 2_000,
-  scenarioTimeoutMs: smoke ? 75_000 : 240_000,
+  // The previous single-overview scenario owned 75s/240s. Six named evidence
+  // views now share one isolated WebGL context, so the owner deadline grows
+  // without relaxing any readiness, renderer, resource, or interaction gate.
+  scenarioTimeoutMs: smoke ? 240_000 : 480_000,
+  navigationSettleFrames: 2,
   settleFrames: 4,
   settleMs,
+  walkForestTravelMs: smoke ? 900 : 1_400,
+  walkGestureSettleMs: smoke ? 350 : 650,
+  walkSettleMs: smoke ? 1_200 : 2_400,
 };
 
 const browser = await chromium.launch({ headless: !headed });
@@ -1325,6 +1934,7 @@ const report = {
     isolatedBrowserContextPerPage: true,
     artifactDirectory,
     selectedScenarioIds: scenarios.map((scenario) => scenario.id),
+    captureViewIds: CAPTURE_VIEW_DEFINITIONS.map((view) => view.id),
     fixedSettleMs: settleMs,
     fixedSettleFrames: config.settleFrames,
     frameSamples,
@@ -1337,6 +1947,7 @@ const report = {
     repository: `${world.world.source.owner}/${world.world.source.repository}`,
     commitSha: world.world.source.commitSha,
   })),
+  captureViews: CAPTURE_VIEW_DEFINITIONS,
   scenarios: scenarioResults,
   scorecard: {
     automatedVerdict,
@@ -1352,6 +1963,8 @@ const report = {
       "Normal-motion captures are inherently animated and are never judged by pixel equality.",
     visualReview:
       "Visual rows remain HUMAN_REVIEW or REVISE unless a named, dated reviewer supplies an explicit review file.",
+    semanticCaptureIntent:
+      "Capture view ids state the human review target. Automation proves capture and interaction mechanics only; a reviewer must REVISE any frame that does not visibly satisfy its named target.",
     performance:
       "Browser frame intervals measure event-loop responsiveness while the mounted scene runs; they are not GPU profiler timings.",
   },

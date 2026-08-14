@@ -1,0 +1,163 @@
+{
+  "schema": "repository-worlds-v2/original-asset-manifest-v1",
+  "generatedAt": "2026-08-14T00:00:00.000Z",
+  "deterministic": true,
+  "originalArtOnly": true,
+  "thirdPartyArt": false,
+  "networkInputs": [],
+  "license": "LicenseRef-Repository-Worlds-Original",
+  "sources": [
+    {
+      "path": "art/world-v2/batch-1-original-assets.recipe.json",
+      "sha256": "062f0f4d662df2a2046121d1c66dffff680418bdeff8f9b4d73855c13d287b41",
+      "bytes": 8365
+    },
+    {
+      "path": "scripts/assets-v2/build-original-assets.mjs",
+      "sha256": "5364e868b5adf633e1a532497f69cabb77cce6b35c03d0941ded4f0daecd904b",
+      "bytes": 36196
+    },
+    {
+      "path": "scripts/assets-v2/build-original-textures.mjs",
+      "sha256": "e34d71bbcf5d129fa6bdf6610aea6421ec4353078ca5465db4d5b1d650cfae05",
+      "bytes": 7522
+    },
+    {
+      "path": "scripts/assets-v2/build-blender-authoring.mjs",
+      "sha256": "66b160b8b0ddd1253d2660bdd0a1711563e86116783c7e4183364241447dd6fb",
+      "bytes": 4317
+    },
+    {
+      "path": "art/world-v2/blender/archive_spire_authoring.py",
+      "sha256": "51693e6eb24129627d95922bc58f8b5bab2afdf0c3f9c355c6721491cea21bc6",
+      "bytes": 7503
+    },
+    {
+      "path": "art/world-v2/archive-spire/archive-spire.blend",
+      "sha256": "dc6602ecdbc16dc33f023b4361a2076b604cd19811f8f897bb1e22a9fd7b77f9",
+      "bytes": 102624
+    }
+  ],
+  "outputs": [
+    {
+      "path": "public/assets/world-v2/archive-spire/textures/archive-spire-stone-base-color.ktx2",
+      "sha256": "122a9ab7a8a3234bdcf6cc28aa988475ebd914f7693ebb0715e13428a8a86e69",
+      "bytes": 224326,
+      "kind": "ktx2"
+    },
+    {
+      "path": "public/assets/world-v2/archive-spire/textures/archive-spire-stone-normal.ktx2",
+      "sha256": "5a62792c8446708265f92acb0153afc967b70737b2891c710d68c6d6612c5b53",
+      "bytes": 273498,
+      "kind": "ktx2"
+    },
+    {
+      "path": "public/assets/world-v2/archive-spire/textures/archive-spire-stone-orm.ktx2",
+      "sha256": "6f8f8b00d564d23775002c9802d3832d5b7c5bc04ede3924e1fc2e95edf308bc",
+      "bytes": 179006,
+      "kind": "ktx2"
+    },
+    {
+      "path": "public/assets/world-v2/archive-spire/archive-spire-lod0.glb",
+      "sha256": "5d7a04b116afb6af3e3eedf529550845829913cd9824ad04d83943dc4a720865",
+      "bytes": 167948,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/archive-spire/archive-spire-lod1.glb",
+      "sha256": "1b798ec54a445335185e89be6eae10a27bee76de7dc9c594154ac5c041ecfbe6",
+      "bytes": 62220,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/archive-spire/archive-spire-lod2.glb",
+      "sha256": "0c93182016ac293181a2839003c43f5451dab6e4910d1dbfc3cfdaf1a556df0b",
+      "bytes": 22560,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/ledger-pine/ledger-pine-lod0.glb",
+      "sha256": "9ffbe8305d87ba7e982e93e3ccfff533c6d658899a6fdd99b92b1d58fe9deee2",
+      "bytes": 65320,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/ledger-pine/ledger-pine-lod1.glb",
+      "sha256": "b0dbc168ce14a95f34170cf320a22a4c8e30e15f0cca51a2263b67691549a240",
+      "bytes": 23432,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/ledger-pine/ledger-pine-lod2.glb",
+      "sha256": "f83b7a3dce40e5bdecd95c47312b9d2217ed10c458cbb28332ca6c71d40420ac",
+      "bytes": 7032,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/commit-ridge/commit-ridge-lod0.glb",
+      "sha256": "ba0a537c630161b5e5b7c25b9c5f1d54b1e53fb8648cce7de1c4c49372e94561",
+      "bytes": 93120,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/commit-ridge/commit-ridge-lod1.glb",
+      "sha256": "60f152a12d32975bf24e6437d37b58a794a20a3df5103472b211241ddf1b9e66",
+      "bytes": 29468,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/commit-ridge/commit-ridge-lod2.glb",
+      "sha256": "06a8100808d91e3e7085a865c2b412463f98d6271e3375287de3d02c424fb1d9",
+      "bytes": 13552,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/patch-fox/patch-fox-lod0.glb",
+      "sha256": "5e0d734a18654525c09dbbc5be8edc951c74affe147ee49ffaaac0b57871fadc",
+      "bytes": 64136,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/patch-fox/patch-fox-lod1.glb",
+      "sha256": "7a08cfc2ad523cb0e7c5e7b9807b86879c44e200de21fba62173420a77d58880",
+      "bytes": 39908,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/patch-fox/patch-fox-lod2.glb",
+      "sha256": "8ee9cfb074cf620d31c8447878507a5b4c1462783f6d852b2c4c3a6b6dd81021",
+      "bytes": 22876,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/branch-lantern/branch-lantern-lod0.glb",
+      "sha256": "980220acbcdb93b5538cc26892d7ba2cb5cd0c57a10916c0a409e0b56fc29369",
+      "bytes": 77540,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/branch-lantern/branch-lantern-lod1.glb",
+      "sha256": "93b443fa659bc3e449da9f23847d6dc803effe6b1c7344e5a92baaddd2bb20b7",
+      "bytes": 34880,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/branch-lantern/branch-lantern-lod2.glb",
+      "sha256": "baa0f27672e7d5c3d46bc168f930590fea072937d4586190b0775d7079d8647b",
+      "bytes": 17400,
+      "kind": "glb"
+    },
+    {
+      "path": "public/assets/world-v2/catalog-v1.json",
+      "sha256": "e8747a578aeae88561d2943a1b55b9e554762a8f15a529449437ff3b21ceb968",
+      "bytes": 29602,
+      "kind": "catalog"
+    }
+  ],
+  "rebuild": {
+    "command": "node scripts/assets-v2/build-original-assets.mjs --recipe art/world-v2/batch-1-original-assets.recipe.json",
+    "runtimeDownloadsAllowed": false,
+    "blenderRuntimeAllowed": false,
+    "blenderAuthoringPolicy": "offline-background-only"
+  }
+}

@@ -29,7 +29,7 @@
   },
   "scripts": {
     "assets:build": "node scripts/assets/build-world-assets.mjs",
-    "assets:verify": "pnpm assets:quaternius:verify && pnpm assets:seasonal:verify && pnpm assets:terrain:verify && pnpm assets:environment:verify && pnpm assets:architecture:verify",
+    "assets:verify": "pnpm assets:quaternius:verify && pnpm assets:seasonal:verify && pnpm assets:terrain:verify && pnpm assets:environment:verify && pnpm assets:architecture:verify && pnpm assets:v2:verify",
     "assets:architecture:build": "node scripts/assets/build-architecture-detail-assets.mjs",
     "assets:architecture:verify": "node scripts/assets/verify-architecture-detail-assets.mjs",
     "assets:environment:build": "node scripts/assets/build-environment-hdri-assets.mjs",
@@ -40,6 +40,9 @@
     "assets:seasonal:verify": "node scripts/assets/verify-kenney-seasonal-assets.mjs",
     "assets:terrain:build": "node scripts/assets/build-terrain-pbr-assets.mjs",
     "assets:terrain:verify": "node scripts/assets/verify-terrain-pbr-assets.mjs",
+    "assets:v2:build": "node scripts/assets-v2/build-original-textures.mjs && node scripts/assets-v2/build-original-assets.mjs",
+    "assets:v2:verify": "node scripts/assets-v2/verify-original-assets.mjs",
+    "assets:v2:verify:release": "node scripts/assets-v2/verify-original-assets.mjs --require-tools",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -52,7 +55,7 @@
     "visual:gauntlet:smoke": "node scripts/visual/run-gauntlet.mjs --smoke",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm assets:v2:verify && pnpm test && pnpm build"
   },
   "dependencies": {
     "@react-three/drei": "10.7.8",
@@ -65,6 +68,7 @@
     "zustand": "5.0.14"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "4.4.2",
     "@playwright/test": "1.62.1",
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
