@@ -1,7 +1,21 @@
 import { stableDigest, stableFraction, stableHash } from "./hash";
+import {
+  createPhysicalWaterContract,
+  physicalTerrainCircleIsContained,
+  physicalWaterCircleHasClearance,
+  type PhysicalWaterContract,
+} from "./physical-water-contract";
 import type { FileCategory, KingdomEntity, KingdomSeason, KingdomWorld, Province } from "./types";
 import { deriveRepositoryWorldIdentity, type RepositoryWorldIdentity } from "./world-identity";
+import { deriveRepositoryPlanningScale, type RepositoryPlanningScale } from "./repository-scale";
 import type { KingdomWorldTheme } from "./world-theme";
+import { deriveRepositoryTopologyFamily, type RepositoryTopologyFamily } from "./topology-family";
+
+export const WORLD_PLAN_SCHEMA = "repo-world-plan/v2" as const;
+export const WORLD_PLAN_VERSION = "2.2.0" as const;
+export const TERRAIN_SCHEMA = "repo-terrain/v6" as const;
+export const WORLD_COMPOSITION_SCHEMA = "repo-composition/v1" as const;
+export const WORLD_PLACEMENT_SCHEMA = "repo-placement/v1" as const;
 
 export type WorldPlanPoint = Readonly<{ x: number; z: number }>;
 
@@ -76,6 +90,8 @@ export type HamletRegion = Readonly<{
   maxBuildings: number;
   buildingEntityIds: ReadonlyArray<string>;
   representedFiles: number;
+  /** Canonical physical terrace selected after the repository water family is known. */
+  terrainMask?: EllipseRegionMask;
 }>;
 
 export type GrovePalette = "broadleaf" | "pine" | "twisted" | "mixed" | "flowering";
@@ -214,6 +230,8 @@ export type WorldCameraComposition = Readonly<{
 }>;
 
 export type WorldPlanTopology = Readonly<{
+  repositoryScale: RepositoryPlanningScale;
+  geography: RepositoryTopologyFamily;
   envelope: WorldPlanEnvelope;
   camera: WorldCameraComposition;
   terrainZones: ReadonlyArray<TerrainZone>;
@@ -268,14 +286,26 @@ export type WorldPlanAppearance = Readonly<{
   }>;
 }>;
 
+export type RepositoryCompositionFamily = "courtyard-groves" | "compound-woodland";
+
+export type RepositoryCompositionContract = Readonly<{
+  schema: typeof WORLD_COMPOSITION_SCHEMA;
+  /** Immutable repository/geography identity; file count and appearance are excluded. */
+  key: string;
+  family: RepositoryCompositionFamily;
+  compoundSettlements: boolean;
+  connectedWoodland: boolean;
+}>;
+
 export type WorldPlan = Readonly<{
-  schema: "repo-world-plan/v1";
-  version: "1.0.0";
+  schema: typeof WORLD_PLAN_SCHEMA;
+  version: typeof WORLD_PLAN_VERSION;
   topologyKey: string;
   /** Stable repository terrain identity, intentionally independent of world styling. */
   terrainKey: string;
   /** Stable collision-safe placement identity, independent of seasonal and theme styling. */
   placementKey: string;
+  composition: RepositoryCompositionContract;
   worldTheme: KingdomWorldTheme;
   repository: Readonly<{
     id: number;
@@ -296,9 +326,12 @@ type WaterSystem = Readonly<{
 
 const WATER_ZONE_IDS = ["water-course", "water-lake"] as const;
 const DEFAULT_SAFE_MARGIN = 10;
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function mix(first: number, second: number, amount: number): number {
+  return first + (second - first) * amount;
 }
 
 function round(value: number): number {
@@ -307,6 +340,152 @@ function round(value: number): number {
 
 function point(x: number, z: number): WorldPlanPoint {
   return { x: round(x), z: round(z) };
+}
+
+/** Physical terrace radius required by the final-scale 3–6 building assembly. */
+export function requiredHamletTerrainRadius(hamlet: HamletRegion): number {
+  return Math.max(
+    hamlet.mask.radiusX,
+    hamlet.mask.radiusZ,
+    9.5 + Math.min(6, Math.max(3, hamlet.maxBuildings)) * 1.5,
+  );
+}
+
+const PHYSICAL_HAMLET_CLEARANCE = 4;
+const hamletTerrainPlacementCache = new WeakMap<
+  WorldPlanEnvelope,
+  WeakMap<ReadonlyArray<HamletRegion>, ReadonlyMap<string, EllipseRegionMask>>
+>();
+
+/**
+ * Resolves every physical settlement terrace as one collision-safe layout.
+ * Semantic masks stay at their repository-derived coordinates; only terrain,
+ * scenery, water, and rendered structures consume these physical masks.
+ */
+export function createHamletTerrainPlacementMasks(
+  envelope: WorldPlanEnvelope,
+  hamlets: ReadonlyArray<HamletRegion>,
+  options: Readonly<{ physicalWater?: PhysicalWaterContract }> = {},
+): ReadonlyMap<string, EllipseRegionMask> {
+  if (hamlets.every((hamlet) => hamlet.terrainMask !== undefined)) {
+    return new Map(hamlets.map((hamlet) => [hamlet.id, hamlet.terrainMask!]));
+  }
+  const cached = options.physicalWater
+    ? undefined
+    : hamletTerrainPlacementCache.get(envelope)?.get(hamlets);
+  if (cached) return cached;
+  const resolved = new Map<string, EllipseRegionMask>();
+  const descriptors = hamlets
+    .map((hamlet) => {
+      const radius = requiredHamletTerrainRadius(hamlet);
+      const horizonZ = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40);
+      const rearFaceZ = horizonZ + envelope.depth * 0.025;
+      const minimumSmoothCenterZ = rearFaceZ + radius * 2.55;
+      const needsEscarpmentClearance = hamlet.mask.center.z < minimumSmoothCenterZ;
+      const lateralDirection = hamlet.mask.center.x <= envelope.center.x ? -1 : 1;
+      const minimumX = envelope.minX + envelope.safeMargin + radius;
+      const maximumX = envelope.maxX - envelope.safeMargin - radius;
+      const minimumZ = Math.max(
+        envelope.minZ + envelope.safeMargin + radius,
+        needsEscarpmentClearance ? minimumSmoothCenterZ : Number.NEGATIVE_INFINITY,
+      );
+      const maximumZ = envelope.maxZ - envelope.safeMargin - radius;
+      const desired = needsEscarpmentClearance
+        ? point(
+            clamp(hamlet.mask.center.x + lateralDirection * radius * 4.75, minimumX, maximumX),
+            clamp(minimumSmoothCenterZ, minimumZ, maximumZ),
+          )
+        : point(
+            clamp(hamlet.mask.center.x, minimumX, maximumX),
+            clamp(hamlet.mask.center.z, minimumZ, maximumZ),
+          );
+      return {
+        hamlet,
+        radius,
+        desired,
+        minimumX,
+        maximumX,
+        minimumZ,
+        maximumZ,
+      };
+    })
+    .sort(
+      (first, second) =>
+        second.radius - first.radius || first.hamlet.id.localeCompare(second.hamlet.id),
+    );
+
+  const placed: Array<Readonly<{ center: WorldPlanPoint; radius: number }>> = [];
+  for (const descriptor of descriptors) {
+    const candidates: WorldPlanPoint[] = [descriptor.desired];
+    const gridSteps = 24;
+    for (let zIndex = 0; zIndex <= gridSteps; zIndex += 1) {
+      for (let xIndex = 0; xIndex <= gridSteps; xIndex += 1) {
+        candidates.push(
+          point(
+            mix(descriptor.minimumX, descriptor.maximumX, xIndex / gridSteps),
+            mix(descriptor.minimumZ, descriptor.maximumZ, zIndex / gridSteps),
+          ),
+        );
+      }
+    }
+    candidates.sort(
+      (first, second) =>
+        distance(first, descriptor.desired) - distance(second, descriptor.desired) ||
+        stableHash(`${descriptor.hamlet.id}:${first.x}:${first.z}`) -
+          stableHash(`${descriptor.hamlet.id}:${second.x}:${second.z}`),
+    );
+    const center = candidates.find(
+      (candidate) =>
+        placed.every(
+          (other) =>
+            distance(candidate, other.center) >=
+            descriptor.radius + other.radius + PHYSICAL_HAMLET_CLEARANCE,
+        ) &&
+        (options.physicalWater === undefined ||
+          (physicalTerrainCircleIsContained(
+            options.physicalWater.outline,
+            candidate,
+            descriptor.radius,
+            1,
+          ) &&
+            physicalWaterCircleHasClearance(
+              options.physicalWater,
+              candidate,
+              descriptor.radius,
+              0,
+            ))),
+    );
+    if (!center) {
+      throw new Error(`Unable to resolve collision-safe terrain for ${descriptor.hamlet.id}.`);
+    }
+    placed.push({ center, radius: descriptor.radius });
+    resolved.set(descriptor.hamlet.id, {
+      ...descriptor.hamlet.mask,
+      center,
+      radiusX: descriptor.radius,
+      radiusZ: descriptor.radius,
+    });
+  }
+  if (!options.physicalWater) {
+    let cacheForEnvelope = hamletTerrainPlacementCache.get(envelope);
+    if (!cacheForEnvelope) {
+      cacheForEnvelope = new WeakMap();
+      hamletTerrainPlacementCache.set(envelope, cacheForEnvelope);
+    }
+    cacheForEnvelope.set(hamlets, resolved);
+  }
+  return resolved;
+}
+
+/** Canonical physical settlement mask shared by terrain identity and rendering. */
+export function getHamletTerrainPlacementMask(
+  envelope: WorldPlanEnvelope,
+  hamlet: HamletRegion,
+  hamlets: ReadonlyArray<HamletRegion>,
+): EllipseRegionMask {
+  const mask = createHamletTerrainPlacementMasks(envelope, hamlets).get(hamlet.id);
+  if (!mask) throw new Error(`Hamlet ${hamlet.id} is missing from the physical layout.`);
+  return mask;
 }
 
 function distance(first: WorldPlanPoint, second: WorldPlanPoint): number {
@@ -344,6 +523,28 @@ function distanceToCorridor(subject: WorldPlanPoint, corridor: CorridorRegionMas
   return minimum;
 }
 
+/** Conservative fitted-lake estimate used only to rank semantic water candidates. */
+function potentialLakeClearance(
+  center: WorldPlanPoint,
+  water: WaterSystem,
+  envelope: WorldPlanEnvelope,
+): number {
+  const maximumArea = envelope.width * envelope.depth * 0.14;
+  const aspect = clamp(water.lake.radiusX / water.lake.radiusZ, 0.68, 1.58);
+  const estimatedRadiusX = Math.sqrt((maximumArea * aspect) / Math.PI);
+  const estimatedRadiusZ = maximumArea / (Math.PI * estimatedRadiusX);
+  const radiusX = estimatedRadiusX * 1.3 + 4;
+  const radiusZ = estimatedRadiusZ * 1.3 + 4;
+  const cosine = Math.cos(water.lake.rotation);
+  const sine = Math.sin(water.lake.rotation);
+  const deltaX = center.x - water.lake.center.x;
+  const deltaZ = center.z - water.lake.center.z;
+  const localX = deltaX * cosine + deltaZ * sine;
+  const localZ = -deltaX * sine + deltaZ * cosine;
+  const normalizedRadius = Math.hypot(localX / radiusX, localZ / radiusZ);
+  return (normalizedRadius - 1) * Math.min(radiusX, radiusZ);
+}
+
 function categoryPriority(category: FileCategory): number {
   return {
     source: 6,
@@ -355,7 +556,10 @@ function categoryPriority(category: FileCategory): number {
   }[category];
 }
 
-function createEnvelope(world: KingdomWorld): WorldPlanEnvelope {
+function createEnvelope(
+  world: KingdomWorld,
+  repositoryScale: RepositoryPlanningScale,
+): WorldPlanEnvelope {
   let maximumAbsoluteX = 0;
   let minimumContentZ = 0;
   let maximumContentZ = 0;
@@ -382,10 +586,11 @@ function createEnvelope(world: KingdomWorld): WorldPlanEnvelope {
     maximumContentZ = Math.max(maximumContentZ, portal.position.z + 8);
   }
 
-  const halfWidth = Math.max(72, Math.ceil(maximumAbsoluteX + 44));
+  const minimum = repositoryScale.minimumEnvelope;
+  const halfWidth = Math.max(minimum.width / 2, Math.ceil(maximumAbsoluteX + 44));
   let minZ = Math.min(-92, Math.floor(minimumContentZ - 38));
-  const maxZ = Math.max(68, Math.ceil(maximumContentZ + 30));
-  if (maxZ - minZ < 160) minZ = maxZ - 160;
+  const maxZ = Math.max(minimum.depth * 0.425, Math.ceil(maximumContentZ + 30));
+  if (maxZ - minZ < minimum.depth) minZ = maxZ - minimum.depth;
 
   return {
     minX: -halfWidth,
@@ -397,6 +602,46 @@ function createEnvelope(world: KingdomWorld): WorldPlanEnvelope {
     center: point(0, (minZ + maxZ) / 2),
     safeMargin: DEFAULT_SAFE_MARGIN,
   };
+}
+
+function expandSettlementCenters(
+  candidates: ReadonlyArray<Readonly<{ province: Province; center: WorldPlanPoint }>>,
+  envelope: WorldPlanEnvelope,
+  repositoryScale: RepositoryPlanningScale,
+): ReadonlyMap<string, WorldPlanPoint> {
+  if (candidates.length < 2 || repositoryScale.logarithmicProgress === 0) {
+    return new Map(candidates.map(({ province, center }) => [province.id, center]));
+  }
+  const minimumX = Math.min(...candidates.map(({ center }) => center.x));
+  const maximumX = Math.max(...candidates.map(({ center }) => center.x));
+  const minimumZ = Math.min(...candidates.map(({ center }) => center.z));
+  const maximumZ = Math.max(...candidates.map(({ center }) => center.z));
+  const centerX = (minimumX + maximumX) / 2;
+  const centerZ = (minimumZ + maximumZ) / 2;
+  const spanX = Math.max(1, maximumX - minimumX);
+  const spanZ = Math.max(1, maximumZ - minimumZ);
+  const targetX = repositoryScale.settlementEnvelope.width;
+  const targetZ = repositoryScale.settlementEnvelope.depth;
+  const expansionX = mix(1, Math.max(1, targetX / spanX), repositoryScale.logarithmicProgress);
+  const expansionZ = mix(1, Math.max(1, targetZ / spanZ), repositoryScale.logarithmicProgress);
+  const inset = envelope.safeMargin + 18;
+  return new Map(
+    candidates.map(({ province, center }) => [
+      province.id,
+      point(
+        clamp(
+          centerX + (center.x - centerX) * expansionX,
+          envelope.minX + inset,
+          envelope.maxX - inset,
+        ),
+        clamp(
+          centerZ + (center.z - centerZ) * expansionZ,
+          envelope.minZ + inset,
+          envelope.maxZ - inset,
+        ),
+      ),
+    ]),
+  );
 }
 
 function hamletRole(province: Province, satellite: boolean): HamletRole {
@@ -412,6 +657,45 @@ function hamletRole(province: Province, satellite: boolean): HamletRole {
   }[province.dominantCategory] as HamletRole;
 }
 
+const MAX_PRIMARY_HAMLETS = 4;
+const PRIMARY_HAMLET_BUILDING_CAPACITY = 6;
+const SATELLITE_HAMLET_BUILDING_CAPACITY = 4;
+
+function distributeHamletBuildingCapacity(
+  satellites: ReadonlyArray<boolean>,
+  overviewBuildingBudget: number,
+): ReadonlyArray<number> {
+  const minimumPerHamlet = 3;
+  const capacities = satellites.map(() => minimumPerHamlet);
+  const maximums = satellites.map((satellite) =>
+    satellite ? SATELLITE_HAMLET_BUILDING_CAPACITY : PRIMARY_HAMLET_BUILDING_CAPACITY,
+  );
+  let remaining =
+    clamp(
+      overviewBuildingBudget,
+      capacities.length * minimumPerHamlet,
+      maximums.reduce((total, maximum) => total + maximum, 0),
+    ) -
+    capacities.length * minimumPerHamlet;
+
+  // A settlement becomes visually primary by earning its full internal
+  // capacity before the subordinate commons grows beyond its minimum. Within
+  // each hierarchy level growth remains balanced and deterministic.
+  for (const satellite of [false, true]) {
+    while (remaining > 0) {
+      let assignedThisPass = false;
+      for (let index = 0; index < capacities.length && remaining > 0; index += 1) {
+        if (satellites[index] !== satellite || capacities[index]! >= maximums[index]!) continue;
+        capacities[index]! += 1;
+        remaining -= 1;
+        assignedThisPass = true;
+      }
+      if (!assignedThisPass) break;
+    }
+  }
+  return capacities;
+}
+
 function orderEntities(entities: ReadonlyArray<KingdomEntity>): ReadonlyArray<KingdomEntity> {
   return [...entities].sort(
     (first, second) =>
@@ -425,6 +709,7 @@ function orderEntities(entities: ReadonlyArray<KingdomEntity>): ReadonlyArray<Ki
 function createHamlets(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
+  repositoryScale: RepositoryPlanningScale,
 ): ReadonlyArray<HamletRegion> {
   const orderedProvinces = [...world.provinces].sort(
     (first, second) =>
@@ -434,30 +719,44 @@ function createHamlets(
       first.id.localeCompare(second.id),
   );
   const directoryProvinces = orderedProvinces.filter((province) => province.role !== "nexus");
-  const desiredCount = clamp(Math.ceil(Math.sqrt(Math.max(1, directoryProvinces.length))), 2, 4);
+  const overviewBudget = repositoryScale.viewBudgets.overview;
+  const scaleAwareMinimum = clamp(
+    Math.round(2 + repositoryScale.logarithmicProgress * 5),
+    2,
+    overviewBudget.maxRegions,
+  );
+  const desiredCount = clamp(
+    Math.ceil(Math.sqrt(Math.max(1, directoryProvinces.length))),
+    scaleAwareMinimum,
+    Math.min(repositoryScale.regionCapacity, overviewBudget.maxRegions),
+  );
   const selected = directoryProvinces.slice(0, desiredCount);
   const fallbackProvince = selected[0] ?? orderedProvinces[0];
   if (!fallbackProvince) return [];
 
-  const candidates = selected.map((province) => ({
+  const selectedCandidates = selected.map((province) => ({
     province,
-    satellite: false,
     center: point(province.position.x, province.position.z),
+  }));
+  const expandedCenters = expandSettlementCenters(selectedCandidates, envelope, repositoryScale);
+  const candidates = selectedCandidates.map(({ province, center }, index) => ({
+    province,
+    satellite: index >= MAX_PRIMARY_HAMLETS,
+    center: expandedCenters.get(province.id) ?? center,
   }));
   while (candidates.length < desiredCount) {
     const index = candidates.length;
-    const side = index % 2 === 0 ? -1 : 1;
-    const phase = stableFraction(`${world.seed}:satellite:${index}`) - 0.5;
+    const angle =
+      stableFraction(`${world.seed}:satellite:rotation`) * Math.PI * 2 +
+      ((index - selected.length) / Math.max(1, desiredCount - selected.length)) * Math.PI * 2;
+    const orbitX = repositoryScale.settlementEnvelope.width / 2;
+    const orbitZ = repositoryScale.settlementEnvelope.depth / 2;
     candidates.push({
       province: fallbackProvince,
-      satellite: true,
+      satellite: candidates.length >= MAX_PRIMARY_HAMLETS,
       center: point(
-        clamp(
-          fallbackProvince.position.x + side * (30 + Math.abs(phase) * 8),
-          envelope.minX + 18,
-          envelope.maxX - 18,
-        ),
-        clamp(fallbackProvince.position.z - 8 + phase * 10, envelope.minZ + 18, envelope.maxZ - 18),
+        clamp(envelope.center.x + Math.cos(angle) * orbitX, envelope.minX + 18, envelope.maxX - 18),
+        clamp(envelope.center.z + Math.sin(angle) * orbitZ, envelope.minZ + 18, envelope.maxZ - 18),
       ),
     });
   }
@@ -471,20 +770,10 @@ function createHamlets(
   }
   const repeatedProvinceIndex = new Map<string, number>();
 
-  const largeRepositoryBuildingBonus =
-    world.statistics.files < 128
-      ? 0
-      : Math.min(6, Math.floor(Math.log2(world.statistics.files / 128 + 1) * 2));
-  const targetBuildingCount = Math.round(
-    clamp(
-      12 +
-        Math.floor(Math.log2(Math.max(1, world.statistics.files)) / 2) +
-        largeRepositoryBuildingBonus,
-      candidates.length * 3,
-      Math.min(24, candidates.length * 6),
-    ),
+  const buildingCapacities = distributeHamletBuildingCapacity(
+    candidates.map((candidate) => candidate.satellite),
+    overviewBudget.maxBuildings,
   );
-  let remainingBuildings = targetBuildingCount;
 
   return candidates.map((candidate, index) => {
     const nearestDistance = Math.min(
@@ -495,7 +784,7 @@ function createHamlets(
     const preferredRadius = candidate.satellite
       ? 7
       : clamp(candidate.province.radius * 0.72 + 2, 7, 15);
-    const radius = round(Math.min(preferredRadius, (nearestDistance - 8) / 2));
+    const radius = round(Math.max(3, Math.min(preferredRadius, (nearestDistance - 8) / 2)));
     const allProvinceEntities = orderEntities(
       world.entities.filter((entity) => entity.provinceId === candidate.province.id),
     );
@@ -505,9 +794,7 @@ function createHamlets(
     const assignedEntities = allProvinceEntities.filter(
       (_, entityIndex) => entityIndex % duplicateCount === duplicateIndex,
     );
-    const remainingHamlets = candidates.length - index;
-    const maxBuildings = clamp(Math.ceil(remainingBuildings / remainingHamlets), 3, 6);
-    remainingBuildings -= maxBuildings;
+    const maxBuildings = buildingCapacities[index]!;
     const id = `hamlet-${stableDigest(`${world.seed}:${candidate.province.id}:${index}`).slice(0, 10)}`;
 
     return {
@@ -526,9 +813,10 @@ function createHamlets(
       },
       maxBuildings,
       buildingEntityIds: assignedEntities.slice(0, maxBuildings).map((entity) => entity.id),
-      representedFiles: candidate.satellite
-        ? Math.floor(candidate.province.representedFiles / duplicateCount)
-        : candidate.province.representedFiles,
+      representedFiles:
+        duplicateCount > 1
+          ? Math.floor(candidate.province.representedFiles / duplicateCount)
+          : candidate.province.representedFiles,
     };
   });
 }
@@ -536,21 +824,22 @@ function createHamlets(
 function waterCandidate(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
-  ratio: number,
   waterWidth: number,
+  geography: RepositoryTopologyFamily,
+  offset: Readonly<{ x: number; z: number }>,
 ): WaterSystem {
-  const side = Math.sign(ratio) as -1 | 1;
   const inset = envelope.safeMargin + waterWidth / 2 + 1;
-  const baseX = clamp(envelope.width * ratio * 0.5, envelope.minX + inset, envelope.maxX - inset);
-  const zRatios = [0.1, 0.32, 0.54, 0.76, 0.94];
-  const points = zRatios.map((zRatio, index) => {
-    const meander =
-      (stableFraction(`${world.seed}:water:${ratio}:${index}`) - 0.5) * envelope.width * 0.055;
+  const points = geography.course.points.map((sample, index) => {
+    const meander = (stableFraction(`${world.seed}:water:${geography.id}:${index}`) - 0.5) * 0.018;
     return point(
-      clamp(baseX + meander, envelope.minX + inset, envelope.maxX - inset),
-      index === zRatios.length - 1
+      clamp(
+        envelope.center.x + (sample.x + offset.x + meander) * envelope.width * 0.5,
+        envelope.minX + inset,
+        envelope.maxX - inset,
+      ),
+      index === geography.course.points.length - 1
         ? envelope.maxZ - envelope.safeMargin
-        : envelope.minZ + envelope.depth * zRatio,
+        : envelope.minZ + envelope.depth * sample.z,
     );
   });
   const course: CorridorRegionMask = {
@@ -559,45 +848,50 @@ function waterCandidate(
     width: waterWidth,
     feather: 2.4,
   };
-  const lakePoint = points[3]!;
-  const radiusX = clamp(envelope.width * 0.075, 9, 14);
-  const radiusZ = clamp(envelope.depth * 0.085, 11, 17);
+  const radiusArea = clamp(envelope.width * 0.075, 9, 14) * clamp(envelope.depth * 0.085, 11, 17);
+  const radiusX = Math.sqrt(radiusArea * geography.lake.aspect);
+  const radiusZ = radiusArea / radiusX;
+  const rotation = geography.lake.rotation;
+  const cosine = Math.cos(rotation);
+  const sine = Math.sin(rotation);
+  const extentX = Math.sqrt(radiusX ** 2 * cosine ** 2 + radiusZ ** 2 * sine ** 2);
+  const extentZ = Math.sqrt(radiusX ** 2 * sine ** 2 + radiusZ ** 2 * cosine ** 2);
   return {
     course,
     lake: {
       shape: "ellipse",
       center: point(
         clamp(
-          lakePoint.x,
-          envelope.minX + envelope.safeMargin + radiusX,
-          envelope.maxX - envelope.safeMargin - radiusX,
+          envelope.center.x + (geography.lake.center.x + offset.x) * envelope.width * 0.5,
+          envelope.minX + envelope.safeMargin + extentX,
+          envelope.maxX - envelope.safeMargin - extentX,
         ),
         clamp(
-          lakePoint.z,
-          envelope.minZ + envelope.safeMargin + radiusZ,
-          envelope.maxZ - envelope.safeMargin - radiusZ,
+          envelope.minZ + envelope.depth * (geography.lake.center.z + offset.z),
+          envelope.minZ + envelope.safeMargin + extentZ,
+          envelope.maxZ - envelope.safeMargin - extentZ,
         ),
       ),
       radiusX: round(radiusX),
       radiusZ: round(radiusZ),
-      rotation: 0,
+      rotation,
       feather: 3.2,
     },
-    side,
+    side: geography.course.preferredSide,
   };
 }
 
-function waterClearance(water: WaterSystem, hamlets: ReadonlyArray<HamletRegion>): number {
+function waterClearance(
+  water: WaterSystem,
+  placementMasks: ReadonlyArray<EllipseRegionMask>,
+  envelope: WorldPlanEnvelope,
+): number {
   return Math.min(
-    ...hamlets.flatMap((hamlet) => {
-      const hamletRadius = Math.max(hamlet.mask.radiusX, hamlet.mask.radiusZ);
+    ...placementMasks.flatMap((mask) => {
+      const hamletRadius = Math.max(mask.radiusX, mask.radiusZ);
       return [
-        distanceToCorridor(hamlet.mask.center, water.course) -
-          hamletRadius -
-          water.course.width / 2,
-        distance(hamlet.mask.center, water.lake.center) -
-          hamletRadius -
-          Math.max(water.lake.radiusX, water.lake.radiusZ),
+        distanceToCorridor(mask.center, water.course) - hamletRadius - water.course.width / 2,
+        potentialLakeClearance(mask.center, water, envelope) - hamletRadius,
       ];
     }),
   );
@@ -606,29 +900,76 @@ function waterClearance(water: WaterSystem, hamlets: ReadonlyArray<HamletRegion>
 function createWaterSystem(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
-  hamlets: ReadonlyArray<HamletRegion>,
+  placementMasks: ReadonlyMap<string, EllipseRegionMask>,
+  identity: RepositoryWorldIdentity,
+  geography: RepositoryTopologyFamily,
 ): WaterSystem {
-  const waterWidth = round(clamp(envelope.width * 0.036, 5, 8));
-  const candidates = [0.7, -0.7, 0.56, -0.56].map((ratio) =>
-    waterCandidate(world, envelope, ratio, waterWidth),
+  const archetypeWater = {
+    "source-forge": { width: 1, ratios: [0.7, -0.7, 0.56, -0.56] },
+    "warden-reach": { width: 0.9, ratios: [0.7, -0.7, 0.56, -0.56] },
+    "archive-domain": { width: 0.78, ratios: [0.34, -0.34, 0.58, -0.58] },
+    "observatory-frontier": { width: 0.82, ratios: [0.8, -0.8, 0.64, -0.64] },
+    "garden-realm": { width: 1.12, ratios: [0.52, -0.52, 0.34, -0.34] },
+    crossroads: { width: 1, ratios: [0.62, -0.62, 0.18, -0.18] },
+  }[identity.archetype];
+  const waterWidth = round(clamp(envelope.width * 0.036 * archetypeWater.width, 4.5, 9));
+  const offsets = [
+    { x: 0, z: 0 },
+    { x: -0.08, z: 0 },
+    { x: 0.08, z: 0 },
+    { x: -0.16, z: 0.05 },
+    { x: 0.16, z: 0.05 },
+    { x: -0.12, z: -0.07 },
+    { x: 0.12, z: -0.07 },
+  ] as const;
+  const candidates = offsets.map((offset) =>
+    waterCandidate(world, envelope, waterWidth, geography, offset),
   );
+  const physicalMasks = [...placementMasks.values()];
   return candidates.sort(
     (first, second) =>
-      waterClearance(second, hamlets) - waterClearance(first, hamlets) || second.side - first.side,
+      waterClearance(second, physicalMasks, envelope) -
+        waterClearance(first, physicalMasks, envelope) ||
+      distance(first.lake.center, {
+        x: envelope.center.x + geography.lake.center.x * envelope.width * 0.5,
+        z: envelope.minZ + envelope.depth * geography.lake.center.z,
+      }) -
+        distance(second.lake.center, {
+          x: envelope.center.x + geography.lake.center.x * envelope.width * 0.5,
+          z: envelope.minZ + envelope.depth * geography.lake.center.z,
+        }),
   )[0]!;
 }
 
 function createTerrainZones(
   world: KingdomWorld,
   envelope: WorldPlanEnvelope,
-  hamlets: ReadonlyArray<HamletRegion>,
+  placementMasks: ReadonlyMap<string, EllipseRegionMask>,
+  identity: RepositoryWorldIdentity,
+  geography: RepositoryTopologyFamily,
+  selectedWater?: WaterSystem,
 ): Readonly<{ zones: ReadonlyArray<TerrainZone>; water: WaterSystem }> {
-  const water = createWaterSystem(world, envelope, hamlets);
+  const water =
+    selectedWater ?? createWaterSystem(world, envelope, placementMasks, identity, geography);
   const inset = envelope.safeMargin * 0.65;
   const rearDepth = clamp(envelope.depth * 0.18, 24, 40);
   const rearFrontZ = Math.min(-18, envelope.minZ + inset + rearDepth);
-  const meadowCenterX = -water.side * envelope.width * 0.12;
-  const frontMeadowCenterX = -water.side * envelope.width * 0.18;
+  const ridgeRise = Math.tan(geography.ridge.angle) * (envelope.width - inset * 2);
+  const rearLeftZ = clamp(
+    rearFrontZ - ridgeRise * 0.5,
+    envelope.minZ + inset + rearDepth * 0.55,
+    envelope.minZ + inset + rearDepth * 1.45,
+  );
+  const rearRightZ = clamp(
+    rearFrontZ + ridgeRise * 0.5,
+    envelope.minZ + inset + rearDepth * 0.55,
+    envelope.minZ + inset + rearDepth * 1.45,
+  );
+  const normalizedCenter = (sample: Readonly<{ x: number; z: number }>) =>
+    point(
+      envelope.center.x + sample.x * envelope.width * 0.5,
+      envelope.minZ + sample.z * envelope.depth,
+    );
 
   const zones: ReadonlyArray<TerrainZone> = [
     {
@@ -653,10 +994,10 @@ function createTerrainZones(
       kind: "meadow",
       mask: {
         shape: "ellipse",
-        center: point(meadowCenterX, envelope.minZ + envelope.depth * 0.49),
-        radiusX: round(envelope.width * 0.24),
-        radiusZ: round(envelope.depth * 0.2),
-        rotation: 0,
+        center: normalizedCenter(geography.meadows.middle),
+        radiusX: round(envelope.width * geography.meadows.middle.radiusX),
+        radiusZ: round(envelope.depth * geography.meadows.middle.radiusZ),
+        rotation: geography.meadows.middle.rotation,
         feather: 8,
       },
       priority: 1,
@@ -668,10 +1009,10 @@ function createTerrainZones(
       kind: "meadow",
       mask: {
         shape: "ellipse",
-        center: point(frontMeadowCenterX, envelope.minZ + envelope.depth * 0.78),
-        radiusX: round(envelope.width * 0.18),
-        radiusZ: round(envelope.depth * 0.14),
-        rotation: 0,
+        center: normalizedCenter(geography.meadows.front),
+        radiusX: round(envelope.width * geography.meadows.front.radiusX),
+        radiusZ: round(envelope.depth * geography.meadows.front.radiusZ),
+        rotation: geography.meadows.front.rotation,
         feather: 7,
       },
       priority: 1,
@@ -686,8 +1027,8 @@ function createTerrainZones(
         points: [
           point(envelope.minX + inset, envelope.minZ + inset),
           point(envelope.maxX - inset, envelope.minZ + inset),
-          point(envelope.maxX - inset, rearFrontZ),
-          point(envelope.minX + inset, rearFrontZ),
+          point(envelope.maxX - inset, rearRightZ),
+          point(envelope.minX + inset, rearLeftZ),
         ],
         feather: 10,
       },
@@ -767,17 +1108,27 @@ function circleClearsWater(
   );
 }
 
+/** Verifies the entire planner-owned habitat perimeter against rendered water. */
+function circleClearsPhysicalWater(
+  center: WorldPlanPoint,
+  radius: number,
+  water: PhysicalWaterContract,
+  clearance: number,
+): boolean {
+  return physicalWaterCircleHasClearance(water, center, radius, clearance);
+}
+
 function circleClearsHamlets(
   center: WorldPlanPoint,
   radius: number,
-  hamlets: ReadonlyArray<HamletRegion>,
+  placementMasks: ReadonlyArray<EllipseRegionMask>,
   clearance: number,
 ): boolean {
-  return hamlets.every(
-    (hamlet) =>
-      distance(center, hamlet.mask.center) >=
-      radius + Math.max(hamlet.mask.radiusX, hamlet.mask.radiusZ) + clearance,
-  );
+  return placementMasks.every((mask) => {
+    return (
+      distance(center, mask.center) >= radius + Math.max(mask.radiusX, mask.radiusZ) + clearance
+    );
+  });
 }
 
 function createGroves(
@@ -785,13 +1136,17 @@ function createGroves(
   envelope: WorldPlanEnvelope,
   hamlets: ReadonlyArray<HamletRegion>,
   water: WaterSystem,
+  physicalWater: PhysicalWaterContract,
+  physicalHamlets: ReadonlyMap<string, EllipseRegionMask>,
   maxTrees: number,
+  maxGroves: number,
 ): ReadonlyArray<ForestGroveRegion> {
   const desiredCount = clamp(
     3 + Math.floor(world.provinces.length / 4) + (world.worldTheme === "enchanted-forest" ? 1 : 0),
     3,
-    7,
+    maxGroves,
   );
+  const placementMasks = [...physicalHamlets.values()];
   const rearLimit = envelope.minZ + clamp(envelope.depth * 0.18, 24, 40) + 7;
   const candidates = Array.from({ length: 56 }, (_, index) => {
     const column = index % 8;
@@ -830,7 +1185,8 @@ function createGroves(
         candidate.center.z - candidateRadius >= rearLimit &&
         candidate.center.z + candidateRadius <= envelope.maxZ - envelope.safeMargin &&
         circleClearsWater(candidate.center, candidateRadius, water, 4) &&
-        circleClearsHamlets(candidate.center, candidateRadius, hamlets, 4) &&
+        circleClearsPhysicalWater(candidate.center, candidateRadius, physicalWater, 4) &&
+        circleClearsHamlets(candidate.center, candidateRadius, placementMasks, 4) &&
         chosen.every(
           (grove) => distance(candidate.center, grove.center) >= candidateRadius + grove.radius + 3,
         ),
@@ -957,7 +1313,7 @@ function createWildlifeZones(
   hamlets: ReadonlyArray<HamletRegion>,
   maxActors: number,
 ): ReadonlyArray<WildlifeZone> {
-  const desiredCount = Math.min(3, groves.length);
+  const desiredCount = Math.min(groves.length, maxActors >= 14 ? 5 : maxActors >= 10 ? 4 : 3);
   const baseActorCount = desiredCount === 0 ? 0 : Math.floor(maxActors / desiredCount);
   const extraActors = desiredCount === 0 ? 0 : maxActors % desiredCount;
   const actorCounts = Array.from(
@@ -965,7 +1321,7 @@ function createWildlifeZones(
     (_, index) => baseActorCount + (index < extraActors ? 1 : 0),
   );
   const roles: ReadonlyArray<WildlifeRole> = ["deer", "fox", "stag"];
-  const behaviors: ReadonlyArray<WildlifeZone["behavior"]> = ["graze", "wander", "rest"];
+  const behaviors: ReadonlyArray<WildlifeZone["behavior"]> = ["wander", "graze", "rest"];
   const offset = Math.floor(stableFraction(`${world.seed}:wildlife`) * roles.length);
   return groves.slice(0, desiredCount).map((grove, index) => ({
     id: `wildlife-${grove.id.slice("grove-".length)}`,
@@ -987,35 +1343,21 @@ function createWildlifeZones(
 }
 
 function createVisualBudgets(
-  world: KingdomWorld,
   hamlets: ReadonlyArray<HamletRegion>,
+  repositoryScale: RepositoryPlanningScale,
 ): WorldVisualBudgets {
-  const complexity = Math.sqrt(Math.max(1, world.statistics.files));
-  const largeRepositoryActorBonus =
-    world.statistics.files < 128
-      ? 0
-      : Math.min(4, Math.floor(Math.log2(world.statistics.files / 128 + 1) * 1.5));
+  const overviewBudget = repositoryScale.viewBudgets.overview;
   return {
     maxTerrainZones: 10,
-    maxHamlets: 4,
+    maxHamlets: overviewBudget.maxRegions,
     maxBuildings: hamlets.reduce((total, hamlet) => total + hamlet.maxBuildings, 0),
-    maxGroves: 7,
-    maxTrees: Math.round(
-      clamp(
-        (world.worldTheme === "enchanted-forest" ? 155 : 90) +
-          world.provinces.length * (world.worldTheme === "enchanted-forest" ? 11 : 10) +
-          complexity * (world.worldTheme === "enchanted-forest" ? 6 : 5),
-        world.worldTheme === "enchanted-forest" ? 190 : 120,
-        240,
-      ),
-    ),
-    maxLandmarks: 6,
-    maxWildlifeActors: Math.round(
-      clamp(4 + world.provinces.length / 4 + largeRepositoryActorBonus, 4, 12),
-    ),
-    maxSurfaceScatter: Math.round(clamp(210 + complexity * 7, 240, 360)),
-    maxDrawCalls: 150,
-    maxVisibleTriangles: 750_000,
+    maxGroves: overviewBudget.maxGroves,
+    maxTrees: overviewBudget.maxTrees,
+    maxLandmarks: 3,
+    maxWildlifeActors: overviewBudget.maxWildlifeActors,
+    maxSurfaceScatter: overviewBudget.maxSurfaceScatter,
+    maxDrawCalls: overviewBudget.maxDrawCalls,
+    maxVisibleTriangles: overviewBudget.maxVisibleTriangles,
   };
 }
 
@@ -1521,16 +1863,101 @@ function createAppearance(world: KingdomWorld): WorldPlanAppearance {
   };
 }
 
-function createTopologyKey(world: KingdomWorld, topology: WorldPlanTopology): string {
+function createRepositoryComposition(
+  world: KingdomWorld,
+  geography: RepositoryTopologyFamily,
+): RepositoryCompositionContract {
+  const identity = `${world.source.repositoryId}:${world.seed}:${geography.id}:${WORLD_COMPOSITION_SCHEMA}`;
+  const compoundWoodland = stableHash(identity) % 3 === 0;
+  return {
+    schema: WORLD_COMPOSITION_SCHEMA,
+    key: stableDigest(identity),
+    family: compoundWoodland ? "compound-woodland" : "courtyard-groves",
+    compoundSettlements: compoundWoodland,
+    connectedWoodland: compoundWoodland,
+  };
+}
+
+/** Returns immutable feature-family identity without planning scene geometry. */
+export function repositoryCompositionContract(world: KingdomWorld): RepositoryCompositionContract {
+  return createRepositoryComposition(world, deriveRepositoryTopologyFamily(world));
+}
+
+function createPlacementKey(
+  world: KingdomWorld,
+  geography: RepositoryTopologyFamily,
+  composition: RepositoryCompositionContract,
+): string {
+  return stableDigest(
+    [
+      WORLD_PLACEMENT_SCHEMA,
+      world.source.repositoryId,
+      world.source.commitSha,
+      world.seed,
+      geography.id,
+      composition.key,
+    ].join(":"),
+  );
+}
+
+function createTopologyKey(
+  world: KingdomWorld,
+  topology: WorldPlanTopology,
+  composition: RepositoryCompositionContract,
+): string {
   const identity = [
-    "repo-world-plan/v1",
+    WORLD_PLAN_SCHEMA,
+    WORLD_PLAN_VERSION,
     world.source.repositoryId,
     world.source.commitSha,
     world.seed,
   ];
-  if (world.worldTheme === "enchanted-forest") identity.push(world.worldTheme);
+  identity.push(composition.key);
   identity.push(stableDigest(JSON.stringify(topology)));
   return stableDigest(identity.join(":"));
+}
+
+function createTerrainKey(
+  world: KingdomWorld,
+  identity: RepositoryWorldIdentity,
+  repositoryScale: RepositoryPlanningScale,
+  geography: RepositoryTopologyFamily,
+  envelope: WorldPlanEnvelope,
+  hamlets: ReadonlyArray<HamletRegion>,
+  terrainZones: ReadonlyArray<TerrainZone>,
+  placementMasks: ReadonlyMap<string, EllipseRegionMask>,
+): string {
+  // Terrain identity deliberately hashes only inputs that shape terrain.
+  // View budgets, tier labels, grove populations, wildlife, and appearance are
+  // excluded, so raising a renderer cap cannot reshape a coastline.
+  return stableDigest(
+    JSON.stringify({
+      schema: TERRAIN_SCHEMA,
+      repositoryId: world.source.repositoryId,
+      commitSha: world.source.commitSha,
+      seed: world.seed,
+      archetype: identity.archetype,
+      structuralScale: {
+        eligibleFiles: repositoryScale.eligibleFiles,
+        logarithmicProgress: repositoryScale.logarithmicProgress,
+        minimumEnvelope: repositoryScale.minimumEnvelope,
+        regionCapacity: repositoryScale.regionCapacity,
+        settlementCapacity: repositoryScale.settlementCapacity,
+        settlementEnvelope: repositoryScale.settlementEnvelope,
+      },
+      geography,
+      envelope,
+      terraces: hamlets.map((hamlet) => {
+        const mask = placementMasks.get(hamlet.id)!;
+        return { id: hamlet.id, center: mask.center, radiusX: mask.radiusX, radiusZ: mask.radiusZ };
+      }),
+      terrainZones: terrainZones.map((zone) => ({
+        id: zone.id,
+        kind: zone.kind,
+        mask: zone.mask,
+      })),
+    }),
+  );
 }
 
 /**
@@ -1541,11 +1968,100 @@ function createTopologyKey(world: KingdomWorld, topology: WorldPlanTopology): st
  */
 export function createWorldPlan(world: KingdomWorld): WorldPlan {
   const identity = deriveRepositoryWorldIdentity(world);
-  const envelope = createEnvelope(world);
-  const hamlets = createHamlets(world, envelope);
-  const { zones: terrainZones, water } = createTerrainZones(world, envelope, hamlets);
-  const visualBudgets = createVisualBudgets(world, hamlets);
-  const groves = createGroves(world, envelope, hamlets, water, visualBudgets.maxTrees);
+  const repositoryScale = deriveRepositoryPlanningScale(world.statistics.files);
+  const geography = deriveRepositoryTopologyFamily(world);
+  const composition = createRepositoryComposition(world, geography);
+  const placementKey = createPlacementKey(world, geography, composition);
+  const envelope = createEnvelope(world, repositoryScale);
+  const unplacedHamlets = createHamlets(world, envelope, repositoryScale);
+  const initialPhysicalHamlets = createHamletTerrainPlacementMasks(envelope, unplacedHamlets);
+  const selectedWater = createWaterSystem(
+    world,
+    envelope,
+    initialPhysicalHamlets,
+    identity,
+    geography,
+  );
+  const { zones: terrainZones, water } = createTerrainZones(
+    world,
+    envelope,
+    initialPhysicalHamlets,
+    identity,
+    geography,
+    selectedWater,
+  );
+  const camera = createCamera(envelope, unplacedHamlets, world.bounds.height);
+  const buildPhysicalWaterLayout = (
+    placementMasks: ReadonlyMap<string, EllipseRegionMask>,
+  ): Readonly<{ terrainKey: string; physicalWater: PhysicalWaterContract }> => {
+    const terrainKey = createTerrainKey(
+      world,
+      identity,
+      repositoryScale,
+      geography,
+      envelope,
+      unplacedHamlets,
+      terrainZones,
+      placementMasks,
+    );
+    const physicalWater = createPhysicalWaterContract({
+      key: terrainKey,
+      envelope,
+      horizonZ: camera.horizonZ,
+      courseMask: water.course,
+      lakeMask: water.lake,
+      topologyFamily: geography,
+      terraces: unplacedHamlets.map((hamlet) => {
+        const mask = placementMasks.get(hamlet.id)!;
+        return { id: hamlet.id, center: mask.center, radiusX: mask.radiusX, radiusZ: mask.radiusZ };
+      }),
+    });
+    return { terrainKey, physicalWater };
+  };
+  const settlementTerracesClearWater = (
+    placementMasks: ReadonlyMap<string, EllipseRegionMask>,
+    physicalWater: PhysicalWaterContract,
+  ): boolean =>
+    [...placementMasks.values()].every((mask) =>
+      physicalWaterCircleHasClearance(
+        physicalWater,
+        mask.center,
+        Math.max(mask.radiusX, mask.radiusZ),
+        0,
+      ),
+    );
+
+  let physicalHamlets = initialPhysicalHamlets;
+  let physicalLayout = buildPhysicalWaterLayout(physicalHamlets);
+  for (
+    let iteration = 0;
+    iteration < 3 && !settlementTerracesClearWater(physicalHamlets, physicalLayout.physicalWater);
+    iteration += 1
+  ) {
+    physicalHamlets = createHamletTerrainPlacementMasks(envelope, unplacedHamlets, {
+      physicalWater: physicalLayout.physicalWater,
+    });
+    physicalLayout = buildPhysicalWaterLayout(physicalHamlets);
+  }
+  if (!settlementTerracesClearWater(physicalHamlets, physicalLayout.physicalWater)) {
+    throw new Error("Unable to resolve dry, collision-safe physical settlement terraces.");
+  }
+  const hamlets = unplacedHamlets.map((hamlet) => ({
+    ...hamlet,
+    terrainMask: physicalHamlets.get(hamlet.id)!,
+  }));
+  const { terrainKey, physicalWater } = physicalLayout;
+  const visualBudgets = createVisualBudgets(hamlets, repositoryScale);
+  const groves = createGroves(
+    world,
+    envelope,
+    hamlets,
+    water,
+    physicalWater,
+    physicalHamlets,
+    visualBudgets.maxTrees,
+    visualBudgets.maxGroves,
+  );
   const landmarks = createLandmarks(world, hamlets);
   const wildlifeZones = createWildlifeZones(
     world,
@@ -1555,8 +2071,10 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
   );
   const semanticZones = createSemanticZones(world, hamlets);
   const topology: WorldPlanTopology = {
+    repositoryScale,
+    geography,
     envelope,
-    camera: createCamera(envelope, hamlets, world.bounds.height),
+    camera,
     terrainZones,
     hamlets,
     groves,
@@ -1567,9 +2085,7 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
       rationale:
         "Repository structure chooses spatial roles, while scenery expresses most code areas without turning every file or folder into a house.",
       buildingRule:
-        world.statistics.files >= 128
-          ? "Only two to four strongest top-level directory provinces become hamlets; each is aggregated into three to six buildings, with twelve to twenty-four buildings total depending on repository scale."
-          : "Only two to four strongest top-level directory provinces become hamlets; each is aggregated into three to six buildings, with twelve to twenty buildings total.",
+        "A bounded logarithmic repository-scale contract expands land and hierarchy continuously; overview LOD remains capped at six hamlets and thirty-two aggregated buildings.",
       traceabilityRule:
         "Every province has a semantic hit zone containing all of its entity IDs, including provinces represented only by nature, landform, or invisible selection coverage.",
     },
@@ -1578,41 +2094,15 @@ export function createWorldPlan(world: KingdomWorld): WorldPlan {
     scatterConstraints: createScatterConstraints(groves, hamlets, visualBudgets),
     visualBudgets,
   };
-  const topologyKey = createTopologyKey(world, topology);
-  const terrainKey =
-    world.worldTheme === "kingdom-valley"
-      ? topologyKey
-      : (() => {
-          const valleyWorld: KingdomWorld = { ...world, worldTheme: "kingdom-valley" };
-          const valleyBudgets = createVisualBudgets(valleyWorld, hamlets);
-          const valleyGroves = createGroves(
-            valleyWorld,
-            envelope,
-            hamlets,
-            water,
-            valleyBudgets.maxTrees,
-          );
-          const valleyTopology: WorldPlanTopology = {
-            ...topology,
-            groves: valleyGroves,
-            wildlifeZones: createWildlifeZones(
-              valleyWorld,
-              valleyGroves,
-              hamlets,
-              valleyBudgets.maxWildlifeActors,
-            ),
-            scatterConstraints: createScatterConstraints(valleyGroves, hamlets, valleyBudgets),
-            visualBudgets: valleyBudgets,
-          };
-          return createTopologyKey(valleyWorld, valleyTopology);
-        })();
+  const topologyKey = createTopologyKey(world, topology, composition);
 
   return {
-    schema: "repo-world-plan/v1",
-    version: "1.0.0",
+    schema: WORLD_PLAN_SCHEMA,
+    version: WORLD_PLAN_VERSION,
     topologyKey,
     terrainKey,
-    placementKey: terrainKey,
+    placementKey,
+    composition,
     worldTheme: world.worldTheme,
     repository: {
       id: world.source.repositoryId,

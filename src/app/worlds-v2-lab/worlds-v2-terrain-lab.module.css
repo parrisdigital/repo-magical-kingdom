@@ -1,0 +1,159 @@
+.shell {
+  min-height: 100svh;
+  padding: 24px;
+  color: #edf2ec;
+  background: #101511;
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 32px;
+  width: min(1500px, 100%);
+  margin: 0 auto 18px;
+}
+
+.header h1 {
+  margin: 3px 0 6px;
+  font-size: clamp(28px, 4vw, 54px);
+  font-weight: 560;
+  letter-spacing: -0.045em;
+}
+
+.header p {
+  max-width: 720px;
+  margin: 0;
+  color: #aeb8b0;
+  line-height: 1.5;
+}
+
+.eyebrow,
+.panelLabel {
+  color: #d4a866 !important;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.header nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.header nav a,
+.lods button {
+  padding: 9px 13px;
+  border: 1px solid #344039;
+  border-radius: 999px;
+  color: #c9d2ca;
+  background: #182019;
+  font: inherit;
+  text-transform: capitalize;
+}
+
+.header nav a:hover,
+.header nav a:focus-visible,
+.header nav .active,
+.lods button[aria-pressed="true"] {
+  border-color: #d4a866;
+  color: #fff8e9;
+  background: #3a3021;
+}
+
+.stage {
+  position: relative;
+  width: min(1500px, 100%);
+  height: calc(100svh - 155px);
+  min-height: 620px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #2d3730;
+  border-radius: 22px;
+  background: #9eb5ba;
+  box-shadow: 0 30px 90px rgb(0 0 0 / 38%);
+}
+
+.stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.panel {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: min(290px, calc(100% - 36px));
+  padding: 16px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 15px;
+  background: rgb(14 21 17 / 84%);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 24%);
+  backdrop-filter: blur(16px);
+}
+
+.panel p {
+  margin: 0 0 11px;
+}
+
+.panel dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.panel dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.panel dt {
+  color: #97a39a;
+}
+
+.panel dd {
+  margin: 0;
+  color: #eef4ee;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.lods {
+  display: flex;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.lods button {
+  flex: 1;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .shell {
+    padding: 14px;
+  }
+
+  .header {
+    align-items: start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .header nav {
+    justify-content: flex-start;
+  }
+
+  .stage {
+    height: 72svh;
+    min-height: 500px;
+  }
+}

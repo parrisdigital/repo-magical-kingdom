@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "name": "Poly Haven vertical-slice terrain atlas",
+  "retrievedAt": "2026-08-14",
+  "license": {
+    "spdx": "CC0-1.0",
+    "sourceDeclaration": "https://polyhaven.com/license",
+    "legalCode": "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+  },
+  "atlas": {
+    "slotOrder": ["grass", "soil", "rock", "shore"],
+    "textureWrap": "ClampToEdgeWrapping",
+    "tileWrap": "manual-fract",
+    "tiers": {
+      "desktop": {
+        "width": 4096,
+        "height": 1024,
+        "cellSize": 1024,
+        "gutter": 64,
+        "usableTileSize": 896,
+        "bilinearSafeThroughMipLevel": 7,
+        "uvFormula": {
+          "u": "(slot * 1024 + 64 + fract(u) * 896) / 4096",
+          "v": "(64 + fract(v) * 896) / 1024"
+        }
+      },
+      "low": {
+        "width": 2048,
+        "height": 512,
+        "cellSize": 512,
+        "gutter": 32,
+        "usableTileSize": 448,
+        "bilinearSafeThroughMipLevel": 6,
+        "uvFormula": {
+          "u": "(slot * 512 + 32 + fract(u) * 448) / 2048",
+          "v": "(32 + fract(v) * 448) / 512"
+        }
+      }
+    }
+  },
+  "outputs": {
+    "desktop": {
+      "albedo": {
+        "url": "/assets/world/terrain/polyhaven/terrain-albedo.webp",
+        "colorSpace": "SRGBColorSpace",
+        "channels": "RGB; opaque",
+        "sha256": "52b90ac53718455508b674af6eb933e599b0948c3705242134c5ad386fa9f545"
+      },
+      "normal": {
+        "url": "/assets/world/terrain/polyhaven/terrain-normal-gl.webp",
+        "colorSpace": "NoColorSpace",
+        "channels": "RGB tangent-space OpenGL (+Y); opaque",
+        "sha256": "a80a459e2070d78b29b412a82411bc58db1b81dea1b7ce986df4ac6e3d99aa8f"
+      },
+      "roughness": {
+        "url": "/assets/world/terrain/polyhaven/terrain-roughness.webp",
+        "colorSpace": "NoColorSpace",
+        "channels": "grayscale copied to RGB; opaque; sample R",
+        "sha256": "bb4d73ef50d09cceb15a9bb2a3315cd0ce68a3e1132615bc08b5828a93f8d226"
+      }
+    },
+    "low": {
+      "albedo": {
+        "url": "/assets/world/terrain/polyhaven/terrain-albedo-low.webp",
+        "colorSpace": "SRGBColorSpace",
+        "channels": "RGB; opaque",
+        "sha256": "f136f7cfe350200e396c6087ec45d02dcf94048ec940c6d8e2f1dde21905db56"
+      },
+      "normal": {
+        "url": "/assets/world/terrain/polyhaven/terrain-normal-gl-low.webp",
+        "colorSpace": "NoColorSpace",
+        "channels": "RGB tangent-space OpenGL (+Y); opaque",
+        "sha256": "c17702f44b314c1f1095a375013a7d7a3eb7894cdf3e59cd29cca8e43ac52d68"
+      },
+      "roughness": {
+        "url": "/assets/world/terrain/polyhaven/terrain-roughness-low.webp",
+        "colorSpace": "NoColorSpace",
+        "channels": "grayscale copied to RGB; opaque; sample R",
+        "sha256": "4a7985b7d2c581a6da8259159409ecd7fe4b5809b5e9ec7da47b7c2838693b91"
+      }
+    }
+  },
+  "materials": [
+    {
+      "slot": 0,
+      "role": "grass",
+      "polyHavenId": "sparse_grass",
+      "name": "Sparse Grass",
+      "canonicalUrl": "https://polyhaven.com/a/sparse_grass",
+      "authors": ["Amal Kumar"],
+      "dimensionsMeters": [2, 2],
+      "sources": {
+        "albedo": {
+          "fileName": "sparse_grass_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_diff_1k.jpg",
+          "bytes": 955945,
+          "upstreamMd5": "5d0aba796e1b5882555161c16b10ee9d",
+          "sha256": "ae94f2b34597b9108eefd88217f55eccaec6d6b382e858a478ee92df90e66617"
+        },
+        "normal": {
+          "fileName": "sparse_grass_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_nor_gl_1k.jpg",
+          "bytes": 1440314,
+          "upstreamMd5": "3307e6ce47413c6b4e85885d4b8ae932",
+          "sha256": "1c840a24807346ddaaf94a5057aee4078fcec3a4cd84bfe45da7d3b480ef460b"
+        },
+        "roughness": {
+          "fileName": "sparse_grass_rough_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_rough_1k.jpg",
+          "bytes": 463340,
+          "upstreamMd5": "acf2fd7e352e7635f67f24ecda01e485",
+          "sha256": "9ebe6d03a9551c17d1802835c92c1442acb8f5d38d4874ee8c37770f11c4bed1"
+        }
+      }
+    },
+    {
+      "slot": 1,
+      "role": "soil",
+      "polyHavenId": "dirt_floor",
+      "name": "Dirt Floor",
+      "canonicalUrl": "https://polyhaven.com/a/dirt_floor",
+      "authors": ["eye-candy.xyz"],
+      "dimensionsMeters": [2.07, 2.07],
+      "sources": {
+        "albedo": {
+          "fileName": "dirt_floor_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dirt_floor/dirt_floor_diff_1k.jpg",
+          "bytes": 903417,
+          "upstreamMd5": "8cc8bfdfb74fd7761c6d518d13dc4e45",
+          "sha256": "6c2e7f1c5eab8239fec561f255c607d0e3a86046925ba3a8b9340805efc1ab62"
+        },
+        "normal": {
+          "fileName": "dirt_floor_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dirt_floor/dirt_floor_nor_gl_1k.jpg",
+          "bytes": 1167485,
+          "upstreamMd5": "c0af23552b3c47498bec6ee9ff9fe194",
+          "sha256": "9481dc2cee97b240ca10dc1cd60fec834a85e455aaa7d2a584396ea10210c2c0"
+        },
+        "roughness": {
+          "fileName": "dirt_floor_rough_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dirt_floor/dirt_floor_rough_1k.jpg",
+          "bytes": 389725,
+          "upstreamMd5": "b227b1c9150be1e4303d6a45f757a990",
+          "sha256": "093166ffda063b8fcf04ec645e1e12c24811f614468ba378437a3535c3c53f57"
+        }
+      }
+    },
+    {
+      "slot": 2,
+      "role": "rock",
+      "polyHavenId": "rocks_ground_02",
+      "name": "Rocks Ground 02",
+      "canonicalUrl": "https://polyhaven.com/a/rocks_ground_02",
+      "authors": ["Rob Tuytel"],
+      "dimensionsMeters": [2, 2],
+      "sources": {
+        "albedo": {
+          "fileName": "rocks_ground_02_col_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_02/rocks_ground_02_col_1k.jpg",
+          "bytes": 881510,
+          "upstreamMd5": "e13bff613fb440add6d9502b2be35901",
+          "sha256": "729e26281b28b9c05a53e755658da184ccd673ac291e6ec0532229743c06bf66"
+        },
+        "normal": {
+          "fileName": "rocks_ground_02_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_02/rocks_ground_02_nor_gl_1k.jpg",
+          "bytes": 1466816,
+          "upstreamMd5": "c9858a7f2d625ee40f30ddd9a7ca714a",
+          "sha256": "28f6f35894cb60da7ecd639506c385e3c9e868f7e3ce24a6ceae1d08198b9e69"
+        },
+        "roughness": {
+          "fileName": "rocks_ground_02_rough_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocks_ground_02/rocks_ground_02_rough_1k.jpg",
+          "bytes": 489453,
+          "upstreamMd5": "61ace2e125738a72da78a1064b0e9b43",
+          "sha256": "8ecc647ca1a5407512b2d3feffd140b99a918cc608c70f3b968c8a680b1fa093"
+        }
+      }
+    },
+    {
+      "slot": 3,
+      "role": "shore",
+      "polyHavenId": "coast_sand_01",
+      "name": "Coast Sand 01",
+      "canonicalUrl": "https://polyhaven.com/a/coast_sand_01",
+      "authors": ["Rob Tuytel"],
+      "dimensionsMeters": [15, 15],
+      "sources": {
+        "albedo": {
+          "fileName": "coast_sand_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_01/coast_sand_01_diff_1k.jpg",
+          "bytes": 960614,
+          "upstreamMd5": "a1e243fc8635806381505c7dc44b192a",
+          "sha256": "58af2e40100f7f405703a86d593af64379f822c4786850def23ecfc921450d54"
+        },
+        "normal": {
+          "fileName": "coast_sand_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_01/coast_sand_01_nor_gl_1k.jpg",
+          "bytes": 1146826,
+          "upstreamMd5": "38bbe6863249a3d20d8417c9db207780",
+          "sha256": "fe4d045aec99e71e80f682fcf0ad958d2dff1fe614b73178b304d1bac047b54a"
+        },
+        "roughness": {
+          "fileName": "coast_sand_01_rough_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_01/coast_sand_01_rough_1k.jpg",
+          "bytes": 383892,
+          "upstreamMd5": "978aca9e374cf988095392a91d3a4f71",
+          "sha256": "cbc3e0bf2214e04318a643c9dc81f50f33cc5f7b935a20016c5d9efd9a6d1696"
+        }
+      }
+    }
+  ],
+  "conversion": {
+    "tool": "sharp",
+    "toolVersion": "0.35.3",
+    "steps": [
+      "Verify each official 1K JPEG source against the Poly Haven API MD5 and recorded SHA-256.",
+      "Resize each 1024 x 1024 tile to 896 x 896 with Lanczos3 filtering.",
+      "Extend each tile by 64 pixels on all sides using copied edge pixels.",
+      "Pack roles left-to-right as grass, soil, rock, and shore in a 4096 x 1024 atlas.",
+      "Repeat the transform with 448-pixel tiles and 32-pixel gutters for a 2048 x 512 low-memory tier.",
+      "Use proportional power-of-two gutters that remain at least one-half texel wide through mip level 7 on desktop and mip level 6 on low-memory atlases.",
+      "Convert roughness to explicit grayscale before RGB atlas compositing.",
+      "Encode albedo as quality-84 WebP, OpenGL normals as quality-88 WebP, and roughness as quality-86 WebP."
+    ],
+    "sourceFilesDistributed": false
+  }
+}

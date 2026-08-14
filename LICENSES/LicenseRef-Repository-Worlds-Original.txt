@@ -1,0 +1,10 @@
+Repository Worlds Original Artwork License
+
+Copyright (c) 2026 Parris Digital
+
+The original Repository Worlds artwork identified by
+LicenseRef-Repository-Worlds-Original is distributed under the MIT License
+included at the repository root in LICENSE.
+
+The designation identifies project-authored visual assets; it does not apply
+to separately documented runtime dependencies or third-party assets.

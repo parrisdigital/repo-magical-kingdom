@@ -25,15 +25,32 @@ it("creates truthful scatter for the captured live repository-city world", () =>
   clearPlannedScatterTopologyCacheForTests();
   const scatter = createPlannedScatter(world, plan);
 
-  expect(plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)).toEqual([5, 5, 4]);
-  expect(scatter.buildings).toHaveLength(14);
-  expect(scatter.landmarks).toHaveLength(2);
-  expect(scatter.buildings).toHaveLength(
-    plan.topology.hamlets.reduce((total, hamlet) => total + hamlet.maxBuildings, 0),
+  const hamletCapacity = plan.topology.hamlets.reduce(
+    (total, hamlet) => total + hamlet.maxBuildings,
+    0,
   );
+  const expectedBuildingCount = Math.max(
+    plan.topology.hamlets.length * 3,
+    Math.min(
+      plan.topology.repositoryScale.viewBudgets.overview.maxBuildings,
+      plan.topology.hamlets.length * 6,
+    ),
+  );
+  expect(hamletCapacity).toBe(expectedBuildingCount);
   expect(
-    scatter.buildings.filter((building) => building.hamletId === "hamlet-4fff257f43"),
-  ).toHaveLength(5);
+    Math.max(...plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)) -
+      Math.min(...plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)),
+  ).toBeLessThanOrEqual(1);
+  expect(scatter.buildings).toHaveLength(hamletCapacity);
+  expect(scatter.landmarks.map((landmark) => landmark.id)).toEqual(
+    plan.topology.landmarks.map((landmark) => landmark.id),
+  );
+  for (const hamlet of plan.topology.hamlets) {
+    expect(
+      scatter.buildings.filter((building) => building.hamletId === hamlet.id),
+      hamlet.id,
+    ).toHaveLength(hamlet.maxBuildings);
+  }
 
   const structures = [...scatter.buildings, ...scatter.landmarks];
   for (let firstIndex = 0; firstIndex < structures.length; firstIndex += 1) {

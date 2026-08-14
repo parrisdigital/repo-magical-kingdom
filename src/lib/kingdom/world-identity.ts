@@ -12,6 +12,67 @@ export const REPOSITORY_WORLD_ARCHETYPES = [
 export type RepositoryWorldArchetype = (typeof REPOSITORY_WORLD_ARCHETYPES)[number];
 export type RepositoryScaleTier = "compact" | "established" | "expansive" | "vast";
 
+export type RepositoryScaleProfile = Readonly<{
+  minHamlets: number;
+  maxHamlets: number;
+  maxBuildings: number;
+  minTrees: number;
+  maxTrees: number;
+  maxGroves: number;
+  maxWildlifeActors: number;
+  maxSurfaceScatter: number;
+}>;
+
+/**
+ * A bounded presentation contract for repository scale. Bigger repositories
+ * gain more explorable regions and living detail instead of merely shrinking
+ * the same diorama into the overview camera.
+ */
+export const REPOSITORY_SCALE_PROFILES: Readonly<
+  Record<RepositoryScaleTier, RepositoryScaleProfile>
+> = {
+  compact: {
+    minHamlets: 2,
+    maxHamlets: 3,
+    maxBuildings: 18,
+    minTrees: 120,
+    maxTrees: 160,
+    maxGroves: 5,
+    maxWildlifeActors: 8,
+    maxSurfaceScatter: 300,
+  },
+  established: {
+    minHamlets: 3,
+    maxHamlets: 4,
+    maxBuildings: 24,
+    minTrees: 145,
+    maxTrees: 185,
+    maxGroves: 6,
+    maxWildlifeActors: 10,
+    maxSurfaceScatter: 360,
+  },
+  expansive: {
+    minHamlets: 4,
+    maxHamlets: 5,
+    maxBuildings: 28,
+    minTrees: 175,
+    maxTrees: 215,
+    maxGroves: 7,
+    maxWildlifeActors: 13,
+    maxSurfaceScatter: 420,
+  },
+  vast: {
+    minHamlets: 4,
+    maxHamlets: 6,
+    maxBuildings: 32,
+    minTrees: 205,
+    maxTrees: 240,
+    maxGroves: 8,
+    maxWildlifeActors: 16,
+    maxSurfaceScatter: 480,
+  },
+};
+
 export type RepositoryWorldIdentity = Readonly<{
   archetype: RepositoryWorldArchetype;
   label: string;

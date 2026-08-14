@@ -135,6 +135,28 @@ Rules:
 - Unchanged modules should retain their province and approximate location across
   nearby revisions.
 
+The serialized repository package remains `repo-kingdom/v1` with compiler
+version `1.0.0`. The renderer-agnostic scene planner is currently
+`repo-world-plan/v2` version `2.2.0`, physical terrain identity uses
+`repo-terrain/v6`, and continuous repository planning uses
+`repository-scale/v2`. Planner-version changes invalidate topology-derived output;
+terrain-schema changes invalidate terrain, shoreline, water-routing, and
+placement caches without claiming a breaking repository-package schema change.
+
+Planner `2.2.0` includes a structured, renderer-agnostic geography family and a
+bounded logarithmic repository-scale contract. Immutable repository identity
+continuously changes land area, settlement capacity, and hierarchy through the
+former 4,096-file threshold while view-specific LOD budgets remain capped. It
+keeps at most four full-capacity primary compounds; a fifth or sixth selected
+settlement becomes a smaller four-building Commons satellite with a smaller
+terrace, village architecture, and developed-land footprint. It also
+deterministically selects and
+jitters one of four composition families: foreground estuary, eastern lake
+run, western basin watershed, or central meander. The family owns normalized
+lake, course, ridge, meadow, and coast anchors; the canonical physical terrain
+and water modules validate and realize those anchors. Season and world style do
+not participate in family selection and cannot move this geometry.
+
 ## World style and season
 
 Each repository is one coherent world in one explicitly selected style and
@@ -209,8 +231,10 @@ and keeps navigation immediate.
 Each world has explicit overview and focus anchors. Reset always targets the
 active world, not historical controls state. The first release prioritizes
 perspective orbit, pan, wheel/pinch zoom, bounded fly-to transitions, a minimap,
-and breadcrumbs. Walk mode requires collision, navigation, mobile controls, and
-interaction-distance validation before it can ship.
+and breadcrumbs. The current Walk foundation is available only on desktop-class
+fine-pointer devices and includes terrain, structure, road, and
+interaction-distance validation. Mobile controls remain a future release gate
+rather than part of this desktop phase.
 
 ## Living systems
 
@@ -248,10 +272,23 @@ Large worlds use hierarchy: universe summaries, kingdom provinces, settlement
 clusters, and close-range landmarks. Repeated geometry is instanced and direct
 interactive entities are budgeted by quality tier.
 
-The world planner scales repository richness logarithmically. A large fixture
-may grow to four hamlets, twenty-four aggregated buildings, 240 canopy
-instances, twelve wildlife actors, 360 surface details, 150 draw calls, and
-750,000 visible triangles, but never one mesh per file. Semantic hit zones keep
+The world planner derives a continuous logarithmic physical scale from
+repository evidence while keeping compact, established, expansive, and vast as
+human-readable labels. The overview budget currently bounds how much of the
+hierarchy is planned and rendered at once. The declared orbit and walk fields
+are targets for the next regional-streaming stage; the current runtime does not
+slice separate scene manifests from them. Orbit applies navigation-specific LOD
+to the overview population, while Walk deliberately restores full-detail assets
+and can exceed the overview envelope until regional streaming lands. The
+captured Next fixture has four six-building primary compounds and one
+four-building Commons satellite (28 aggregated buildings). The maximum large
+fixture has those same four primaries plus two Commons satellites (32 aggregated
+buildings), 240 canopy instances, twelve overview wildlife actors, 480 surface
+details, 150 modeled main-pass draw calls, and 750,000 modeled visible
+triangles, but never one mesh per file.
+Envelope area, watershed routing, coastline shape, ridge character, settlement
+placement, grove locations, and wildlife habitats remain deterministic for the
+repository revision; season changes appearance only. Semantic hit zones keep
 all eligible entities traceable even when most files share visual aggregates.
 The universe applies the same rule: every returned repository stays selectable,
 while only a bounded six low-quality or twelve high-quality planets receive the

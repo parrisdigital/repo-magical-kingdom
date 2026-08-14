@@ -1,0 +1,30 @@
+{
+  "schema": "repository-worlds-v2/runtime-dependencies-v1",
+  "generatedAt": "2026-08-14T00:00:00.000Z",
+  "art": false,
+  "dependency": "three",
+  "version": "0.185.1",
+  "license": "MIT",
+  "purpose": "Local Basis Universal transcoder for project-authored KTX2 textures",
+  "source": "node_modules/three/examples/jsm/libs/basis",
+  "files": [
+    {
+      "path": "public/assets/world-v2/basis/basis_transcoder.js",
+      "source": "node_modules/three/examples/jsm/libs/basis/basis_transcoder.js",
+      "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1",
+      "bytes": 57529
+    },
+    {
+      "path": "public/assets/world-v2/basis/basis_transcoder.wasm",
+      "source": "node_modules/three/examples/jsm/libs/basis/basis_transcoder.wasm",
+      "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a",
+      "bytes": 527333
+    },
+    {
+      "path": "public/assets/world-v2/basis/THREE-LICENSE.txt",
+      "source": "node_modules/three/LICENSE",
+      "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
+      "bytes": 1081
+    }
+  ]
+}

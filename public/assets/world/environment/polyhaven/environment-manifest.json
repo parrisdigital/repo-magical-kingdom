@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "name": "Poly Haven neutral daylight environment",
+  "retrievedAt": "2026-08-14",
+  "license": {
+    "spdx": "CC0-1.0",
+    "sourceDeclaration": "https://polyhaven.com/license",
+    "legalCode": "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+  },
+  "source": {
+    "polyHavenId": "kloofendal_overcast_puresky",
+    "name": "Kloofendal Overcast (Pure Sky)",
+    "canonicalUrl": "https://polyhaven.com/a/kloofendal_overcast_puresky",
+    "author": "Greg Zaal",
+    "description": "Soft, low-contrast overcast natural light with a subtle sun glow and gentle reflections.",
+    "whiteBalanceKelvin": 5303,
+    "dynamicRangeStops": 6,
+    "fileName": "kloofendal_overcast_puresky_1k.hdr",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_overcast_puresky_1k.hdr",
+    "bytes": 1174053,
+    "upstreamMd5": "d5c53f6432193893e7dc17eb65e67409",
+    "sha256": "5f98aa01d43a49cd899299751a978b3e5559a76300198b5dd2d9c68ecc4ad130"
+  },
+  "runtime": {
+    "url": "/assets/world/environment/polyhaven/kloofendal_overcast_puresky_1k.hdr",
+    "format": "Radiance HDR RGBE RLE",
+    "width": 1024,
+    "height": 512,
+    "usage": "reflection-and-ibl-only",
+    "backgroundAllowed": false,
+    "loader": "HDRLoader",
+    "loaderDataType": "HalfFloatType",
+    "colorSpace": "LinearSRGBColorSpace",
+    "mapping": "EquirectangularReflectionMapping",
+    "decodedHalfFloatRgbaBytes": 4194304,
+    "pmrem": {
+      "cubeSize": 256,
+      "width": 768,
+      "height": 1024,
+      "retainedHalfFloatRgbaBytes": 6291456,
+      "estimatedPeakGpuBytes": 16777216
+    }
+  },
+  "conversion": {
+    "sourceBytesDistributedUnchanged": true,
+    "steps": [
+      "Verify the official Poly Haven 1K HDR against its API byte count and MD5 plus the recorded SHA-256.",
+      "Redistribute the verified Radiance HDR bytes unchanged under the original upstream filename.",
+      "Reserve the asset for scene.environment reflection and image-based lighting; never assign it to scene.background."
+    ]
+  }
+}

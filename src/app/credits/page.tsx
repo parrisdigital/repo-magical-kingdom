@@ -26,8 +26,14 @@ const credits = [
     copy: "Justin Levine's MIT-licensed project renders the live repository badges and community signals used in this project's README.",
   },
   {
+    relationship: "Procedural-system reference",
+    title: "Tiny World Builder",
+    href: "https://github.com/jasonkneen/tiny-world-builder",
+    copy: "Its AGPL-3.0 source informed an independent review of explicit world sizing, seeded terrain, LOD boundaries, and bounded animal wandering. No code, assets, UI, or visual style are redistributed.",
+  },
+  {
     relationship: "Generated project identity",
-    title: "Seasonal Gateway · Orbital Mountain",
+    title: "Four-Season Cycle · Orbital Mountain",
     href: "https://github.com/parrisdigital/repo-magical-kingdom/blob/main/attribution/registry.json",
     copy: "The application mark and favicon were generated with OpenAI image generation from this project's own registered release artwork, then selected and rights-reviewed by Parris Digital.",
   },

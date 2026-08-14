@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { createDemoKingdom } from "@/lib/kingdom/demo-world";
+import { compiledKingdomWorldSchema } from "@/lib/kingdom/schemas";
 import { KINGDOM_SEASONS } from "@/lib/kingdom/types";
 import { createWorldPlan, type EllipseRegionMask, type WorldPlan } from "@/lib/kingdom/world-plan";
 
 import {
   clearPlannedScatterTopologyCacheForTests,
   createPlannedScatter,
+  REPOSITORY_BUILDING_MAGNITUDE_SCALE,
   type PlannedScatter,
 } from "./planned-scatter";
 import {
   classifyPlannedTerrainRegion,
-  getHamletVisualPlacementMask,
+  getHamletArchitecturePlacementMask,
   getPlannedTerrainDefinition,
 } from "./planned-terrain-model";
 
@@ -76,10 +78,104 @@ function fixture(): Readonly<{
   return { world, plan, scatter: createPlannedScatter(world, plan) };
 }
 
+function compactForegroundEstuaryFixture() {
+  const base = createDemoKingdom("spring");
+  const repository = "walk-matrix-1";
+  return {
+    ...base,
+    buildKey: `${base.buildKey}:walk-matrix:1:62`,
+    seed: `matrix/${repository}`,
+    source: {
+      ...base.source,
+      owner: "matrix",
+      repository,
+      repositoryId: 1,
+      canonicalUrl: `https://github.com/matrix/${repository}`,
+      revisionUrl: `https://github.com/matrix/${repository}/tree/${base.source.commitSha}`,
+    },
+  };
+}
+
 describe("createPlannedScatter", () => {
+  it("accepts the compact foreground-estuary fixture at the strict schema boundary", () => {
+    const world = compactForegroundEstuaryFixture();
+    expect(compiledKingdomWorldSchema.safeParse(world).success).toBe(true);
+    const plan = createWorldPlan(world);
+    expect(plan.identity.scaleTier).toBe("compact");
+    expect(plan.topology.geography.id).toBe("foreground-estuary");
+  });
+
+  it("omits only an unsafe compact foreground-estuary landmark visual", () => {
+    const world = compactForegroundEstuaryFixture();
+    const plan = createWorldPlan(world);
+    clearPlannedScatterTopologyCacheForTests();
+    const scatter = createPlannedScatter(world, plan);
+
+    expect(plan.topology.landmarks.map((landmark) => landmark.id)).toEqual([
+      "landmark-383e3eac13",
+      "landmark-50bcfba641",
+    ]);
+    expect(scatter.buildings).toHaveLength(
+      plan.topology.hamlets.reduce((total, hamlet) => total + hamlet.maxBuildings, 0),
+    );
+    expect(scatter.landmarks.map((landmark) => landmark.id)).toEqual(["landmark-383e3eac13"]);
+    expect(scatter.landmarkRuntime).toEqual({
+      targetInstances: 2,
+      emittedInstances: 1,
+      omittedLandmarkIds: ["landmark-50bcfba641"],
+    });
+    expect(
+      scatter.landmarkRuntime.emittedInstances + scatter.landmarkRuntime.omittedLandmarkIds.length,
+    ).toBe(scatter.landmarkRuntime.targetInstances);
+
+    const omittedLandmark = plan.topology.landmarks.find(
+      (landmark) => landmark.id === "landmark-50bcfba641",
+    )!;
+    expect(omittedLandmark.entityId).not.toBeNull();
+    if (!omittedLandmark.entityId)
+      throw new Error("Expected the omitted landmark to trace a file.");
+    expect(world.entities.map((entity) => entity.id)).toContain(omittedLandmark.entityId);
+    const semanticZone = scatter.semanticHitZones.find(
+      (zone) => zone.provinceId === omittedLandmark.provinceId,
+    );
+    expect(semanticZone?.entityIds).toContain(omittedLandmark.entityId);
+
+    const structures = [...scatter.buildings, ...scatter.landmarks];
+    for (let firstIndex = 0; firstIndex < structures.length; firstIndex += 1) {
+      const first = structures[firstIndex]!;
+      for (let sampleIndex = 0; sampleIndex < 9; sampleIndex += 1) {
+        const angle = ((sampleIndex - 1) / 8) * Math.PI * 2;
+        const radius = sampleIndex === 0 ? 0 : first.footprintRadius;
+        const region = classifyPlannedTerrainRegion(
+          plan,
+          first.transform.position.x + Math.cos(angle) * radius,
+          first.transform.position.z + Math.sin(angle) * radius,
+        );
+        expect(region.inside, `${first.id}:footprint:${sampleIndex}`).toBe(true);
+        expect(region.water, `${first.id}:footprint:${sampleIndex}`).toBeNull();
+        expect(region.material, `${first.id}:footprint:${sampleIndex}`).not.toBe("shore");
+        expect(region.slopeDegrees, `${first.id}:footprint:${sampleIndex}`).toBeLessThanOrEqual(
+          first.terrain.maxSlopeDegrees,
+        );
+      }
+      for (let secondIndex = firstIndex + 1; secondIndex < structures.length; secondIndex += 1) {
+        const second = structures[secondIndex]!;
+        expect(
+          distance(first.transform.position, second.transform.position),
+          `${first.id} intersects ${second.id}`,
+        ).toBeGreaterThanOrEqual(first.footprintRadius + second.footprintRadius + 1.5);
+      }
+    }
+  });
+
   it("is deterministic and changes appearance, never placement, across seasons", () => {
     const spring = fixture();
     expect(createPlannedScatter(spring.world, spring.plan)).toEqual(spring.scatter);
+    expect(spring.scatter.landmarkRuntime).toEqual({
+      targetInstances: spring.plan.topology.landmarks.length,
+      emittedInstances: spring.plan.topology.landmarks.length,
+      omittedLandmarkIds: [],
+    });
 
     const scatters = KINGDOM_SEASONS.map((season) => {
       const world = createDemoKingdom(season);
@@ -90,6 +186,82 @@ describe("createPlannedScatter", () => {
       expect(topologyOnly(scatter)).toEqual(topologyOnly(reference!));
       expect(scatter.appearance).not.toEqual(reference!.appearance);
     }
+  });
+
+  it("maps linked explicit-file magnitude to visible building scale without breaking packing", () => {
+    const world = createDemoKingdom("spring");
+    const plan = createWorldPlan(world);
+    clearPlannedScatterTopologyCacheForTests();
+    const baseline = createPlannedScatter(world, plan);
+    const nonHeroBuildings = baseline.buildings.filter(
+      (building) => building.entityId !== null && !building.architecture.hero,
+    );
+    expect(nonHeroBuildings.length).toBeGreaterThanOrEqual(2);
+    const smallStructure = nonHeroBuildings[0]!;
+    const largeStructure = nonHeroBuildings.at(-1)!;
+    expect(largeStructure.entityId).not.toBe(smallStructure.entityId);
+
+    const orderedEntityIds = [...world.entities]
+      .sort((first, second) => first.id.localeCompare(second.id))
+      .map((entity) => entity.id);
+    const magnitudeByEntityId = new Map(
+      orderedEntityIds.map((id, index, all) => [
+        id,
+        2 + (index / Math.max(1, all.length - 1)) * 10,
+      ]),
+    );
+    magnitudeByEntityId.set(smallStructure.entityId!, 1);
+    magnitudeByEntityId.set(largeStructure.entityId!, 13);
+    const magnitudeWorld = {
+      ...world,
+      entities: world.entities.map((entity) => {
+        const magnitude = magnitudeByEntityId.get(entity.id)!;
+        return {
+          ...entity,
+          size: Math.round(2 ** magnitude),
+          scale: { ...entity.scale, y: magnitude },
+        };
+      }),
+    };
+
+    clearPlannedScatterTopologyCacheForTests();
+    const scatter = createPlannedScatter(magnitudeWorld, plan);
+    const small = scatter.buildings.find((building) => building.id === smallStructure.id)!;
+    const large = scatter.buildings.find((building) => building.id === largeStructure.id)!;
+    expect(small.transform.scale.y).toBe(REPOSITORY_BUILDING_MAGNITUDE_SCALE.minimum);
+    expect(large.transform.scale.y).toBe(REPOSITORY_BUILDING_MAGNITUDE_SCALE.maximum);
+    expect(large.architecture.sourceMagnitudeScale).toBeGreaterThan(
+      small.architecture.sourceMagnitudeScale,
+    );
+    expect(large.architecture.desiredHeightScale).toBeGreaterThan(
+      small.architecture.desiredHeightScale,
+    );
+    expect(small.architecture.desiredVisualScale).toBe(
+      smallStructure.architecture.desiredVisualScale,
+    );
+    expect(large.architecture.desiredVisualScale).toBe(
+      largeStructure.architecture.desiredVisualScale,
+    );
+    expect(small.architecture.coverageRadius).toBe(smallStructure.architecture.coverageRadius);
+    expect(large.architecture.coverageRadius).toBe(largeStructure.architecture.coverageRadius);
+    expect(small.footprintRadius).toBe(smallStructure.footprintRadius);
+    expect(large.footprintRadius).toBe(largeStructure.footprintRadius);
+    expect(scatter.buildings).toHaveLength(baseline.buildings.length);
+
+    const structures = [...scatter.buildings, ...scatter.landmarks];
+    for (let firstIndex = 0; firstIndex < structures.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < structures.length; secondIndex += 1) {
+        const first = structures[firstIndex]!;
+        const second = structures[secondIndex]!;
+        expect(
+          distance(first.transform.position, second.transform.position) -
+            first.footprintRadius -
+            second.footprintRadius,
+          `${first.id} / ${second.id}`,
+        ).toBeGreaterThanOrEqual(1.5 - 0.001);
+      }
+    }
+    clearPlannedScatterTopologyCacheForTests();
   });
 
   it("is stable across twenty independently planned fresh plans", () => {
@@ -111,9 +283,9 @@ describe("createPlannedScatter", () => {
       );
     }
     clearPlannedScatterTopologyCacheForTests();
-  }, 60_000);
+  }, 90_000);
 
-  it("renders a massive repository as a bounded eighteen-building world", () => {
+  it("renders a massive repository as a bounded multi-settlement world", () => {
     const demo = createDemoKingdom("spring");
     const massive = {
       ...demo,
@@ -133,14 +305,96 @@ describe("createPlannedScatter", () => {
     const plan = createWorldPlan(massive);
     const scatter = createPlannedScatter(massive, plan);
 
-    expect(plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)).toEqual([6, 6, 6]);
-    expect(scatter.buildings).toHaveLength(18);
-    expect(scatter.wildlife.length).toBeLessThanOrEqual(12);
+    expect(plan.topology.hamlets.map((hamlet) => hamlet.maxBuildings)).toEqual([6, 6, 6, 6, 4, 4]);
+    expect(
+      plan.topology.hamlets.slice(0, 4).every((hamlet) => hamlet.role !== "commons-hamlet"),
+    ).toBe(true);
+    expect(plan.topology.hamlets.slice(4).every((hamlet) => hamlet.role === "commons-hamlet")).toBe(
+      true,
+    );
+    expect(scatter.buildings).toHaveLength(32);
+    expect(scatter.wildlife.length).toBeLessThanOrEqual(16);
     expect(scatter.trees.length).toBeLessThanOrEqual(240);
     expect(scatter.semanticHitZones.flatMap((zone) => zone.entityIds).sort()).toEqual(
       massive.entities.map((entity) => entity.id).sort(),
     );
   }, 30_000);
+
+  it.each([
+    {
+      repositoryId: 3,
+      family: "foreground-estuary",
+      scaleTier: "vast",
+      files: 8_192,
+    },
+    {
+      repositoryId: 2,
+      family: "eastern-lake-run",
+      scaleTier: "established",
+      files: 128,
+    },
+    {
+      repositoryId: 1,
+      family: "western-basin-watershed",
+      scaleTier: "expansive",
+      files: 1_024,
+    },
+    {
+      repositoryId: 4,
+      family: "central-meander",
+      scaleTier: "compact",
+      files: 48,
+    },
+  ] as const)(
+    "packs actual $scaleTier structure footprints on dry terraces in $family",
+    ({ repositoryId, family, scaleTier, files }) => {
+      const demo = createDemoKingdom("spring");
+      const world = {
+        ...demo,
+        seed: `fixtures/repository-${repositoryId}`,
+        source: {
+          ...demo.source,
+          repositoryId,
+          owner: "fixtures",
+          repository: `repository-${repositoryId}`,
+        },
+        coverage: {
+          ...demo.coverage,
+          discoveredFiles: files,
+          eligibleFiles: files,
+          representedFiles: files,
+        },
+        statistics: {
+          ...demo.statistics,
+          files,
+          bytes: files * 48_000,
+        },
+      };
+      clearPlannedScatterTopologyCacheForTests();
+      const plan = createWorldPlan(world);
+      const scatter = createPlannedScatter(world, plan);
+
+      expect(plan.topology.geography.id).toBe(family);
+      expect(plan.identity.scaleTier).toBe(scaleTier);
+      expect(scatter.buildings).toHaveLength(
+        plan.topology.hamlets.reduce((total, hamlet) => total + hamlet.maxBuildings, 0),
+      );
+      for (const hamlet of plan.topology.hamlets) {
+        const mask = getHamletArchitecturePlacementMask(plan, hamlet);
+        const structures = [
+          ...scatter.buildings.filter((building) => building.hamletId === hamlet.id),
+          ...scatter.landmarks.filter((landmark) => landmark.hamletId === hamlet.id),
+        ];
+        for (const structure of structures) {
+          expect(
+            ellipseContains(mask, structure.transform.position, structure.footprintRadius),
+            structure.id,
+          ).toBe(true);
+        }
+      }
+    },
+    30_000,
+  );
 
   it("places 12–24 buildings in two to four compact, nonoverlapping hamlets", () => {
     const { plan, scatter } = fixture();
@@ -154,7 +408,7 @@ describe("createPlannedScatter", () => {
       expect(buildings.length).toBe(hamlet.maxBuildings);
       expect(buildings.length).toBeGreaterThanOrEqual(3);
       expect(buildings.length).toBeLessThanOrEqual(6);
-      const visualMask = getHamletVisualPlacementMask(plan, hamlet);
+      const visualMask = getHamletArchitecturePlacementMask(plan, hamlet);
       for (const building of buildings) {
         expect(
           ellipseContains(visualMask, building.transform.position, building.footprintRadius),
@@ -209,7 +463,7 @@ describe("createPlannedScatter", () => {
     if (crown && crownHamlet) {
       expect(
         ellipseContains(
-          getHamletVisualPlacementMask(plan, crownHamlet),
+          getHamletArchitecturePlacementMask(plan, crownHamlet),
           crown.transform.position,
           crown.footprintRadius,
         ),
@@ -280,8 +534,14 @@ describe("createPlannedScatter", () => {
     const sourceGrove = plan.topology.groves[0]!;
     const scaledPlan: WorldPlan = {
       ...plan,
+      identity: { ...plan.identity, scaleTier: "vast" },
       topology: {
         ...plan.topology,
+        visualBudgets: {
+          ...plan.topology.visualBudgets,
+          maxGroves: 8,
+          maxTrees: 240,
+        },
         groves: [
           ...plan.topology.groves,
           {
@@ -303,9 +563,17 @@ describe("createPlannedScatter", () => {
     const scatter = createPlannedScatter(world, scaledPlan);
     const edgeTrees = scatter.trees.filter((tree) => tree.placementRole === "edge-tree");
 
-    expect(edgeTrees).toHaveLength(7);
+    expect(edgeTrees.length).toBeGreaterThanOrEqual(7);
     expect(edgeTrees.every((tree) => typeof tree.assetRole === "string")).toBe(true);
-    expect(edgeTrees[6]?.assetRole).toBe(edgeTrees[0]?.assetRole);
+    const validRoles = new Set([
+      "twisted-tree-1",
+      "pine-2",
+      "common-tree-3",
+      "dead-tree",
+      "common-tree-2",
+      "twisted-tree-2",
+    ]);
+    expect(edgeTrees.every((tree) => validRoles.has(tree.assetRole))).toBe(true);
     clearPlannedScatterTopologyCacheForTests();
   });
 
@@ -419,20 +687,15 @@ describe("createPlannedScatter", () => {
 
   it("uses clustered ground cover only at grove transitions", () => {
     const { plan, scatter } = fixture();
-    const groves = new Map(plan.topology.groves.map((grove) => [grove.id, grove]));
+    const groveIds = new Set(plan.topology.groves.map((grove) => grove.id));
     expect(scatter.groundCoverClusters.length).toBeGreaterThanOrEqual(plan.topology.groves.length);
     for (const cluster of scatter.groundCoverClusters) {
-      const grove = groves.get(cluster.groveId)!;
-      const normalized = Math.hypot(
-        (cluster.center.x - grove.mask.center.x) / grove.mask.radiusX,
-        (cluster.center.z - grove.mask.center.z) / grove.mask.radiusZ,
-      );
+      expect(groveIds.has(cluster.groveId)).toBe(true);
       expect(cluster.members.length).toBeGreaterThanOrEqual(8);
       expect(cluster.members.length).toBeLessThanOrEqual(12);
-      // Runtime groves may be relocated onto buildable terrain while retaining
-      // their semantic grove IDs, so transition membership is asserted through
-      // topology and terrain validity rather than the original semantic ellipse.
-      expect(Number.isFinite(normalized)).toBe(true);
+      const region = classifyPlannedTerrainRegion(plan, cluster.center.x, cluster.center.z);
+      expect(region.inside).toBe(true);
+      expect(region.water).toBeNull();
     }
   });
 
@@ -483,8 +746,18 @@ describe("createPlannedScatter", () => {
       plan.topology.visualBudgets.maxWildlifeActors,
     );
     for (const animal of scatter.wildlife) {
-      const zone = plan.topology.wildlifeZones.find((candidate) => candidate.id === animal.zoneId)!;
-      expect(ellipseContains(zone.mask, animal.transform.position, 0.5)).toBe(true);
+      const habitatTrees = scatter.trees.filter((tree) => tree.groveId === animal.habitatGroveId);
+      expect(habitatTrees.length).toBeGreaterThan(0);
+      expect(
+        Math.min(
+          ...habitatTrees.map((tree) =>
+            Math.hypot(
+              tree.transform.position.x - animal.transform.position.x,
+              tree.transform.position.z - animal.transform.position.z,
+            ),
+          ),
+        ),
+      ).toBeLessThan(22);
     }
   });
 

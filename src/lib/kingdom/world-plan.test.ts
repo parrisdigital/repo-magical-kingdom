@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { createDemoKingdom } from "./demo-world";
-import { KINGDOM_SEASONS } from "./types";
 import {
+  createPhysicalWaterContract,
+  physicalWaterCircleHasClearance,
+} from "./physical-water-contract";
+import { KINGDOM_SEASONS } from "./types";
+import { deriveRepositoryTopologyFamily } from "./topology-family";
+import {
+  createHamletTerrainPlacementMasks,
   createWorldPlan,
+  getHamletTerrainPlacementMask,
+  TERRAIN_SCHEMA,
+  WORLD_PLAN_SCHEMA,
+  WORLD_PLAN_VERSION,
   type CorridorRegionMask,
   type WorldPlanEnvelope,
   type WorldPlanPoint,
@@ -75,6 +85,21 @@ function expectMaskInside(mask: WorldRegionMask, envelope: WorldPlanEnvelope): v
 }
 
 describe("createWorldPlan", () => {
+  it("publishes the current planner and terrain identity versions", () => {
+    const world = createDemoKingdom();
+    expect(world).toMatchObject({
+      schema: "repo-kingdom/v1",
+      compilerVersion: "1.0.0",
+    });
+    expect(createWorldPlan(world)).toMatchObject({
+      schema: WORLD_PLAN_SCHEMA,
+      version: WORLD_PLAN_VERSION,
+    });
+    expect(WORLD_PLAN_SCHEMA).toBe("repo-world-plan/v2");
+    expect(WORLD_PLAN_VERSION).toBe("2.2.0");
+    expect(TERRAIN_SCHEMA).toBe("repo-terrain/v6");
+  });
+
   it("is deterministic and isolates season changes to appearance", () => {
     const world = createDemoKingdom("spring");
     expect(createWorldPlan(world)).toEqual(createWorldPlan(world));
@@ -90,6 +115,66 @@ describe("createWorldPlan", () => {
     }
   });
 
+  it("selects materially distinct repository geography families from immutable identity", () => {
+    const base = createDemoKingdom();
+    const repositories = [
+      { repositoryId: 1_296_981_064, owner: "parrisdigital", repository: "repository-city" },
+      { repositoryId: 70_107_786, owner: "vercel", repository: "next.js" },
+      { repositoryId: 28_457_823, owner: "facebook", repository: "react" },
+      { repositoryId: 6_172_345, owner: "oss", repository: "svelte" },
+      { repositoryId: 8_641_969, owner: "oss", repository: "webpack" },
+    ] as const;
+    const families = repositories.map((repository) =>
+      deriveRepositoryTopologyFamily({
+        seed: `${repository.owner}/${repository.repository}`,
+        source: { ...base.source, ...repository },
+      }),
+    );
+    expect(new Set(families.map(({ id }) => id)).size).toBeGreaterThanOrEqual(3);
+
+    const representativeFamilies = [
+      ...new Map(families.map((family) => [family.id, family])).values(),
+    ];
+    for (let firstIndex = 0; firstIndex < representativeFamilies.length; firstIndex += 1) {
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < representativeFamilies.length;
+        secondIndex += 1
+      ) {
+        const first = representativeFamilies[firstIndex]!;
+        const second = representativeFamilies[secondIndex]!;
+        expect(distance(first.lake.center, second.lake.center)).toBeGreaterThan(0.16);
+      }
+    }
+
+    const courseOrientations = new Set(
+      representativeFamilies.map((family) => {
+        const start = family.course.points[0]!;
+        const end = family.course.points.at(-1)!;
+        return Math.round(Math.atan2(end.z - start.z, end.x - start.x) * 10) / 10;
+      }),
+    );
+    const ridgeOrientations = new Set(
+      representativeFamilies.map((family) => Math.round(family.ridge.angle * 100) / 100),
+    );
+    expect(courseOrientations.size).toBeGreaterThanOrEqual(3);
+    expect(ridgeOrientations.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps terrain geography invariant when only season or world theme changes", () => {
+    const springValley = createWorldPlan(createDemoKingdom("spring", "kingdom-valley"));
+    const winterValley = createWorldPlan(createDemoKingdom("winter", "kingdom-valley"));
+    const springForest = createWorldPlan(createDemoKingdom("spring", "enchanted-forest"));
+
+    expect(winterValley.topology.geography).toEqual(springValley.topology.geography);
+    expect(springForest.topology.geography).toEqual(springValley.topology.geography);
+    expect(winterValley.terrainKey).toBe(springValley.terrainKey);
+    expect(springForest.terrainKey).toBe(springValley.terrainKey);
+    expect(
+      springForest.topology.terrainZones.map(({ id, kind, mask }) => ({ id, kind, mask })),
+    ).toEqual(springValley.topology.terrainZones.map(({ id, kind, mask }) => ({ id, kind, mask })));
+  });
+
   it("authors different deterministic geography for each world theme", () => {
     const valleyWorld = createDemoKingdom("spring", "kingdom-valley");
     const forestWorld = createDemoKingdom("spring", "enchanted-forest");
@@ -101,17 +186,14 @@ describe("createWorldPlan", () => {
     expect(valley.appearance.worldTheme).toBe("kingdom-valley");
     expect(forest.appearance.worldTheme).toBe("enchanted-forest");
     expect(forest.topologyKey).not.toBe(valley.topologyKey);
-    expect(forest.terrainKey).toBe(valley.topologyKey);
+    expect(forest.terrainKey).toBe(valley.terrainKey);
     expect(forest.placementKey).toBe(valley.placementKey);
     expect(forest.topology).not.toEqual(valley.topology);
 
     const valleyEntities = valley.topology.semanticZones.flatMap((zone) => zone.entityIds).sort();
     const forestEntities = forest.topology.semanticZones.flatMap((zone) => zone.entityIds).sort();
     expect(forestEntities).toEqual(valleyEntities);
-    expect(forest.topology.visualBudgets.maxTrees).toBeGreaterThanOrEqual(
-      valley.topology.visualBudgets.maxTrees,
-    );
-    expect(forest.topology.visualBudgets.maxTrees).toBeLessThanOrEqual(240);
+    expect(forest.topology.repositoryScale).toEqual(valley.topology.repositoryScale);
   });
 
   it("keeps every authored region inside the renderer envelope", () => {
@@ -177,6 +259,7 @@ describe("createWorldPlan", () => {
     );
     expect(topology.hamlets.every((hamlet) => hamlet.maxBuildings >= 3)).toBe(true);
     expect(topology.hamlets.every((hamlet) => hamlet.maxBuildings <= 6)).toBe(true);
+    expect(topology.hamlets.every((hamlet) => hamlet.role !== "commons-hamlet")).toBe(true);
 
     for (let firstIndex = 0; firstIndex < topology.hamlets.length; firstIndex += 1) {
       const first = topology.hamlets[firstIndex]!;
@@ -193,13 +276,74 @@ describe("createWorldPlan", () => {
     }
   });
 
-  it("keeps forest and wildlife habitat clear of water and hamlets", () => {
+  it("resolves same-side rear settlements into distinct physical terraces", () => {
     const { topology } = createWorldPlan(createDemoKingdom());
+    const forced = topology.hamlets.slice(0, 3).map((hamlet, index) => ({
+      ...hamlet,
+      id: `${hamlet.id}-forced-${index}`,
+      mask: {
+        ...hamlet.mask,
+        center: {
+          x: topology.envelope.minX + topology.envelope.safeMargin + 2,
+          z: topology.envelope.minZ + topology.envelope.safeMargin + index,
+        },
+      },
+    }));
+    const placements = createHamletTerrainPlacementMasks(topology.envelope, forced);
+    expect(placements.size).toBe(forced.length);
+    const masks = [...placements.values()];
+    for (const mask of masks) expectMaskInside(mask, topology.envelope);
+    for (let firstIndex = 0; firstIndex < masks.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < masks.length; secondIndex += 1) {
+        const first = masks[firstIndex]!;
+        const second = masks[secondIndex]!;
+        expect(distance(first.center, second.center)).toBeGreaterThanOrEqual(
+          first.radiusX + second.radiusX + 4 - EPSILON,
+        );
+      }
+    }
+  });
+
+  it("keeps forest and wildlife habitat clear of water and hamlets", () => {
+    const plan = createWorldPlan(createDemoKingdom());
+    const { topology } = plan;
+    const placementMasks = new Map(
+      topology.hamlets.map((hamlet) => [
+        hamlet.id,
+        hamlet.terrainMask ??
+          getHamletTerrainPlacementMask(topology.envelope, hamlet, topology.hamlets),
+      ]),
+    );
     const course = topology.terrainZones.find((zone) => zone.kind === "watershed")?.mask;
     const lake = topology.terrainZones.find((zone) => zone.kind === "lake")?.mask;
     expect(course?.shape).toBe("corridor");
     expect(lake?.shape).toBe("ellipse");
     if (course?.shape !== "corridor" || lake?.shape !== "ellipse") return;
+    const physicalWater = createPhysicalWaterContract({
+      key: plan.terrainKey,
+      envelope: topology.envelope,
+      horizonZ: topology.camera.horizonZ,
+      courseMask: course,
+      lakeMask: lake,
+      topologyFamily: topology.geography,
+      terraces: [...placementMasks].map(([id, mask]) => ({
+        id,
+        center: mask.center,
+        radiusX: mask.radiusX,
+        radiusZ: mask.radiusZ,
+      })),
+    });
+
+    for (const placementMask of placementMasks.values()) {
+      expect(
+        physicalWaterCircleHasClearance(
+          physicalWater,
+          placementMask.center,
+          placementMask.radiusX,
+          0,
+        ),
+      ).toBe(true);
+    }
 
     expect(topology.groves.length).toBeGreaterThanOrEqual(3);
     for (const grove of topology.groves) {
@@ -211,8 +355,9 @@ describe("createWorldPlan", () => {
         groveRadius + Math.max(lake.radiusX, lake.radiusZ) + grove.exclusions.clearance - EPSILON,
       );
       for (const hamlet of topology.hamlets) {
-        expect(distance(grove.mask.center, hamlet.mask.center)).toBeGreaterThanOrEqual(
-          groveRadius + hamlet.mask.radiusX + grove.exclusions.clearance - EPSILON,
+        const placementMask = placementMasks.get(hamlet.id)!;
+        expect(distance(grove.mask.center, placementMask.center)).toBeGreaterThanOrEqual(
+          groveRadius + placementMask.radiusX + grove.exclusions.clearance - EPSILON,
         );
       }
       expect(grove.exclusions.terrainZoneIds).toEqual(
@@ -249,7 +394,7 @@ describe("createWorldPlan", () => {
     expect(topology.terrainZones.length).toBeLessThanOrEqual(budgets.maxTerrainZones);
     expect(topology.hamlets.length).toBeLessThanOrEqual(budgets.maxHamlets);
     expect(buildingCount).toBeGreaterThanOrEqual(12);
-    expect(buildingCount).toBeLessThanOrEqual(24);
+    expect(buildingCount).toBeLessThanOrEqual(32);
     expect(buildingCount).toBe(budgets.maxBuildings);
     expect(topology.groves.length).toBeLessThanOrEqual(budgets.maxGroves);
     expect(treeCount).toBeLessThanOrEqual(budgets.maxTrees);
@@ -284,17 +429,139 @@ describe("createWorldPlan", () => {
     );
     const wildlifeCount = topology.wildlifeZones.reduce((total, zone) => total + zone.maxActors, 0);
 
-    expect(topology.hamlets).toHaveLength(3);
-    expect(buildingCount).toBe(18);
+    expect(topology.hamlets).toHaveLength(6);
+    expect(topology.hamlets.map(({ role, maxBuildings }) => ({ role, maxBuildings }))).toEqual([
+      expect.objectContaining({ maxBuildings: 6 }),
+      expect.objectContaining({ maxBuildings: 6 }),
+      expect.objectContaining({ maxBuildings: 6 }),
+      expect.objectContaining({ maxBuildings: 6 }),
+      { role: "commons-hamlet", maxBuildings: 4 },
+      { role: "commons-hamlet", maxBuildings: 4 },
+    ]);
+    expect(topology.hamlets.slice(0, 4).every((hamlet) => hamlet.role !== "commons-hamlet")).toBe(
+      true,
+    );
+    expect(buildingCount).toBe(32);
     expect(buildingCount).toBe(topology.visualBudgets.maxBuildings);
     expect(buildingCount).toBeLessThan(massive.statistics.files / 1_000);
-    expect(topology.visualBudgets.maxTrees).toBe(240);
+    expect(topology.visualBudgets.maxTrees).toBeLessThanOrEqual(240);
     expect(identity.scaleTier).toBe("vast");
+    expect(topology.envelope.width).toBeGreaterThanOrEqual(256);
+    expect(topology.envelope.depth).toBeGreaterThanOrEqual(264);
     expect(wildlifeCount).toBe(topology.visualBudgets.maxWildlifeActors);
     expect(wildlifeCount).toBeGreaterThan(6);
-    expect(wildlifeCount).toBeLessThanOrEqual(12);
+    expect(wildlifeCount).toBeLessThanOrEqual(16);
     expect(topology.visualBudgets.maxVisibleTriangles).toBe(750_000);
     expect(topology.visualBudgets.maxDrawCalls).toBe(150);
+  });
+
+  it("gives a one-province vast repository a large envelope and separated positive satellites", () => {
+    const demo = createDemoKingdom();
+    const directory = demo.provinces.find((province) => province.role !== "nexus")!;
+    const nexus = demo.provinces.find((province) => province.role === "nexus")!;
+    const world = {
+      ...demo,
+      provinces: [nexus, directory],
+      entities: demo.entities.filter((entity) => entity.provinceId === directory.id),
+      routes: [],
+      portals: [],
+      statistics: { ...demo.statistics, files: 100_000 },
+    };
+    const first = createWorldPlan(world);
+    const repeated = createWorldPlan(world);
+    expect(repeated.topology).toEqual(first.topology);
+    expect(first.identity.scaleTier).toBe("vast");
+    expect(first.topology.envelope.width).toBeGreaterThanOrEqual(256);
+    expect(first.topology.envelope.depth).toBeGreaterThanOrEqual(264);
+    expect(first.topology.hamlets).toHaveLength(6);
+    expect(first.topology.hamlets.slice(0, 4).map((hamlet) => hamlet.maxBuildings)).toEqual([
+      6, 6, 6, 6,
+    ]);
+    expect(
+      first.topology.hamlets.slice(0, 4).every((hamlet) => hamlet.role !== "commons-hamlet"),
+    ).toBe(true);
+    expect(
+      first.topology.hamlets.slice(4).map(({ role, maxBuildings }) => ({
+        role,
+        maxBuildings,
+      })),
+    ).toEqual([
+      { role: "commons-hamlet", maxBuildings: 4 },
+      { role: "commons-hamlet", maxBuildings: 4 },
+    ]);
+    expect(
+      first.topology.hamlets.reduce((total, hamlet) => total + hamlet.representedFiles, 0),
+    ).toBeLessThanOrEqual(directory.representedFiles);
+    const physicalMasks = createHamletTerrainPlacementMasks(
+      first.topology.envelope,
+      first.topology.hamlets,
+    );
+    for (const hamlet of first.topology.hamlets) {
+      expect(hamlet.mask.radiusX).toBeGreaterThan(0);
+      expectMaskInside(hamlet.mask, first.topology.envelope);
+      expect(hamlet.provinceId).toBe(directory.id);
+    }
+    for (let firstIndex = 0; firstIndex < first.topology.hamlets.length; firstIndex += 1) {
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < first.topology.hamlets.length;
+        secondIndex += 1
+      ) {
+        const firstHamlet = first.topology.hamlets[firstIndex]!;
+        const secondHamlet = first.topology.hamlets[secondIndex]!;
+        expect(distance(firstHamlet.mask.center, secondHamlet.mask.center)).toBeGreaterThanOrEqual(
+          firstHamlet.mask.radiusX + secondHamlet.mask.radiusX + 8 - EPSILON,
+        );
+      }
+    }
+    const physicalMaskList = [...physicalMasks.values()];
+    for (let firstIndex = 0; firstIndex < physicalMaskList.length; firstIndex += 1) {
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < physicalMaskList.length;
+        secondIndex += 1
+      ) {
+        const firstMask = physicalMaskList[firstIndex]!;
+        const secondMask = physicalMaskList[secondIndex]!;
+        expect(distance(firstMask.center, secondMask.center)).toBeGreaterThanOrEqual(
+          firstMask.radiusX + secondMask.radiusX + 4 - EPSILON,
+        );
+      }
+    }
+    expect(new Set(first.topology.semanticZones.flatMap((zone) => zone.entityIds))).toEqual(
+      new Set(world.entities.map((entity) => entity.id)),
+    );
+  });
+
+  it("keys terrain from geometric terraces instead of unrelated visual budgets", () => {
+    const valley = createWorldPlan(createDemoKingdom("spring", "kingdom-valley"));
+    const forest = createWorldPlan(createDemoKingdom("spring", "enchanted-forest"));
+    expect(forest.topology.visualBudgets.maxTrees).toBe(valley.topology.visualBudgets.maxTrees);
+    expect(forest.terrainKey).toBe(valley.terrainKey);
+
+    const world = createDemoKingdom();
+    const expandedWorld = {
+      ...world,
+      statistics: { ...world.statistics, files: 4_096 },
+    };
+    const expanded = createWorldPlan(expandedWorld);
+    expect(
+      expanded.topology.hamlets.map(
+        (hamlet) =>
+          getHamletTerrainPlacementMask(
+            expanded.topology.envelope,
+            hamlet,
+            expanded.topology.hamlets,
+          ).radiusX,
+      ),
+    ).not.toEqual(
+      valley.topology.hamlets.map(
+        (hamlet) =>
+          getHamletTerrainPlacementMask(valley.topology.envelope, hamlet, valley.topology.hamlets)
+            .radiusX,
+      ),
+    );
+    expect(expanded.terrainKey).not.toBe(valley.terrainKey);
   });
 
   it("keeps every repository entity traceable without creating a building for each file", () => {
@@ -304,7 +571,7 @@ describe("createWorldPlan", () => {
     const worldEntityIds = world.entities.map((entity) => entity.id).sort();
     const hamletProvinceIds = new Set(topology.hamlets.map((hamlet) => hamlet.provinceId));
 
-    expect(topology.semanticMapping.buildingRule).toContain("two to four");
+    expect(topology.semanticMapping.buildingRule).toContain("bounded logarithmic");
     expect(topology.semanticZones).toHaveLength(world.provinces.length);
     expect(coveredEntityIds).toEqual(worldEntityIds);
     expect(

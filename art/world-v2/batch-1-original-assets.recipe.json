@@ -1,0 +1,325 @@
+{
+  "schema": "repository-worlds-v2/original-batch-recipe-v1",
+  "batch": "batch-1-proof",
+  "quality": "proof-not-aaa",
+  "authoredAt": "2026-08-14T00:00:00.000Z",
+  "author": {
+    "name": "Repository Worlds V2 project",
+    "role": "Original procedural design and implementation"
+  },
+  "license": "LicenseRef-Repository-Worlds-Original",
+  "seed": 271828,
+  "units": "meters",
+  "upAxis": "+Y",
+  "forwardAxis": "+Z",
+  "pivot": "ground-center",
+  "families": [
+    {
+      "id": "archive-spire",
+      "title": "Archive Spire",
+      "family": "hero-building",
+      "dimensions": [10, 13.8, 10],
+      "footprint": {
+        "shape": "rectangle",
+        "center": [0, 0],
+        "halfExtents": [4.8, 4.8],
+        "clearanceMeters": 1.5
+      },
+      "biomeAffinity": {
+        "primary": "settlement",
+        "compatible": ["settlement", "work-yard", "garden"]
+      },
+      "palette": {
+        "stone": "#77838f",
+        "timber": "#543623",
+        "roof": "#294458",
+        "metal": "#b47a3d",
+        "window": "#183444",
+        "beacon": "#62ddff"
+      },
+      "lods": [
+        {
+          "slot": "lod0",
+          "radialSegments": 12,
+          "buttressCount": 8,
+          "windowCount": 8,
+          "detailCount": 3,
+          "maxDistance": 24
+        },
+        {
+          "slot": "lod1",
+          "radialSegments": 8,
+          "buttressCount": 4,
+          "windowCount": 4,
+          "detailCount": 1,
+          "maxDistance": 58
+        },
+        {
+          "slot": "lod2",
+          "radialSegments": 6,
+          "buttressCount": 0,
+          "windowCount": 0,
+          "detailCount": 0,
+          "maxDistance": 140
+        }
+      ],
+      "collision": {
+        "node": "COLLIDER_archive_spire_core",
+        "shape": "box",
+        "center": [0, 4.5, 0],
+        "halfExtents": [3.45, 4.5, 3.45]
+      },
+      "animation": {
+        "name": "BeaconPulse",
+        "targetNode": "ANIM_archive_spire_beacon",
+        "durationSeconds": 2.4,
+        "motion": "pulse",
+        "amount": 0.14
+      },
+      "tags": ["repository", "archive", "landmark", "original", "procedural"]
+    },
+    {
+      "id": "ledger-pine",
+      "title": "Ledger Pine",
+      "family": "tree",
+      "dimensions": [6.4, 10.8, 6.4],
+      "footprint": {
+        "shape": "ellipse",
+        "center": [0, 0],
+        "halfExtents": [2.900722, 3.05],
+        "clearanceMeters": 1.8
+      },
+      "biomeAffinity": {
+        "primary": "forest",
+        "compatible": ["forest", "meadow", "alpine"]
+      },
+      "palette": {
+        "bark": "#4d3022",
+        "foliage": "#245b46",
+        "foliageLight": "#3f8061",
+        "fruit": "#d3a84a"
+      },
+      "lods": [
+        {
+          "slot": "lod0",
+          "radialSegments": 10,
+          "branchCount": 8,
+          "canopyCount": 5,
+          "detailCount": 6,
+          "maxDistance": 20
+        },
+        {
+          "slot": "lod1",
+          "radialSegments": 7,
+          "branchCount": 4,
+          "canopyCount": 3,
+          "detailCount": 2,
+          "maxDistance": 48
+        },
+        {
+          "slot": "lod2",
+          "radialSegments": 5,
+          "branchCount": 0,
+          "canopyCount": 1,
+          "detailCount": 0,
+          "maxDistance": 120
+        }
+      ],
+      "collision": {
+        "node": "COLLIDER_ledger_pine_trunk",
+        "shape": "capsule",
+        "center": [0, 3.6, 0],
+        "halfExtents": [0.8, 3.6, 0.8]
+      },
+      "animation": {
+        "name": "CanopySway",
+        "targetNode": "ANIM_ledger_pine_canopy",
+        "durationSeconds": 3.6,
+        "motion": "sway",
+        "amount": 0.055
+      },
+      "tags": ["repository", "tree", "forest", "original", "procedural"]
+    },
+    {
+      "id": "commit-ridge",
+      "title": "Commit Ridge",
+      "family": "rock",
+      "dimensions": [9.2, 6.8, 7.6],
+      "footprint": {
+        "shape": "ellipse",
+        "center": [-0.060932, 0.107409],
+        "halfExtents": [4.427957, 2.862591],
+        "clearanceMeters": 0.75
+      },
+      "biomeAffinity": {
+        "primary": "alpine",
+        "compatible": ["alpine", "forest", "meadow", "shore"]
+      },
+      "palette": {
+        "rock": "#59636c",
+        "rockLight": "#87939d",
+        "crystal": "#72d7db"
+      },
+      "lods": [
+        {
+          "slot": "lod0",
+          "radialSegments": 10,
+          "shardCount": 8,
+          "detailCount": 5,
+          "maxDistance": 28
+        },
+        {
+          "slot": "lod1",
+          "radialSegments": 7,
+          "shardCount": 4,
+          "detailCount": 2,
+          "maxDistance": 64
+        },
+        {
+          "slot": "lod2",
+          "radialSegments": 5,
+          "shardCount": 1,
+          "detailCount": 0,
+          "maxDistance": 138
+        }
+      ],
+      "collision": {
+        "node": "COLLIDER_commit_ridge_mass",
+        "shape": "box",
+        "center": [0, 2.5, 0],
+        "halfExtents": [4.2, 2.5, 3.3]
+      },
+      "animation": {
+        "name": "CrystalPulse",
+        "targetNode": "ANIM_commit_ridge_crystal",
+        "durationSeconds": 2.8,
+        "motion": "pulse",
+        "amount": 0.09
+      },
+      "tags": ["repository", "rock", "cliff", "original", "procedural"]
+    },
+    {
+      "id": "patch-fox",
+      "title": "Patch Fox",
+      "family": "animal",
+      "dimensions": [1.7, 2.2, 4.2],
+      "footprint": {
+        "shape": "ellipse",
+        "center": [0, -0.302096],
+        "halfExtents": [0.686054, 2.695733],
+        "clearanceMeters": 1
+      },
+      "biomeAffinity": {
+        "primary": "forest",
+        "compatible": ["forest", "meadow", "settlement-edge"]
+      },
+      "orientation": {
+        "forwardAxis": "+Z",
+        "markerNode": "FORWARD_patch_fox",
+        "markerPosition": [0, 1.38, 3.15]
+      },
+      "palette": {
+        "fur": "#b85f32",
+        "furLight": "#e8b276",
+        "dark": "#312722",
+        "eye": "#8fe6ff"
+      },
+      "lods": [
+        {
+          "slot": "lod0",
+          "radialSegments": 10,
+          "limbCount": 4,
+          "detailCount": 6,
+          "maxDistance": 16
+        },
+        {
+          "slot": "lod1",
+          "radialSegments": 7,
+          "limbCount": 4,
+          "detailCount": 2,
+          "maxDistance": 38
+        },
+        {
+          "slot": "lod2",
+          "radialSegments": 5,
+          "limbCount": 2,
+          "detailCount": 0,
+          "maxDistance": 86
+        }
+      ],
+      "collision": {
+        "node": "COLLIDER_patch_fox_body",
+        "shape": "box",
+        "center": [0, 1.05, 0],
+        "halfExtents": [0.62, 0.72, 1.55]
+      },
+      "animation": {
+        "name": "TrotLoop",
+        "targetNode": "ANIM_patch_fox_body",
+        "durationSeconds": 1.1,
+        "motion": "bounce",
+        "amount": 0.12
+      },
+      "tags": ["repository", "animal", "fox", "original", "procedural"]
+    },
+    {
+      "id": "branch-lantern",
+      "title": "Branch Lantern",
+      "family": "prop",
+      "dimensions": [2.2, 5.4, 2.2],
+      "footprint": {
+        "shape": "rectangle",
+        "center": [0.6525, 0],
+        "halfExtents": [1.2275, 0.58],
+        "clearanceMeters": 0.6
+      },
+      "biomeAffinity": {
+        "primary": "roadside",
+        "compatible": ["roadside", "settlement", "garden"]
+      },
+      "palette": {
+        "wood": "#4c3324",
+        "metal": "#6f7b82",
+        "glass": "#e7a84f",
+        "light": "#ffd37b"
+      },
+      "lods": [
+        {
+          "slot": "lod0",
+          "radialSegments": 10,
+          "braceCount": 4,
+          "detailCount": 5,
+          "maxDistance": 18
+        },
+        {
+          "slot": "lod1",
+          "radialSegments": 7,
+          "braceCount": 2,
+          "detailCount": 2,
+          "maxDistance": 42
+        },
+        {
+          "slot": "lod2",
+          "radialSegments": 5,
+          "braceCount": 0,
+          "detailCount": 0,
+          "maxDistance": 96
+        }
+      ],
+      "collision": {
+        "node": "COLLIDER_branch_lantern_post",
+        "shape": "box",
+        "center": [0, 2.1, 0],
+        "halfExtents": [0.38, 2.1, 0.38]
+      },
+      "animation": {
+        "name": "LanternGlow",
+        "targetNode": "ANIM_branch_lantern_light",
+        "durationSeconds": 2.2,
+        "motion": "pulse",
+        "amount": 0.08
+      },
+      "tags": ["repository", "prop", "lantern", "original", "procedural"]
+    }
+  ]
+}

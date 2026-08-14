@@ -1,5 +1,11 @@
 <div align="center">
 
+<img
+  src="public/brand/app-logo-v2.png"
+  alt="Repo Magical Kingdom four-season cycle: spring blossom, summer leaves, autumn maple, and winter snow around open space"
+  width="132"
+/>
+
 # Repo Magical Kingdom
 
 **Turn a public GitHub repository into a living, explorable 3D world.**
@@ -11,11 +17,7 @@
 />
 
 <p align="center">
-  <a href="https://github.com/parrisdigital/repo-magical-kingdom/actions/workflows/ci.yml"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/ci/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=outline&amp;size=sm&amp;font=geist&amp;statusDot=true&amp;animate=glow&amp;mode=dark&amp;labelTextColor=%23f7f1dc&amp;valueColor=%235fe3a1&amp;logoColor=%235fe3a1" /><img alt="CI status" src="https://shieldcn.dev/github/ci/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=outline&amp;size=sm&amp;font=geist&amp;statusDot=true&amp;animate=glow&amp;mode=light&amp;labelTextColor=%2321372d&amp;valueColor=%23147a54&amp;logoColor=%23147a54" /></picture></a>
-  <a href="https://github.com/parrisdigital/repo-magical-kingdom/stargazers"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/stars.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=dark&amp;labelTextColor=%23a7b5ad&amp;valueColor=%23f7f1dc&amp;logoColor=%23d7b660" /><img alt="GitHub stars" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/stars.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=light&amp;labelTextColor=%2351615a&amp;valueColor=%2321372d&amp;logoColor=%23a77418" /></picture></a>
-  <a href="https://github.com/parrisdigital/repo-magical-kingdom/blob/main/LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/license.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=dark&amp;labelTextColor=%23a7b5ad&amp;valueColor=%23f7f1dc&amp;logoColor=%23d7b660" /><img alt="MIT license" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/license.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=light&amp;labelTextColor=%2351615a&amp;valueColor=%2321372d&amp;logoColor=%23a77418" /></picture></a>
-  <a href="https://github.com/parrisdigital/repo-magical-kingdom/graphs/contributors"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/contributors.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=dark&amp;labelTextColor=%23a7b5ad&amp;valueColor=%23f7f1dc&amp;logoColor=%23d7b660" /><img alt="GitHub contributors" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/contributors.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=light&amp;labelTextColor=%2351615a&amp;valueColor=%2321372d&amp;logoColor=%23a77418" /></picture></a>
-  <a href="https://github.com/parrisdigital/repo-magical-kingdom/commits/main"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/last-commit.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=dark&amp;labelTextColor=%23a7b5ad&amp;valueColor=%23f7f1dc&amp;logoColor=%23d7b660" /><img alt="Last GitHub commit" src="https://shieldcn.dev/github/parrisdigital/repo-magical-kingdom/last-commit.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=light&amp;labelTextColor=%2351615a&amp;valueColor=%2321372d&amp;logoColor=%23a77418" /></picture></a>
+  <a href="https://github.com/parrisdigital/repo-magical-kingdom"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/group/github/ci/parrisdigital/repo-magical-kingdom+github/stars/parrisdigital/repo-magical-kingdom+github/license/parrisdigital/repo-magical-kingdom+github/contributors/parrisdigital/repo-magical-kingdom+github/last-commit/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=outline&amp;size=sm&amp;font=geist&amp;animate=glow&amp;mode=dark" /><img alt="CI passing, GitHub stars, MIT license, contributors, and latest commit" src="https://shieldcn.dev/group/github/ci/parrisdigital/repo-magical-kingdom+github/stars/parrisdigital/repo-magical-kingdom+github/license/parrisdigital/repo-magical-kingdom+github/contributors/parrisdigital/repo-magical-kingdom+github/last-commit/parrisdigital/repo-magical-kingdom.svg?workflow=ci.yml&amp;branch=main&amp;variant=outline&amp;size=sm&amp;font=geist&amp;animate=glow&amp;mode=light" /></picture></a>
 </p>
 
 [Live demo](https://repo-magical-kingdom.vercel.app) ·
@@ -103,7 +105,9 @@ buildings on the overview sphere.
 - **Complete coverage.** A file is represented directly, included in a named
   aggregate, or explicitly omitted with a reason.
 - **Progressive scale.** Universe summaries remain light; full kingdoms load
-  only when visited and use hierarchy, instancing, and LOD.
+  only when visited and use hierarchy, instancing, and LOD. Compact, established,
+  expansive, and vast repositories receive different land envelopes, settlement
+  counts, ecology budgets, and camera fits rather than the same map at a new color.
 - **Open assets, deterministic composition.** Audited CC0 models and original
   runtime systems form each world without a paid asset, proprietary runtime, or
   GPU generation service.
@@ -196,7 +200,7 @@ informed by remarkable work:
 - **[ShieldCN](https://shieldcn.dev/)** renders the README's live, theme-aware
   repository badges. The animated CI badge uses pure SVG animation with a
   reduced-motion fallback; ShieldCN is not an application runtime dependency.
-- **OpenAI image generation** produced the project-owned Seasonal Gateway
+- **OpenAI image generation** produced the project-owned Four-Season Cycle
   application mark and Orbital Mountain favicon using only this project's
   registered release artwork as a reference. Full prompts, conversion steps,
   source/output hashes, rights review, and licensing are recorded in the
@@ -206,6 +210,11 @@ informed by remarkable work:
   repository revision did not declare a software license, so no WorldClaw code,
   figures, imagery, meshes, website assets, or generated results are copied or
   redistributed.
+- **[Tiny World Builder](https://github.com/jasonkneen/tiny-world-builder)**
+  informed the independent use of seeded terrain grids, scale-aware world
+  envelopes, chunk/LOD thinking, and bounded local animal wandering. Its
+  AGPL-3.0 code and assets are not copied, adapted, bundled, or required at
+  runtime.
 - **[Quaternius](https://quaternius.com/)** created the CC0 textured medieval
   architecture, stylized nature, and animated wildlife models that form the
   world's authored visual foundation. The shipped subset is optimized for the

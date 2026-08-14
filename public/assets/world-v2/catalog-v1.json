@@ -1,0 +1,892 @@
+{
+  "schemaVersion": 1,
+  "id": "repository-worlds-v2-original-assets",
+  "generatedAt": "2026-08-14T00:00:00.000Z",
+  "provenance": {
+    "origin": "project-original",
+    "thirdPartyArt": false,
+    "networkInputs": [],
+    "license": "LicenseRef-Repository-Worlds-Original",
+    "authors": [
+      {
+        "name": "Repository Worlds V2 project",
+        "role": "Original procedural design and implementation"
+      }
+    ],
+    "sourceFiles": [
+      {
+        "path": "art/world-v2/batch-1-original-assets.recipe.json",
+        "sha256": "062f0f4d662df2a2046121d1c66dffff680418bdeff8f9b4d73855c13d287b41",
+        "bytes": 8365
+      },
+      {
+        "path": "scripts/assets-v2/build-original-assets.mjs",
+        "sha256": "5364e868b5adf633e1a532497f69cabb77cce6b35c03d0941ded4f0daecd904b",
+        "bytes": 36196
+      },
+      {
+        "path": "scripts/assets-v2/build-original-textures.mjs",
+        "sha256": "e34d71bbcf5d129fa6bdf6610aea6421ec4353078ca5465db4d5b1d650cfae05",
+        "bytes": 7522
+      },
+      {
+        "path": "scripts/assets-v2/build-blender-authoring.mjs",
+        "sha256": "66b160b8b0ddd1253d2660bdd0a1711563e86116783c7e4183364241447dd6fb",
+        "bytes": 4317
+      },
+      {
+        "path": "art/world-v2/blender/archive_spire_authoring.py",
+        "sha256": "51693e6eb24129627d95922bc58f8b5bab2afdf0c3f9c355c6721491cea21bc6",
+        "bytes": 7503
+      },
+      {
+        "path": "art/world-v2/archive-spire/archive-spire.blend",
+        "sha256": "dc6602ecdbc16dc33f023b4361a2076b604cd19811f8f897bb1e22a9fd7b77f9",
+        "bytes": 102624
+      }
+    ],
+    "generator": {
+      "id": "repository-worlds-v2-procedural-v1",
+      "engine": "three-r185",
+      "deterministic": true,
+      "blenderRequired": false,
+      "blenderPolicy": "offline-background-only"
+    }
+  },
+  "conventions": {
+    "shippingFormat": "glb",
+    "coordinateSystem": "right-handed",
+    "units": "meters",
+    "upAxis": "+Y",
+    "forwardAxis": "+Z",
+    "pivot": "ground-center",
+    "textureContainer": "ktx2",
+    "geometryCompressionTarget": "meshopt",
+    "lodSilhouette": {
+      "referenceSlot": "lod0",
+      "maxEnvelopeDeltaRatio": 0.1,
+      "maxExtentDeltaRatio": 0.1,
+      "maxCenterDriftRatio": 0.1,
+      "materialExtentEpsilonMeters": 0.01,
+      "inspectionMode": "manual-and-crossfade"
+    }
+  },
+  "textureDelivery": {
+    "status": "ktx2-shipping",
+    "preferredContainer": "ktx2",
+    "source": "project-authored-procedural",
+    "encoder": { "id": "toktx", "version": "4.4.2", "envOverride": "WORLD_ASSETS_V2_TOKTX_BIN" },
+    "localTranscoder": {
+      "basePath": "/assets/world-v2/basis/",
+      "dependency": "three",
+      "version": "0.185.1",
+      "art": false
+    },
+    "channels": {
+      "baseColor": "srgb",
+      "emissive": "srgb",
+      "normal": "linear-opengl-y-positive",
+      "orm": "linear-occlusion-roughness-metalness"
+    }
+  },
+  "families": [
+    {
+      "id": "archive-spire",
+      "title": "Archive Spire",
+      "kind": "hero-building",
+      "batch": "batch-1-proof",
+      "quality": "proof-not-aaa",
+      "original": true,
+      "sourceRecipe": "art/world-v2/batch-1-original-assets.recipe.json",
+      "pivot": { "mode": "ground-center", "position": [0, 0, 0] },
+      "orientation": null,
+      "bounds": { "min": [-4.8, 0, -4.8], "max": [4.8, 12.990128, 4.8] },
+      "footprint": {
+        "shape": "rectangle",
+        "center": [0, 0],
+        "halfExtents": [4.8, 4.8],
+        "clearanceMeters": 1.5
+      },
+      "biomeAffinity": {
+        "primary": "settlement",
+        "compatible": ["settlement", "work-yard", "garden"]
+      },
+      "materials": [
+        {
+          "id": "MAT_archive_spire_stone",
+          "mode": "textured-pbr",
+          "textureSet": {
+            "id": "archive-spire-stone",
+            "container": "ktx2",
+            "maps": [
+              {
+                "channel": "baseColor",
+                "uri": "/assets/world-v2/archive-spire/textures/archive-spire-stone-base-color.ktx2",
+                "colorSpace": "srgb",
+                "sha256": "122a9ab7a8a3234bdcf6cc28aa988475ebd914f7693ebb0715e13428a8a86e69",
+                "bytes": 224326,
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "encoding": "uastc-zstd",
+                "decodedGpuBytes": 1398100
+              },
+              {
+                "channel": "normal",
+                "uri": "/assets/world-v2/archive-spire/textures/archive-spire-stone-normal.ktx2",
+                "colorSpace": "linear",
+                "sha256": "5a62792c8446708265f92acb0153afc967b70737b2891c710d68c6d6612c5b53",
+                "bytes": 273498,
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "encoding": "uastc-zstd",
+                "decodedGpuBytes": 1398100
+              },
+              {
+                "channel": "orm",
+                "uri": "/assets/world-v2/archive-spire/textures/archive-spire-stone-orm.ktx2",
+                "colorSpace": "linear",
+                "sha256": "6f8f8b00d564d23775002c9802d3832d5b7c5bc04ede3924e1fc2e95edf308bc",
+                "bytes": 179006,
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "encoding": "uastc-zstd",
+                "decodedGpuBytes": 1398100
+              }
+            ]
+          },
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_archive_spire_timber",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_archive_spire_roof",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_archive_spire_metal",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_archive_spire_window",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_archive_spire_beacon",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        }
+      ],
+      "lods": [
+        {
+          "slot": "lod0",
+          "uri": "/assets/world-v2/archive-spire/archive-spire-lod0.glb",
+          "sha256": "5d7a04b116afb6af3e3eedf529550845829913cd9824ad04d83943dc4a720865",
+          "bytes": 167948,
+          "maxDistance": 24,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 6,
+            "drawCalls": 6,
+            "materials": 6,
+            "vertices": 5004,
+            "triangles": 1668,
+            "geometryBytes": 160128,
+            "estimatedGpuBytes": 160128,
+            "bounds": { "min": [-4.8, 0, -4.8], "max": [4.8, 12.990128, 4.8] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0, 0, 0],
+            "extentDeltaRatio": [0, 0, 0],
+            "centerDriftRatio": [0, 0, 0],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod1",
+          "uri": "/assets/world-v2/archive-spire/archive-spire-lod1.glb",
+          "sha256": "1b798ec54a445335185e89be6eae10a27bee76de7dc9c594154ac5c041ecfbe6",
+          "bytes": 62220,
+          "maxDistance": 58,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 6,
+            "drawCalls": 6,
+            "materials": 6,
+            "vertices": 1704,
+            "triangles": 568,
+            "geometryBytes": 54528,
+            "estimatedGpuBytes": 54528,
+            "bounds": { "min": [-4.8, 0, -4.8], "max": [4.8, 13, 4.8] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0, 0.00076, 0],
+            "extentDeltaRatio": [0, 0.00076, 0],
+            "centerDriftRatio": [0, 0.00038, 0],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod2",
+          "uri": "/assets/world-v2/archive-spire/archive-spire-lod2.glb",
+          "sha256": "0c93182016ac293181a2839003c43f5451dab6e4910d1dbfc3cfdaf1a556df0b",
+          "bytes": 22560,
+          "maxDistance": 140,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 528,
+            "triangles": 176,
+            "geometryBytes": 16896,
+            "estimatedGpuBytes": 16896,
+            "bounds": { "min": [-4.8, 0, -4.8], "max": [4.8, 12.928312, 4.8] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0, 0.004759, 0],
+            "extentDeltaRatio": [0, 0.004759, 0],
+            "centerDriftRatio": [0, 0.002379, 0],
+            "passes": true
+          }
+        }
+      ],
+      "collision": {
+        "kind": "compound",
+        "nodes": [
+          {
+            "name": "COLLIDER_archive_spire_core",
+            "shape": "box",
+            "center": [0, 4.5, 0],
+            "halfExtents": [3.45, 4.5, 3.45]
+          }
+        ]
+      },
+      "animations": [
+        {
+          "name": "BeaconPulse",
+          "durationSeconds": 2.4,
+          "targetNodes": ["ANIM_archive_spire_beacon"],
+          "channels": 1,
+          "loop": true
+        }
+      ],
+      "tags": ["repository", "archive", "landmark", "original", "procedural"],
+      "limitations": [
+        "Batch-1 procedural proof; not AAA-complete.",
+        "Project-authored KTX2 stone detail is proven; full-family texture coverage and sculpted high-poly bakes are pending.",
+        "Geometry is merged but not Meshopt-compressed in this proof build."
+      ]
+    },
+    {
+      "id": "ledger-pine",
+      "title": "Ledger Pine",
+      "kind": "tree",
+      "batch": "batch-1-proof",
+      "quality": "proof-not-aaa",
+      "original": true,
+      "sourceRecipe": "art/world-v2/batch-1-original-assets.recipe.json",
+      "pivot": { "mode": "ground-center", "position": [0, 0, 0] },
+      "orientation": null,
+      "bounds": { "min": [-2.900722, 0, -3.05], "max": [2.900722, 11.15, 3.05] },
+      "footprint": {
+        "shape": "ellipse",
+        "center": [0, 0],
+        "halfExtents": [2.900722, 3.05],
+        "clearanceMeters": 1.8
+      },
+      "biomeAffinity": { "primary": "forest", "compatible": ["forest", "meadow", "alpine"] },
+      "materials": [
+        {
+          "id": "MAT_ledger_pine_bark",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_ledger_pine_foliage",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_ledger_pine_foliageLight",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_ledger_pine_fruit",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        }
+      ],
+      "lods": [
+        {
+          "slot": "lod0",
+          "uri": "/assets/world-v2/ledger-pine/ledger-pine-lod0.glb",
+          "sha256": "9ffbe8305d87ba7e982e93e3ccfff533c6d658899a6fdd99b92b1d58fe9deee2",
+          "bytes": 65320,
+          "maxDistance": 20,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 1860,
+            "triangles": 620,
+            "geometryBytes": 59520,
+            "estimatedGpuBytes": 59520,
+            "bounds": { "min": [-2.900722, 0, -3.05], "max": [2.900722, 11.15, 3.05] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0, 0, 0],
+            "extentDeltaRatio": [0, 0, 0],
+            "centerDriftRatio": [0, 0, 0],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod1",
+          "uri": "/assets/world-v2/ledger-pine/ledger-pine-lod1.glb",
+          "sha256": "b0dbc168ce14a95f34170cf320a22a4c8e30e15f0cca51a2263b67691549a240",
+          "bytes": 23432,
+          "maxDistance": 48,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 552,
+            "triangles": 184,
+            "geometryBytes": 17664,
+            "estimatedGpuBytes": 17664,
+            "bounds": { "min": [-3.05, 0, -3.05], "max": [3.05, 11.15, 3.05] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.025731, 0, 0],
+            "extentDeltaRatio": [0.051462, 0, 0],
+            "centerDriftRatio": [0, 0, 0],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod2",
+          "uri": "/assets/world-v2/ledger-pine/ledger-pine-lod2.glb",
+          "sha256": "f83b7a3dce40e5bdecd95c47312b9d2217ed10c458cbb28332ca6c71d40420ac",
+          "bytes": 7032,
+          "maxDistance": 120,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 2,
+            "drawCalls": 2,
+            "materials": 2,
+            "vertices": 108,
+            "triangles": 36,
+            "geometryBytes": 3456,
+            "estimatedGpuBytes": 3456,
+            "bounds": { "min": [-3.05, 0, -3.05], "max": [3.05, 11.15, 3.05] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.025731, 0, 0],
+            "extentDeltaRatio": [0.051462, 0, 0],
+            "centerDriftRatio": [0, 0, 0],
+            "passes": true
+          }
+        }
+      ],
+      "collision": {
+        "kind": "compound",
+        "nodes": [
+          {
+            "name": "COLLIDER_ledger_pine_trunk",
+            "shape": "capsule",
+            "center": [0, 3.6, 0],
+            "halfExtents": [0.8, 3.6, 0.8]
+          }
+        ]
+      },
+      "animations": [
+        {
+          "name": "CanopySway",
+          "durationSeconds": 3.6,
+          "targetNodes": ["ANIM_ledger_pine_canopy"],
+          "channels": 1,
+          "loop": true
+        }
+      ],
+      "tags": ["repository", "tree", "forest", "original", "procedural"],
+      "limitations": [
+        "Batch-1 procedural proof; not AAA-complete.",
+        "Constant PBR materials only; sculpted high-poly bake and KTX2 texture set are pending.",
+        "Geometry is merged but not Meshopt-compressed in this proof build."
+      ]
+    },
+    {
+      "id": "commit-ridge",
+      "title": "Commit Ridge",
+      "kind": "rock",
+      "batch": "batch-1-proof",
+      "quality": "proof-not-aaa",
+      "original": true,
+      "sourceRecipe": "art/world-v2/batch-1-original-assets.recipe.json",
+      "pivot": { "mode": "ground-center", "position": [0, 0, 0] },
+      "orientation": null,
+      "bounds": { "min": [-4.488889, 0, -2.755182], "max": [4.367026, 6.198285, 2.97] },
+      "footprint": {
+        "shape": "ellipse",
+        "center": [-0.060932, 0.107409],
+        "halfExtents": [4.427957, 2.862591],
+        "clearanceMeters": 0.75
+      },
+      "biomeAffinity": {
+        "primary": "alpine",
+        "compatible": ["alpine", "forest", "meadow", "shore"]
+      },
+      "materials": [
+        {
+          "id": "MAT_commit_ridge_rock",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_commit_ridge_rockLight",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_commit_ridge_crystal",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        }
+      ],
+      "lods": [
+        {
+          "slot": "lod0",
+          "uri": "/assets/world-v2/commit-ridge/commit-ridge-lod0.glb",
+          "sha256": "ba0a537c630161b5e5b7c25b9c5f1d54b1e53fb8648cce7de1c4c49372e94561",
+          "bytes": 93120,
+          "maxDistance": 28,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 3,
+            "drawCalls": 3,
+            "materials": 3,
+            "vertices": 2760,
+            "triangles": 920,
+            "geometryBytes": 88320,
+            "estimatedGpuBytes": 88320,
+            "bounds": { "min": [-4.488889, 0, -2.755182], "max": [4.367026, 6.198285, 2.97] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0, 0, 0],
+            "extentDeltaRatio": [0, 0, 0],
+            "centerDriftRatio": [0, 0, 0],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod1",
+          "uri": "/assets/world-v2/commit-ridge/commit-ridge-lod1.glb",
+          "sha256": "60f152a12d32975bf24e6437d37b58a794a20a3df5103472b211241ddf1b9e66",
+          "bytes": 29468,
+          "maxDistance": 64,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 3,
+            "drawCalls": 3,
+            "materials": 3,
+            "vertices": 768,
+            "triangles": 256,
+            "geometryBytes": 24576,
+            "estimatedGpuBytes": 24576,
+            "bounds": { "min": [-4.392528, 0, -3.081502], "max": [4.367026, 6.209456, 2.862469] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.010881, 0.001802, 0.056997],
+            "extentDeltaRatio": [0.010881, 0.001802, 0.038215],
+            "centerDriftRatio": [0.00544, 0.000901, 0.03789],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod2",
+          "uri": "/assets/world-v2/commit-ridge/commit-ridge-lod2.glb",
+          "sha256": "06a8100808d91e3e7085a865c2b412463f98d6271e3375287de3d02c424fb1d9",
+          "bytes": 13552,
+          "maxDistance": 138,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 3,
+            "drawCalls": 3,
+            "materials": 3,
+            "vertices": 270,
+            "triangles": 90,
+            "geometryBytes": 8640,
+            "estimatedGpuBytes": 8640,
+            "bounds": { "min": [-4.342677, 0, -3.081502], "max": [4.367026, 6.100237, 2.862469] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.01651, 0.015819, 0.056997],
+            "extentDeltaRatio": [0.01651, 0.015819, 0.038215],
+            "centerDriftRatio": [0.008255, 0.007909, 0.03789],
+            "passes": true
+          }
+        }
+      ],
+      "collision": {
+        "kind": "compound",
+        "nodes": [
+          {
+            "name": "COLLIDER_commit_ridge_mass",
+            "shape": "box",
+            "center": [0, 2.5, 0],
+            "halfExtents": [4.2, 2.5, 3.3]
+          }
+        ]
+      },
+      "animations": [
+        {
+          "name": "CrystalPulse",
+          "durationSeconds": 2.8,
+          "targetNodes": ["ANIM_commit_ridge_crystal"],
+          "channels": 1,
+          "loop": true
+        }
+      ],
+      "tags": ["repository", "rock", "cliff", "original", "procedural"],
+      "limitations": [
+        "Batch-1 procedural proof; not AAA-complete.",
+        "Constant PBR materials only; sculpted high-poly bake and KTX2 texture set are pending.",
+        "Geometry is merged but not Meshopt-compressed in this proof build."
+      ]
+    },
+    {
+      "id": "patch-fox",
+      "title": "Patch Fox",
+      "kind": "animal",
+      "batch": "batch-1-proof",
+      "quality": "proof-not-aaa",
+      "original": true,
+      "sourceRecipe": "art/world-v2/batch-1-original-assets.recipe.json",
+      "pivot": { "mode": "ground-center", "position": [0, 0, 0] },
+      "orientation": {
+        "forwardAxis": "+Z",
+        "markerNode": "FORWARD_patch_fox",
+        "markerPosition": [0, 1.38, 3.15]
+      },
+      "bounds": { "min": [-0.686054, 0, -2.997829], "max": [0.686054, 2.490234, 2.393637] },
+      "footprint": {
+        "shape": "ellipse",
+        "center": [0, -0.302096],
+        "halfExtents": [0.686054, 2.695733],
+        "clearanceMeters": 1
+      },
+      "biomeAffinity": {
+        "primary": "forest",
+        "compatible": ["forest", "meadow", "settlement-edge"]
+      },
+      "materials": [
+        {
+          "id": "MAT_patch_fox_fur",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_patch_fox_furLight",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_patch_fox_dark",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        { "id": "MAT_patch_fox_eye", "mode": "constant-pbr", "textureSet": null, "ktx2Ready": true }
+      ],
+      "lods": [
+        {
+          "slot": "lod0",
+          "uri": "/assets/world-v2/patch-fox/patch-fox-lod0.glb",
+          "sha256": "5e0d734a18654525c09dbbc5be8edc951c74affe147ee49ffaaac0b57871fadc",
+          "bytes": 64136,
+          "maxDistance": 16,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 1824,
+            "triangles": 608,
+            "geometryBytes": 58368,
+            "estimatedGpuBytes": 58368,
+            "bounds": { "min": [-0.686054, 0, -2.997829], "max": [0.686054, 2.490234, 2.393637] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0, 0, 0],
+            "extentDeltaRatio": [0, 0, 0],
+            "centerDriftRatio": [0, 0, 0],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod1",
+          "uri": "/assets/world-v2/patch-fox/patch-fox-lod1.glb",
+          "sha256": "7a08cfc2ad523cb0e7c5e7b9807b86879c44e200de21fba62173420a77d58880",
+          "bytes": 39908,
+          "maxDistance": 38,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 1068,
+            "triangles": 356,
+            "geometryBytes": 34176,
+            "estimatedGpuBytes": 34176,
+            "bounds": { "min": [-0.686054, 0, -2.997829], "max": [0.662951, 2.490234, 2.375172] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.016838, 0, 0.003425],
+            "extentDeltaRatio": [0.016838, 0, 0.003425],
+            "centerDriftRatio": [0.008419, 0, 0.001712],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod2",
+          "uri": "/assets/world-v2/patch-fox/patch-fox-lod2.glb",
+          "sha256": "8ee9cfb074cf620d31c8447878507a5b4c1462783f6d852b2c4c3a6b6dd81021",
+          "bytes": 22876,
+          "maxDistance": 86,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 3,
+            "drawCalls": 3,
+            "materials": 3,
+            "vertices": 570,
+            "triangles": 190,
+            "geometryBytes": 18240,
+            "estimatedGpuBytes": 18240,
+            "bounds": { "min": [-0.686054, 0, -2.997829], "max": [0.646718, 2.490234, 2.375172] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.028668, 0, 0.003425],
+            "extentDeltaRatio": [0.028668, 0, 0.003425],
+            "centerDriftRatio": [0.014334, 0, 0.001712],
+            "passes": true
+          }
+        }
+      ],
+      "collision": {
+        "kind": "compound",
+        "nodes": [
+          {
+            "name": "COLLIDER_patch_fox_body",
+            "shape": "box",
+            "center": [0, 1.05, 0],
+            "halfExtents": [0.62, 0.72, 1.55]
+          }
+        ]
+      },
+      "animations": [
+        {
+          "name": "TrotLoop",
+          "durationSeconds": 1.1,
+          "targetNodes": ["ANIM_patch_fox_body"],
+          "channels": 1,
+          "loop": true
+        }
+      ],
+      "tags": ["repository", "animal", "fox", "original", "procedural"],
+      "limitations": [
+        "Batch-1 procedural proof; not AAA-complete.",
+        "Constant PBR materials only; sculpted high-poly bake and KTX2 texture set are pending.",
+        "Geometry is merged but not Meshopt-compressed in this proof build."
+      ]
+    },
+    {
+      "id": "branch-lantern",
+      "title": "Branch Lantern",
+      "kind": "prop",
+      "batch": "batch-1-proof",
+      "quality": "proof-not-aaa",
+      "original": true,
+      "sourceRecipe": "art/world-v2/batch-1-original-assets.recipe.json",
+      "pivot": { "mode": "ground-center", "position": [0, 0, 0] },
+      "orientation": null,
+      "bounds": { "min": [-0.575, 0, -0.58], "max": [1.88, 4.46, 0.58] },
+      "footprint": {
+        "shape": "rectangle",
+        "center": [0.6525, 0],
+        "halfExtents": [1.2275, 0.58],
+        "clearanceMeters": 0.6
+      },
+      "biomeAffinity": {
+        "primary": "roadside",
+        "compatible": ["roadside", "settlement", "garden"]
+      },
+      "materials": [
+        {
+          "id": "MAT_branch_lantern_wood",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_branch_lantern_metal",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_branch_lantern_glass",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        },
+        {
+          "id": "MAT_branch_lantern_light",
+          "mode": "constant-pbr",
+          "textureSet": null,
+          "ktx2Ready": true
+        }
+      ],
+      "lods": [
+        {
+          "slot": "lod0",
+          "uri": "/assets/world-v2/branch-lantern/branch-lantern-lod0.glb",
+          "sha256": "980220acbcdb93b5538cc26892d7ba2cb5cd0c57a10916c0a409e0b56fc29369",
+          "bytes": 77540,
+          "maxDistance": 18,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 2244,
+            "triangles": 748,
+            "geometryBytes": 71808,
+            "estimatedGpuBytes": 71808,
+            "bounds": { "min": [-0.575, 0, -0.58], "max": [1.88, 4.46, 0.58] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0, 0, 0],
+            "extentDeltaRatio": [0, 0, 0],
+            "centerDriftRatio": [0, 0, 0],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod1",
+          "uri": "/assets/world-v2/branch-lantern/branch-lantern-lod1.glb",
+          "sha256": "93b443fa659bc3e449da9f23847d6dc803effe6b1c7344e5a92baaddd2bb20b7",
+          "bytes": 34880,
+          "maxDistance": 42,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 912,
+            "triangles": 304,
+            "geometryBytes": 29184,
+            "estimatedGpuBytes": 29184,
+            "bounds": { "min": [-0.565458, 0, -0.522562], "max": [1.88, 4.46, 0.58] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.003887, 0, 0.049516],
+            "extentDeltaRatio": [0.003887, 0, 0.049516],
+            "centerDriftRatio": [0.001943, 0, 0.024758],
+            "passes": true
+          }
+        },
+        {
+          "slot": "lod2",
+          "uri": "/assets/world-v2/branch-lantern/branch-lantern-lod2.glb",
+          "sha256": "baa0f27672e7d5c3d46bc168f930590fea072937d4586190b0775d7079d8647b",
+          "bytes": 17400,
+          "maxDistance": 96,
+          "geometryCompression": "none-batch-1-proof",
+          "metrics": {
+            "meshes": 4,
+            "drawCalls": 4,
+            "materials": 4,
+            "vertices": 366,
+            "triangles": 122,
+            "geometryBytes": 11712,
+            "estimatedGpuBytes": 11712,
+            "bounds": { "min": [-0.502295, 0, -0.58], "max": [1.88, 4.46, 0.58] }
+          },
+          "silhouette": {
+            "referenceSlot": "lod0",
+            "envelopeDeltaRatio": [0.029615, 0, 0],
+            "extentDeltaRatio": [0.029615, 0, 0],
+            "centerDriftRatio": [0.014808, 0, 0],
+            "passes": true
+          }
+        }
+      ],
+      "collision": {
+        "kind": "compound",
+        "nodes": [
+          {
+            "name": "COLLIDER_branch_lantern_post",
+            "shape": "box",
+            "center": [0, 2.1, 0],
+            "halfExtents": [0.38, 2.1, 0.38]
+          }
+        ]
+      },
+      "animations": [
+        {
+          "name": "LanternGlow",
+          "durationSeconds": 2.2,
+          "targetNodes": ["ANIM_branch_lantern_light"],
+          "channels": 1,
+          "loop": true
+        }
+      ],
+      "tags": ["repository", "prop", "lantern", "original", "procedural"],
+      "limitations": [
+        "Batch-1 procedural proof; not AAA-complete.",
+        "Constant PBR materials only; sculpted high-poly bake and KTX2 texture set are pending.",
+        "Geometry is merged but not Meshopt-compressed in this proof build."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3916 @@
+{
+  "schema": "repo-kingdom/v1",
+  "compilerVersion": "1.0.0",
+  "buildKey": "bd4b67f902d19164",
+  "seed": "vercel/next.js",
+  "source": {
+    "provider": "github",
+    "owner": "vercel",
+    "repository": "next.js",
+    "repositoryId": 70107786,
+    "commitSha": "3782922bdd68fef4f8241424bc7372af838bd911",
+    "defaultBranch": "canary",
+    "visibility": "public",
+    "canonicalUrl": "https://github.com/vercel/next.js",
+    "license": "MIT",
+    "revisionUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911"
+  },
+  "title": "Next Js Kingdom",
+  "description": "The React Framework",
+  "generatedAt": "2026-08-13T02:05:37Z",
+  "season": "spring",
+  "worldTheme": "kingdom-valley",
+  "theme": {
+    "id": "four-seasons",
+    "label": "Spring Kingdom",
+    "description": "The whole repository world is alive with spring growth and rain-washed color."
+  },
+  "bounds": {
+    "radius": 354.50199587731305,
+    "height": 34
+  },
+  "provinces": [
+    {
+      "id": "province-880b3b0b41882278",
+      "label": "Crown Nexus",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 24
+      },
+      "radius": 18.299999999999997,
+      "representedFiles": 42,
+      "representedBytes": 145141,
+      "dominantCategory": "config",
+      "description": "The Crown Nexus represents repository-root files and anchors every province.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911",
+      "role": "nexus"
+    },
+    {
+      "id": "province-f7e41d2eb032e65d",
+      "label": "Outer Marches",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -76.1237143801386,
+        "y": 0,
+        "z": -209.83497550468888
+      },
+      "radius": 10.7,
+      "representedFiles": 75,
+      "representedBytes": 117852,
+      "dominantCategory": "config",
+      "description": "75 files from smaller directories gather in the Outer Marches.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911",
+      "role": "frontier"
+    },
+    {
+      "id": "province-055b4779324889f4",
+      "label": "Agents",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -92.97571504930885,
+        "y": 0,
+        "z": -318.40497873001726
+      },
+      "radius": 8.8,
+      "representedFiles": 39,
+      "representedBytes": 324251,
+      "dominantCategory": "docs",
+      "description": "Agents is a docs-led province representing 39 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/.agents",
+      "role": "province"
+    },
+    {
+      "id": "province-758f5818ddcfc381",
+      "label": "Github",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 13.3779844362931,
+        "y": 0,
+        "z": -73.98612882196903
+      },
+      "radius": 14.5,
+      "representedFiles": 119,
+      "representedBytes": 442451,
+      "dominantCategory": "config",
+      "description": "Github is a config-led province representing 119 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/.github",
+      "role": "province"
+    },
+    {
+      "id": "province-e293eb3bdb5bd198",
+      "label": "Apps",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -78.93973113170642,
+        "y": 0,
+        "z": -116.35442060516215
+      },
+      "radius": 8.8,
+      "representedFiles": 37,
+      "representedBytes": 151864,
+      "dominantCategory": "source",
+      "description": "Apps is a source-led province representing 37 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/apps",
+      "role": "province"
+    },
+    {
+      "id": "province-61350fabf21ff42e",
+      "label": "Bench",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 69.62537719164656,
+        "y": 0,
+        "z": -75.55627419040539
+      },
+      "radius": 12.6,
+      "representedFiles": 320,
+      "representedBytes": 616277,
+      "dominantCategory": "source",
+      "description": "Bench is a source-led province representing 320 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/bench",
+      "role": "province"
+    },
+    {
+      "id": "province-37f37e6f1003e6f8",
+      "label": "Crates",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 77.98159739050017,
+        "y": 0,
+        "z": -132.78524118103087
+      },
+      "radius": 14.5,
+      "representedFiles": 1180,
+      "representedBytes": 2856203,
+      "dominantCategory": "source",
+      "description": "Crates is a source-led province representing 1,180 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/crates",
+      "role": "province"
+    },
+    {
+      "id": "province-42c6a98834e87677",
+      "label": "Docs",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 7.280304088668885,
+        "y": 0,
+        "z": -26.386650524660944
+      },
+      "radius": 12.6,
+      "representedFiles": 450,
+      "representedBytes": 3125121,
+      "dominantCategory": "docs",
+      "description": "Docs is a docs-led province representing 450 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/docs",
+      "role": "province"
+    },
+    {
+      "id": "province-cae0d054c79a309f",
+      "label": "Errors",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 92.70624429346485,
+        "y": 0,
+        "z": -277.97995944060386
+      },
+      "radius": 8.8,
+      "representedFiles": 254,
+      "representedBytes": 587428,
+      "dominantCategory": "docs",
+      "description": "Errors is a docs-led province representing 254 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/errors",
+      "role": "province"
+    },
+    {
+      "id": "province-cfab47a2e04e618f",
+      "label": "Evals",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 75.33866991898554,
+        "y": 0,
+        "z": -30.391713238041845
+      },
+      "radius": 14.5,
+      "representedFiles": 206,
+      "representedBytes": 152084,
+      "dominantCategory": "source",
+      "description": "Evals is a source-led province representing 206 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/evals",
+      "role": "province"
+    },
+    {
+      "id": "province-ef70971c99a67887",
+      "label": "Examples",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 89.94571516494874,
+        "y": 0,
+        "z": -208.29432220105082
+      },
+      "radius": 43,
+      "representedFiles": 4040,
+      "representedBytes": 24208436,
+      "dominantCategory": "asset",
+      "description": "Examples is a asset-led province representing 4,040 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/examples",
+      "role": "province"
+    },
+    {
+      "id": "province-705c465263035729",
+      "label": "Packages",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -93.79794826223046,
+        "y": 0,
+        "z": -52.976809000503266
+      },
+      "radius": 27.799999999999997,
+      "representedFiles": 3685,
+      "representedBytes": 59146070,
+      "dominantCategory": "source",
+      "description": "Packages is a source-led province representing 3,685 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/packages",
+      "role": "province"
+    },
+    {
+      "id": "province-d583f97de6e78e2a",
+      "label": "Rspack",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -68.09671555453899,
+        "y": 0,
+        "z": -160.4364386138506
+      },
+      "radius": 10.7,
+      "representedFiles": 22,
+      "representedBytes": 65478,
+      "dominantCategory": "source",
+      "description": "Rspack is a source-led province representing 22 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/rspack",
+      "role": "province"
+    },
+    {
+      "id": "province-9ec88c8172681f40",
+      "label": "Scripts",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -12.106381988156237,
+        "y": 0,
+        "z": -235.76959842205977
+      },
+      "radius": 8.8,
+      "representedFiles": 81,
+      "representedBytes": 430711,
+      "dominantCategory": "source",
+      "description": "Scripts is a source-led province representing 81 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/scripts",
+      "role": "province"
+    },
+    {
+      "id": "province-ae556b45e7ac9a7a",
+      "label": "Skills",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": 2.1032239706033287,
+        "y": 0,
+        "z": -120.98373470404185
+      },
+      "radius": 8.8,
+      "representedFiles": 12,
+      "representedBytes": 142229,
+      "dominantCategory": "docs",
+      "description": "Skills is a docs-led province representing 12 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/skills",
+      "role": "province"
+    },
+    {
+      "id": "province-d7173aeb51b9b254",
+      "label": "Test",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -8.76811128603816,
+        "y": 0,
+        "z": -179.0125565772876
+      },
+      "radius": 20.2,
+      "representedFiles": 14968,
+      "representedBytes": 27855051,
+      "dominantCategory": "test",
+      "description": "Test is a test-led province representing 14,968 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/test",
+      "role": "province"
+    },
+    {
+      "id": "province-ca4e28c03af20abd",
+      "label": "Turbopack",
+      "biome": "spring",
+      "season": "spring",
+      "position": {
+        "x": -89.43554668941499,
+        "y": 0,
+        "z": -267.601051765494
+      },
+      "radius": 20.2,
+      "representedFiles": 4189,
+      "representedBytes": 21259008,
+      "dominantCategory": "test",
+      "description": "Turbopack is a test-led province representing 4,189 files.",
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/turbopack",
+      "role": "province"
+    }
+  ],
+  "entities": [
+    {
+      "id": "aggregate-628cf064d21d59b3",
+      "provinceId": "province-055b4779324889f4",
+      "label": "26 docs files",
+      "path": ".agents",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 176719,
+      "representedFiles": 26,
+      "aggregate": true,
+      "position": {
+        "x": -92.97571504930885,
+        "y": 5.657776449560659,
+        "z": -318.40497873001726
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.315552899121318,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/.agents"
+    },
+    {
+      "id": "aggregate-2c0ab63e6b7c5589",
+      "provinceId": "province-055b4779324889f4",
+      "label": "12 source files",
+      "path": ".agents",
+      "category": "source",
+      "language": "JavaScript",
+      "size": 143057,
+      "representedFiles": 12,
+      "aggregate": true,
+      "position": {
+        "x": -89.03915246522273,
+        "y": 5.581560162960882,
+        "z": -320.2636809751231
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.163120325921764,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/.agents"
+    },
+    {
+      "id": "file-7558368acd4035e1",
+      "provinceId": "province-055b4779324889f4",
+      "label": "README.md",
+      "path": ".agents/skills/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 4475,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -96.34329032732502,
+        "y": 3.610718637034334,
+        "z": -315.8017699746728
+      },
+      "scale": {
+        "x": 1.3979525534901769,
+        "y": 7.221437274068668,
+        "z": 1.1489678484620525
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.agents/skills/README.md"
+    },
+    {
+      "id": "aggregate-f249539d91ae8f8c",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "922 test files",
+      "path": "crates",
+      "category": "test",
+      "language": "JavaScript",
+      "size": 396569,
+      "representedFiles": 922,
+      "aggregate": true,
+      "position": {
+        "x": 75.76096660628704,
+        "y": 5.949304004536284,
+        "z": -136.1886078850265
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.898608009072568,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/crates"
+    },
+    {
+      "id": "aggregate-6ad4e8a04084a53d",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "219 source files",
+      "path": "crates",
+      "category": "source",
+      "language": "Rust",
+      "size": 2326384,
+      "representedFiles": 219,
+      "aggregate": true,
+      "position": {
+        "x": 77.98159739050017,
+        "y": 6.5,
+        "z": -132.78524118103087
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/crates"
+    },
+    {
+      "id": "aggregate-6087bcefdda7e9e6",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "16 config files",
+      "path": "crates",
+      "category": "config",
+      "language": "JSON",
+      "size": 9785,
+      "representedFiles": 16,
+      "aggregate": true,
+      "position": {
+        "x": 74.69000847564972,
+        "y": 4.614125891858261,
+        "z": -130.62735827638028
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 9.228251783716521,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/crates"
+    },
+    {
+      "id": "aggregate-01f32cba8a67fc9f",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "9 docs files",
+      "path": "crates",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 768,
+      "representedFiles": 9,
+      "aggregate": true,
+      "position": {
+        "x": 80.59915550243944,
+        "y": 3.696709946990457,
+        "z": -128.82055532060528
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 7.393419893980914,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/crates"
+    },
+    {
+      "id": "file-c285ceaeb90a9761",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "app.rs",
+      "path": "crates/next-api/src/app.rs",
+      "category": "source",
+      "language": "Rust",
+      "size": 93824,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 79.0574585983997,
+        "y": 4.664244343518808,
+        "z": -138.15151084040087
+      },
+      "scale": {
+        "x": 1.0084009119775146,
+        "y": 9.328488687037616,
+        "z": 0.9287364024901762
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/crates/next-api/src/app.rs"
+    },
+    {
+      "id": "file-7f3e37db6df534d8",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "main.rs",
+      "path": "crates/next-build-test/src/main.rs",
+      "category": "source",
+      "language": "Rust",
+      "size": 7547,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 76.78073713353513,
+        "y": 3.7916508898241066,
+        "z": -127.01819348827635
+      },
+      "scale": {
+        "x": 1.1120781601639464,
+        "y": 7.583301779648213,
+        "z": 1.200696511985734
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/crates/next-build-test/src/main.rs"
+    },
+    {
+      "id": "file-2ee53296f8ebd479",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "Cargo.toml",
+      "path": "crates/next-napi-bindings/Cargo.toml",
+      "category": "config",
+      "language": "TOML",
+      "size": 4294,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 84.16498340239123,
+        "y": 3.5964261798461985,
+        "z": -130.95945982795604
+      },
+      "scale": {
+        "x": 0.9796820033807307,
+        "y": 7.192852359692397,
+        "z": 0.9478440745966509
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/crates/next-napi-bindings/Cargo.toml"
+    },
+    {
+      "id": "file-a871557bb294b448",
+      "provinceId": "province-37f37e6f1003e6f8",
+      "label": "README.md",
+      "path": "crates/next-code-frame/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 3604,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 81.99965304553662,
+        "y": 3.5357880505907637,
+        "z": -137.34180941840012
+      },
+      "scale": {
+        "x": 1.1400238593341783,
+        "y": 7.0715761011815275,
+        "z": 1.284604773717001
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/crates/next-code-frame/README.md"
+    },
+    {
+      "id": "aggregate-7931a9af879ebb02",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "437 docs files",
+      "path": "docs",
+      "category": "docs",
+      "language": "MDX",
+      "size": 3088030,
+      "representedFiles": 437,
+      "aggregate": true,
+      "position": {
+        "x": 7.280304088668885,
+        "y": 6.5,
+        "z": -26.386650524660944
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/docs"
+    },
+    {
+      "id": "file-57308aa929f92174",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "index.mdx",
+      "path": "docs/01-app/02-guides/client-side-data-fetching/index.mdx",
+      "category": "docs",
+      "language": "MDX",
+      "size": 6768,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 10.183582654506111,
+        "y": 3.753934480368267,
+        "z": -23.257048108966845
+      },
+      "scale": {
+        "x": 1.1754285594215617,
+        "y": 7.507868960736534,
+        "z": 1.226427641697228
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/docs/01-app/02-guides/client-side-data-fetching/index.mdx"
+    },
+    {
+      "id": "file-04db524c9c1f3a43",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "index.mdx",
+      "path": "docs/01-app/03-api-reference/01-directives/index.mdx",
+      "category": "docs",
+      "language": "MDX",
+      "size": 5433,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 10.138123160394356,
+        "y": 3.677871724053274,
+        "z": -29.015688823844446
+      },
+      "scale": {
+        "x": 1.274058025330305,
+        "y": 7.355743448106548,
+        "z": 1.0325173135614023
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/docs/01-app/03-api-reference/01-directives/index.mdx"
+    },
+    {
+      "id": "file-3cfd00c33f36a52c",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "index.mdx",
+      "path": "docs/01-app/03-api-reference/05-config/01-next-config-js/index.mdx",
+      "category": "docs",
+      "language": "MDX",
+      "size": 4664,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 4.074020580267866,
+        "y": 3.6250387277773886,
+        "z": -24.099773216576516
+      },
+      "scale": {
+        "x": 1.4737446272978558,
+        "y": 7.250077455554777,
+        "z": 0.8769556758459657
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/docs/01-app/03-api-reference/05-config/01-next-config-js/index.mdx"
+    },
+    {
+      "id": "file-50bc10c81fe73845",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "index.mdx",
+      "path": "docs/02-pages/03-building-your-application/03-data-fetching/index.mdx",
+      "category": "docs",
+      "language": "MDX",
+      "size": 4436,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 4.065764643862471,
+        "y": 3.6076885210768532,
+        "z": -29.81248960677939
+      },
+      "scale": {
+        "x": 1.0525231528095902,
+        "y": 7.2153770421537065,
+        "z": 0.9519767577527091
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/docs/02-pages/03-building-your-application/03-data-fetching/index.mdx"
+    },
+    {
+      "id": "file-20c1c53b937de170",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "index.mdx",
+      "path": "docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/index.mdx",
+      "category": "docs",
+      "language": "MDX",
+      "size": 3169,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 7.3530595930543265,
+        "y": 3.4912641100064246,
+        "z": -32.313719509952385
+      },
+      "scale": {
+        "x": 1.4323722997913135,
+        "y": 6.982528220012849,
+        "z": 1.528790302341804
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/index.mdx"
+    },
+    {
+      "id": "file-5b4423ca6eba4ffd",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "index.mdx",
+      "path": "docs/index.mdx",
+      "category": "docs",
+      "language": "MDX",
+      "size": 3138,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 13.108650641593325,
+        "y": 3.487861435259708,
+        "z": -25.7241790547306
+      },
+      "scale": {
+        "x": 1.1262034846004099,
+        "y": 6.975722870519416,
+        "z": 1.0390765212709083
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/docs/index.mdx"
+    },
+    {
+      "id": "file-ccab7298e328c213",
+      "provinceId": "province-42c6a98834e87677",
+      "label": "index.mdx",
+      "path": "docs/01-app/03-api-reference/07-adapters/index.mdx",
+      "category": "docs",
+      "language": "MDX",
+      "size": 1957,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 4.076641330258292,
+        "y": 3.3244396119048867,
+        "z": -21.303321814395964
+      },
+      "scale": {
+        "x": 1.0352910503745079,
+        "y": 6.648879223809773,
+        "z": 1.493750338605605
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/docs/01-app/03-api-reference/07-adapters/index.mdx"
+    },
+    {
+      "id": "aggregate-33697d0cf2068557",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "267 source files",
+      "path": "bench",
+      "category": "source",
+      "language": "JavaScript",
+      "size": 390934,
+      "representedFiles": 267,
+      "aggregate": true,
+      "position": {
+        "x": 69.62537719164656,
+        "y": 5.94414230695455,
+        "z": -75.55627419040539
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.8882846139091,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/bench"
+    },
+    {
+      "id": "aggregate-9a49643364e52aa4",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "29 config files",
+      "path": "bench",
+      "category": "config",
+      "language": "JavaScript",
+      "size": 6991,
+      "representedFiles": 29,
+      "aggregate": true,
+      "position": {
+        "x": 69.7371880701082,
+        "y": 4.49287236737515,
+        "z": -70.15142009515948
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 8.9857447347503,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/bench"
+    },
+    {
+      "id": "aggregate-a04958af95099d3e",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "8 asset files",
+      "path": "bench",
+      "category": "asset",
+      "language": "Media",
+      "size": 166078,
+      "representedFiles": 8,
+      "aggregate": true,
+      "position": {
+        "x": 72.59140596550084,
+        "y": 5.635377534117874,
+        "z": -72.70935559617934
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.270755068235747,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/bench"
+    },
+    {
+      "id": "aggregate-b947f27e5537fea5",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "4 docs files",
+      "path": "bench",
+      "category": "docs",
+      "language": "JavaScript",
+      "size": 31792,
+      "representedFiles": 4,
+      "aggregate": true,
+      "position": {
+        "x": 66.585567216682,
+        "y": 5.039105383930181,
+        "z": -73.01980781718355
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.078210767860362,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/bench"
+    },
+    {
+      "id": "file-72f8519777764d52",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "README.md",
+      "path": "bench/render-pipeline/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 8024,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 72.25726065008413,
+        "y": 3.8128685624552867,
+        "z": -78.44797172134174
+      },
+      "scale": {
+        "x": 0.9458374385023489,
+        "y": 7.625737124910573,
+        "z": 1.3330019648652522
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/bench/render-pipeline/README.md"
+    },
+    {
+      "id": "file-8f0b87c345c28920",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "README.md",
+      "path": "bench/dev-validation/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 4901,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 66.24607238131577,
+        "y": 3.6421971445280414,
+        "z": -78.76141129636488
+      },
+      "scale": {
+        "x": 1.4759409249061717,
+        "y": 7.284394289056083,
+        "z": 1.398637794656679
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/bench/dev-validation/README.md"
+    },
+    {
+      "id": "file-395fde51592cd276",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "readme.md",
+      "path": "bench/fuzzponent/readme.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 1722,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 75.4464044703985,
+        "y": 3.280169676693987,
+        "z": -75.26590478580731
+      },
+      "scale": {
+        "x": 1.1866999295307323,
+        "y": 6.560339353387974,
+        "z": 1.3155922357924281
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/bench/fuzzponent/readme.md"
+    },
+    {
+      "id": "file-fca35d5d00f4d6ae",
+      "provinceId": "province-61350fabf21ff42e",
+      "label": "README.md",
+      "path": "bench/vercel/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 897,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 63.27258819488895,
+        "y": 3.0545371923378752,
+        "z": -75.92597957401381
+      },
+      "scale": {
+        "x": 1.1988049556268379,
+        "y": 6.1090743846757505,
+        "z": 1.3276972618885337
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/bench/vercel/README.md"
+    },
+    {
+      "id": "aggregate-7acaaa7b226387ee",
+      "provinceId": "province-705c465263035729",
+      "label": "2,833 source files",
+      "path": "packages",
+      "category": "source",
+      "language": "JavaScript",
+      "size": 43443039,
+      "representedFiles": 2833,
+      "aggregate": true,
+      "position": {
+        "x": -93.79794826223046,
+        "y": 6.5,
+        "z": -52.976809000503266
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/packages"
+    },
+    {
+      "id": "aggregate-9c50b3308f7111f9",
+      "provinceId": "province-705c465263035729",
+      "label": "311 config files",
+      "path": "packages",
+      "category": "config",
+      "language": "JSON",
+      "size": 728745,
+      "representedFiles": 311,
+      "aggregate": true,
+      "position": {
+        "x": -96.66790022187254,
+        "y": 6.168764133497606,
+        "z": -58.53444099029766
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 12.337528266995212,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/packages"
+    },
+    {
+      "id": "aggregate-7fa8ed9ed44ba05f",
+      "provinceId": "province-705c465263035729",
+      "label": "189 test files",
+      "path": "packages",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 1193831,
+      "representedFiles": 189,
+      "aggregate": true,
+      "position": {
+        "x": -96.6799600523597,
+        "y": 6.346792099844407,
+        "z": -50.01832911751475
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 12.693584199688814,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/packages"
+    },
+    {
+      "id": "aggregate-70096a412c97ced4",
+      "provinceId": "province-705c465263035729",
+      "label": "154 docs files",
+      "path": "packages",
+      "category": "docs",
+      "language": "Other",
+      "size": 267006,
+      "representedFiles": 154,
+      "aggregate": true,
+      "position": {
+        "x": -90.45698528475197,
+        "y": 5.806629509829832,
+        "z": -49.68263011288113
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.613259019659663,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/packages"
+    },
+    {
+      "id": "aggregate-cb07a8e22de2934d",
+      "provinceId": "province-705c465263035729",
+      "label": "53 asset files",
+      "path": "packages",
+      "category": "asset",
+      "language": "Media",
+      "size": 447888,
+      "representedFiles": 53,
+      "aggregate": true,
+      "position": {
+        "x": -93.90264410529196,
+        "y": 5.993195427242711,
+        "z": -46.92828219149866
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.986390854485421,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/packages"
+    },
+    {
+      "id": "aggregate-126980648caac157",
+      "provinceId": "province-705c465263035729",
+      "label": "19 other files",
+      "path": "packages",
+      "category": "other",
+      "language": "Other",
+      "size": 9035,
+      "representedFiles": 19,
+      "aggregate": true,
+      "position": {
+        "x": -100.43768030744778,
+        "y": 4.585367138848271,
+        "z": -44.61352060407107
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 9.170734277696543,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/packages"
+    },
+    {
+      "id": "file-5d29748a34b892ef",
+      "provinceId": "province-705c465263035729",
+      "label": "app.png",
+      "path": "packages/next/src/next-devtools/dev-overlay/app.png",
+      "category": "asset",
+      "language": "Media",
+      "size": 3438585,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -90.2973376462658,
+        "y": 5.5,
+        "z": -55.37521016320057
+      },
+      "scale": {
+        "x": 1.0657076151575893,
+        "y": 11,
+        "z": 1.1829841535771264
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/packages/next/src/next-devtools/dev-overlay/app.png"
+    },
+    {
+      "id": "file-52edcad67717f9ad",
+      "provinceId": "province-705c465263035729",
+      "label": "packages-bundle.js",
+      "path": "packages/next/src/compiled/babel-packages/packages-bundle.js",
+      "category": "config",
+      "language": "JavaScript",
+      "size": 1540081,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -102.53753295436566,
+        "y": 5.5,
+        "z": -53.404925489847486
+      },
+      "scale": {
+        "x": 1.3948554417584091,
+        "y": 11,
+        "z": 1.2150494312169031
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/packages/next/src/compiled/babel-packages/packages-bundle.js"
+    },
+    {
+      "id": "aggregate-c8e614460c385611",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "92 config files",
+      "path": ".github",
+      "category": "config",
+      "language": "YAML",
+      "size": 287840,
+      "representedFiles": 92,
+      "aggregate": true,
+      "position": {
+        "x": 13.3779844362931,
+        "y": 5.83372814456811,
+        "z": -73.98612882196903
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.66745628913622,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/.github"
+    },
+    {
+      "id": "aggregate-a13a9dfff943542c",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "9 docs files",
+      "path": ".github",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 22309,
+      "representedFiles": 9,
+      "aggregate": true,
+      "position": {
+        "x": 15.809623283271847,
+        "y": 4.911350723282876,
+        "z": -70.71511916797769
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 9.822701446565752,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/.github"
+    },
+    {
+      "id": "aggregate-c1cde5ec5a5b0287",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "3 test files",
+      "path": ".github",
+      "category": "test",
+      "language": "YAML",
+      "size": 49907,
+      "representedFiles": 3,
+      "aggregate": true,
+      "position": {
+        "x": 9.788365181676916,
+        "y": 5.201745867591878,
+        "z": -71.36621443018407
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.403491735183756,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/.github"
+    },
+    {
+      "id": "file-2f8aa35df994d0c2",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "index.ts",
+      "path": ".github/actions/next-integration-stat/src/index.ts",
+      "category": "config",
+      "language": "TypeScript",
+      "size": 20343,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 17.292409090442487,
+        "y": 4.134955779205625,
+        "z": -76.20364371173143
+      },
+      "scale": {
+        "x": 0.970114546152763,
+        "y": 8.26991155841125,
+        "z": 1.0499761725775898
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.github/actions/next-integration-stat/src/index.ts"
+    },
+    {
+      "id": "file-eca5969ac6d63c61",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "index.ts",
+      "path": ".github/actions/validate-docs-links/src/index.ts",
+      "category": "config",
+      "language": "TypeScript",
+      "size": 13933,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 14.691387481416834,
+        "y": 4.00391724350895,
+        "z": -79.38674335554977
+      },
+      "scale": {
+        "x": 1.4234165139030663,
+        "y": 8.0078344870179,
+        "z": 0.8938465839484706
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.github/actions/validate-docs-links/src/index.ts"
+    },
+    {
+      "id": "file-412fe81444728faf",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "index.js",
+      "path": ".github/actions/next-stats-action/src/run/index.js",
+      "category": "config",
+      "language": "JavaScript",
+      "size": 11011,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 11.64054661956565,
+        "y": 3.922429334702934,
+        "z": -79.81701236650761
+      },
+      "scale": {
+        "x": 0.9886461216956377,
+        "y": 7.844858669405868,
+        "z": 1.2701567254727706
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.github/actions/next-stats-action/src/run/index.js"
+    },
+    {
+      "id": "file-8bfff1a6998015d1",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "index.js",
+      "path": ".github/actions/next-stats-action/src/index.js",
+      "category": "config",
+      "language": "JavaScript",
+      "size": 8403,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 8.155758523417273,
+        "y": 3.828846507201531,
+        "z": -77.54628843277808
+      },
+      "scale": {
+        "x": 1.2080816539470107,
+        "y": 7.657693014403062,
+        "z": 0.8513269589515403
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.github/actions/next-stats-action/src/index.js"
+    },
+    {
+      "id": "file-0ed5393e4c8bc6c7",
+      "provinceId": "province-758f5818ddcfc381",
+      "label": "index.js",
+      "path": ".github/actions/issue-reopen/index.js",
+      "category": "config",
+      "language": "JavaScript",
+      "size": 8352,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 17.711974784724482,
+        "y": 3.826738893449173,
+        "z": -79.09721963079222
+      },
+      "scale": {
+        "x": 1.2978016021195797,
+        "y": 7.653477786898346,
+        "z": 0.9410469071241095
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.github/actions/issue-reopen/index.js"
+    },
+    {
+      "id": "file-bb5057d1e6336e9e",
+      "provinceId": "province-880b3b0b41882278",
+      "label": "run-tests.js",
+      "path": "run-tests.js",
+      "category": "source",
+      "language": "JavaScript",
+      "size": 36916,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 0,
+        "y": 4.341279447766943,
+        "z": 24
+      },
+      "scale": {
+        "x": 1.4758967839879915,
+        "y": 8.682558895533885,
+        "z": 1.4673429162241518
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/run-tests.js"
+    },
+    {
+      "id": "file-921b0340b92f9591",
+      "provinceId": "province-880b3b0b41882278",
+      "label": "AGENTS.md",
+      "path": "AGENTS.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 25304,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 3.2131887678087105,
+        "y": 4.21051236493506,
+        "z": 21.317009598878027
+      },
+      "scale": {
+        "x": 1.5403737020678818,
+        "y": 8.42102472987012,
+        "z": 1.2276648842496796
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/AGENTS.md"
+    },
+    {
+      "id": "file-d0f0d9709eba8101",
+      "provinceId": "province-880b3b0b41882278",
+      "label": "eslint.config.mjs",
+      "path": "eslint.config.mjs",
+      "category": "config",
+      "language": "JavaScript",
+      "size": 17068,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -2.56956515391422,
+        "y": 4.074181820568155,
+        "z": 27.18785141145045
+      },
+      "scale": {
+        "x": 1.3831048628315328,
+        "y": 8.14836364113631,
+        "z": 1.0869308782508595
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/eslint.config.mjs"
+    },
+    {
+      "id": "file-710b707f14bc90d4",
+      "provinceId": "province-880b3b0b41882278",
+      "label": "package.json",
+      "path": "package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 16310,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 0.37352984305747217,
+        "y": 4.058453827244621,
+        "z": 30.040519207540314
+      },
+      "scale": {
+        "x": 1.1848694982239976,
+        "y": 8.116907654489243,
+        "z": 1.2880637323018163
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/package.json"
+    },
+    {
+      "id": "file-8444f159dde7ae3a",
+      "provinceId": "province-880b3b0b41882278",
+      "label": "Cargo.toml",
+      "path": "Cargo.toml",
+      "category": "config",
+      "language": "TOML",
+      "size": 12298,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -5.734759371221097,
+        "y": 3.9607008155358345,
+        "z": 24.207564825888685
+      },
+      "scale": {
+        "x": 1.2009301744168623,
+        "y": 7.921401631071669,
+        "z": 0.9653873309493064
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/Cargo.toml"
+    },
+    {
+      "id": "file-a4bbd0cbd6fb99d0",
+      "provinceId": "province-880b3b0b41882278",
+      "label": "run-evals.js",
+      "path": "run-evals.js",
+      "category": "source",
+      "language": "JavaScript",
+      "size": 7075,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 6.437481926057357,
+        "y": 3.7692923998457095,
+        "z": 23.80314885873401
+      },
+      "scale": {
+        "x": 1.441253104270436,
+        "y": 7.538584799691419,
+        "z": 1.5444641528185457
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/run-evals.js"
+    },
+    {
+      "id": "file-42f8062eb7da31a7",
+      "provinceId": "province-880b3b0b41882278",
+      "label": ".prettierignore",
+      "path": ".prettierignore",
+      "category": "config",
+      "language": "PRETTIERIGNORE",
+      "size": 4529,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -5.582565812932378,
+        "y": 3.6148708803840632,
+        "z": 27.14980068405695
+      },
+      "scale": {
+        "x": 0.9656419311184435,
+        "y": 7.2297417607681265,
+        "z": 1.519577297498472
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.prettierignore"
+    },
+    {
+      "id": "file-af52a3c46d8b5ad3",
+      "provinceId": "province-880b3b0b41882278",
+      "label": "CODE_OF_CONDUCT.md",
+      "path": "CODE_OF_CONDUCT.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 3298,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -3.2541352422972327,
+        "y": 3.5050751350155833,
+        "z": 18.67582841692374
+      },
+      "scale": {
+        "x": 1.3335340768098831,
+        "y": 7.010150270031167,
+        "z": 1.0919933650409803
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/CODE_OF_CONDUCT.md"
+    },
+    {
+      "id": "aggregate-0f88fc2667ed3c05",
+      "provinceId": "province-9ec88c8172681f40",
+      "label": "76 source files",
+      "path": "scripts",
+      "category": "source",
+      "language": "JavaScript",
+      "size": 426390,
+      "representedFiles": 76,
+      "aggregate": true,
+      "position": {
+        "x": -12.106381988156237,
+        "y": 5.975454365333054,
+        "z": -235.76959842205977
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.950908730666107,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/scripts"
+    },
+    {
+      "id": "aggregate-65616911822cc5ae",
+      "provinceId": "province-9ec88c8172681f40",
+      "label": "2 config files",
+      "path": "scripts",
+      "category": "config",
+      "language": "TOML",
+      "size": 332,
+      "representedFiles": 2,
+      "aggregate": true,
+      "position": {
+        "x": -9.593905233879562,
+        "y": 3.394844591767815,
+        "z": -232.32200770192495
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 6.78968918353563,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/scripts"
+    },
+    {
+      "id": "aggregate-15a37a4f813fa592",
+      "provinceId": "province-9ec88c8172681f40",
+      "label": "2 other files",
+      "path": "scripts",
+      "category": "other",
+      "language": "Other",
+      "size": 297,
+      "representedFiles": 2,
+      "aggregate": true,
+      "position": {
+        "x": -8.141639422041369,
+        "y": 3.3547921301155403,
+        "z": -237.79151742783645
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 6.709584260231081,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/scripts"
+    },
+    {
+      "id": "file-fc6f80b39566938c",
+      "provinceId": "province-9ec88c8172681f40",
+      "label": "main.rs",
+      "path": "scripts/send-trace-to-jaeger/src/main.rs",
+      "category": "source",
+      "language": "Rust",
+      "size": 3692,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -15.640544975672587,
+        "y": 3.5441386113293474,
+        "z": -233.2068806441464
+      },
+      "scale": {
+        "x": 1.3388346278341485,
+        "y": 7.088277222658695,
+        "z": 1.2996738117653877
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/scripts/send-trace-to-jaeger/src/main.rs"
+    },
+    {
+      "id": "aggregate-b8f6eae87b887049",
+      "provinceId": "province-ae556b45e7ac9a7a",
+      "label": "11 docs files",
+      "path": "skills",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 141664,
+      "representedFiles": 11,
+      "aggregate": true,
+      "position": {
+        "x": 2.1032239706033287,
+        "y": 5.57803096049583,
+        "z": -120.98373470404185
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.15606192099166,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/skills"
+    },
+    {
+      "id": "aggregate-6b7f688dede5d5b8",
+      "provinceId": "province-ae556b45e7ac9a7a",
+      "label": "1 config files",
+      "path": "skills",
+      "category": "config",
+      "language": "JSON",
+      "size": 565,
+      "representedFiles": 1,
+      "aggregate": true,
+      "position": {
+        "x": -0.8527989734939374,
+        "y": 3.586164560707971,
+        "z": -118.51100626687727
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 7.172329121415942,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/skills"
+    },
+    {
+      "id": "aggregate-4298c444bba23573",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "3,290 test files",
+      "path": "turbopack",
+      "category": "test",
+      "language": "JavaScript",
+      "size": 13246141,
+      "representedFiles": 3290,
+      "aggregate": true,
+      "position": {
+        "x": -89.43554668941499,
+        "y": 6.5,
+        "z": -267.601051765494
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/turbopack"
+    },
+    {
+      "id": "aggregate-69628c859cc7ca12",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "793 source files",
+      "path": "turbopack",
+      "category": "source",
+      "language": "Rust",
+      "size": 7859136,
+      "representedFiles": 793,
+      "aggregate": true,
+      "position": {
+        "x": -85.40924765476679,
+        "y": 6.5,
+        "z": -269.6623996372959
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/turbopack"
+    },
+    {
+      "id": "aggregate-83a2162e8d674825",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "43 config files",
+      "path": "turbopack",
+      "category": "config",
+      "language": "TOML",
+      "size": 15587,
+      "representedFiles": 43,
+      "aggregate": true,
+      "position": {
+        "x": -91.1228810023452,
+        "y": 4.782037054042259,
+        "z": -261.9832208500639
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 9.564074108084519,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/turbopack"
+    },
+    {
+      "id": "aggregate-520d93a714eb4140",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "12 docs files",
+      "path": "turbopack",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 41773,
+      "representedFiles": 12,
+      "aggregate": true,
+      "position": {
+        "x": -93.24792050217432,
+        "y": 5.137579418133074,
+        "z": -265.228898117577
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.275158836266147,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/turbopack"
+    },
+    {
+      "id": "aggregate-1aa9631273b47df3",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "2 other files",
+      "path": "turbopack",
+      "category": "other",
+      "language": "Other",
+      "size": 1105,
+      "representedFiles": 2,
+      "aggregate": true,
+      "position": {
+        "x": -84.29649935098132,
+        "y": 3.827783917558677,
+        "z": -263.77045360807546
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 7.655567835117354,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/turbopack"
+    },
+    {
+      "id": "file-1168f676a05d5055",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "README.md",
+      "path": "turbopack/crates/turbo-persistence/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 15358,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -95.3636573459979,
+        "y": 4.037631200102206,
+        "z": -268.73533393959497
+      },
+      "scale": {
+        "x": 1.4332311355974525,
+        "y": 8.075262400204412,
+        "z": 1.543731442489661
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/turbopack/crates/turbo-persistence/README.md"
+    },
+    {
+      "id": "file-97b4c0d456785d8d",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "README.md",
+      "path": "turbopack/crates/turbo-tasks/src/vc/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 11060,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -96.24676220962438,
+        "y": 3.9239666084355935,
+        "z": -265.918589710636
+      },
+      "scale": {
+        "x": 1.1365342408418655,
+        "y": 7.847933216871187,
+        "z": 0.8949935290729627
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/turbopack/crates/turbo-tasks/src/vc/README.md"
+    },
+    {
+      "id": "file-1aa68c8e3d0693e3",
+      "provinceId": "province-ca4e28c03af20abd",
+      "label": "main.rs",
+      "path": "turbopack/xtask/src/main.rs",
+      "category": "source",
+      "language": "Rust",
+      "size": 5820,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -87.24796804177974,
+        "y": 3.7016923125394996,
+        "z": -264.23240688994844
+      },
+      "scale": {
+        "x": 0.9040696800220758,
+        "y": 7.403384625078999,
+        "z": 1.313148311828263
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/turbopack/xtask/src/main.rs"
+    },
+    {
+      "id": "aggregate-d39749d319bda02a",
+      "provinceId": "province-cae0d054c79a309f",
+      "label": "253 docs files",
+      "path": "errors",
+      "category": "docs",
+      "language": "MDX",
+      "size": 587017,
+      "representedFiles": 253,
+      "aggregate": true,
+      "position": {
+        "x": 92.70624429346485,
+        "y": 6.0907613041161985,
+        "z": -277.97995944060386
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 12.181522608232397,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/errors"
+    },
+    {
+      "id": "aggregate-5b4850a9b47a4b50",
+      "provinceId": "province-cae0d054c79a309f",
+      "label": "1 source files",
+      "path": "errors",
+      "category": "source",
+      "language": "TXT",
+      "size": 411,
+      "representedFiles": 1,
+      "aggregate": true,
+      "position": {
+        "x": 90.14595011780942,
+        "y": 3.471625131795805,
+        "z": -281.6838547382437
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 6.94325026359161,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/errors"
+    },
+    {
+      "id": "aggregate-0956094b53db0b00",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "108 source files",
+      "path": "evals",
+      "category": "source",
+      "language": "TypeScript",
+      "size": 109394,
+      "representedFiles": 108,
+      "aggregate": true,
+      "position": {
+        "x": 75.33866991898554,
+        "y": 5.484796818589601,
+        "z": -30.391713238041845
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.969593637179202,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/evals"
+    },
+    {
+      "id": "aggregate-9c17d2e01d50614f",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "57 config files",
+      "path": "evals",
+      "category": "config",
+      "language": "JSON",
+      "size": 21591,
+      "representedFiles": 57,
+      "aggregate": true,
+      "position": {
+        "x": 72.50894230266948,
+        "y": 4.899552315366713,
+        "z": -27.48251465763759
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 9.799104630733426,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/evals"
+    },
+    {
+      "id": "aggregate-48ae6f11fa39f01a",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "24 docs files",
+      "path": "evals",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 6583,
+      "representedFiles": 24,
+      "aggregate": true,
+      "position": {
+        "x": 78.61533345480493,
+        "y": 4.471187155105406,
+        "z": -27.172176485022348
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 8.942374310210813,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/evals"
+    },
+    {
+      "id": "file-3f4c9730e664a525",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "README.md",
+      "path": "evals/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 6000,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 72.57524603946403,
+        "y": 3.7122369314851644,
+        "z": -33.156532176642536
+      },
+      "scale": {
+        "x": 1.0588217554613948,
+        "y": 7.424473862970329,
+        "z": 1.455888353823684
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/evals/README.md"
+    },
+    {
+      "id": "file-195cdac5d3e78944",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "package.json",
+      "path": "evals/evals/agent-025-prefer-next-link/package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 693,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 78.67966900766199,
+        "y": 2.965310044618782,
+        "z": -32.85087253332709
+      },
+      "scale": {
+        "x": 1.5122262522345409,
+        "y": 5.930620089237564,
+        "z": 1.2074878998100758
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/evals/evals/agent-025-prefer-next-link/package.json"
+    },
+    {
+      "id": "file-f57ab8b95ad2530e",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "package.json",
+      "path": "evals/evals/agent-022-prefer-server-actions/package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 693,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 75.40446829791382,
+        "y": 2.965310044618782,
+        "z": -35.81693513554801
+      },
+      "scale": {
+        "x": 1.5119176814099773,
+        "y": 5.930620089237564,
+        "z": 0.8845935365185141
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/evals/evals/agent-022-prefer-server-actions/package.json"
+    },
+    {
+      "id": "file-1a3a91f4111cbe03",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "package.json",
+      "path": "evals/evals/agent-027-prefer-next-image/package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 589,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 69.60922645793373,
+        "y": 2.909097074619809,
+        "z": -30.610521653940022
+      },
+      "scale": {
+        "x": 1.3794495911337434,
+        "y": 5.818194149239618,
+        "z": 1.098780829901807
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/evals/evals/agent-027-prefer-next-image/package.json"
+    },
+    {
+      "id": "file-438006d8592b2a1b",
+      "provinceId": "province-cfab47a2e04e618f",
+      "label": "package.json",
+      "path": "evals/evals/agent-000-app-router-migration-simple/package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 589,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 75.33677824720314,
+        "y": 2.909097074619809,
+        "z": -24.327294935869055
+      },
+      "scale": {
+        "x": 1.4774664686061443,
+        "y": 5.818194149239618,
+        "z": 1.1276021984172986
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/evals/evals/agent-000-app-router-migration-simple/package.json"
+    },
+    {
+      "id": "aggregate-5812d6527721fbf3",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "10 source files",
+      "path": "rspack",
+      "category": "source",
+      "language": "Rust",
+      "size": 44820,
+      "representedFiles": 10,
+      "aggregate": true,
+      "position": {
+        "x": -68.09671555453899,
+        "y": 5.162971804170762,
+        "z": -160.4364386138506
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.325943608341523,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/rspack"
+    },
+    {
+      "id": "aggregate-d927cb65e74667c8",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "6 config files",
+      "path": "rspack",
+      "category": "config",
+      "language": "TOML",
+      "size": 1295,
+      "representedFiles": 6,
+      "aggregate": true,
+      "position": {
+        "x": -71.96441543396436,
+        "y": 3.884962500721156,
+        "z": -162.91003761272134
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 7.769925001442312,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/rspack"
+    },
+    {
+      "id": "file-6cfa2494739141e7",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "index.js",
+      "path": "rspack/crates/binding/index.js",
+      "category": "source",
+      "language": "JavaScript",
+      "size": 14433,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -70.90909811555932,
+        "y": 4.016124049462171,
+        "z": -157.21564602266386
+      },
+      "scale": {
+        "x": 1.4126682656817138,
+        "y": 8.032248098924342,
+        "z": 1.3121218706248328
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/rspack/crates/binding/index.js"
+    },
+    {
+      "id": "file-e25d2387bb2ad2a4",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "Cargo.toml",
+      "path": "rspack/crates/binding/Cargo.toml",
+      "category": "config",
+      "language": "TOML",
+      "size": 1891,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -66.01692952549797,
+        "y": 3.3125671296014545,
+        "z": -164.08427596092633
+      },
+      "scale": {
+        "x": 1.2686576334992423,
+        "y": 6.625134259202909,
+        "z": 1.4796218575444073
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/rspack/crates/binding/Cargo.toml"
+    },
+    {
+      "id": "file-c5de56edc3779016",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "package.json",
+      "path": "rspack/crates/binding/package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 1190,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -64.26933895150059,
+        "y": 3.1523098474873867,
+        "z": -155.66563361889263
+      },
+      "scale": {
+        "x": 0.9751113618491217,
+        "y": 6.3046196949747735,
+        "z": 1.5194406448863447
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/rspack/crates/binding/package.json"
+    },
+    {
+      "id": "file-304dd02abd03701f",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "package.json",
+      "path": "rspack/package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 826,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -72.09661283727853,
+        "y": 3.026018444601106,
+        "z": -165.6935810699673
+      },
+      "scale": {
+        "x": 1.1477093681227415,
+        "y": 6.052036889202212,
+        "z": 1.190377084747888
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/rspack/package.json"
+    },
+    {
+      "id": "aggregate-80677c33ab8158bc",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "1 other files",
+      "path": "rspack",
+      "category": "other",
+      "language": "Other",
+      "size": 549,
+      "representedFiles": 1,
+      "aggregate": true,
+      "position": {
+        "x": -62.58571205124183,
+        "y": 3.5758219521030057,
+        "z": -161.61803335353164
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 7.151643904206011,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/rspack"
+    },
+    {
+      "id": "file-5d21485807173bb9",
+      "provinceId": "province-d583f97de6e78e2a",
+      "label": "Cargo.toml",
+      "path": "rspack/Cargo.toml",
+      "category": "config",
+      "language": "TOML",
+      "size": 474,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -74.48263625831704,
+        "y": 2.8340280887723948,
+        "z": -159.28849488174475
+      },
+      "scale": {
+        "x": 0.8699898978695273,
+        "y": 5.6680561775447895,
+        "z": 1.273815913288854
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/rspack/Cargo.toml"
+    },
+    {
+      "id": "aggregate-f52a1209a880c438",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "14,915 test files",
+      "path": "test",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 27149532,
+      "representedFiles": 14915,
+      "aggregate": true,
+      "position": {
+        "x": -8.76811128603816,
+        "y": 6.5,
+        "z": -179.0125565772876
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/test"
+    },
+    {
+      "id": "file-ff147f8e0e3e8cc1",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "index.test.ts",
+      "path": "test/e2e/app-dir/app/index.test.ts",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 68095,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -11.839085030429812,
+        "y": 4.553267784520286,
+        "z": -182.26308481451161
+      },
+      "scale": {
+        "x": 1.4225446315947918,
+        "y": 9.106535569040572,
+        "z": 1.0657899365993218
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/test/e2e/app-dir/app/index.test.ts"
+    },
+    {
+      "id": "file-78769b17da646062",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "index.test.ts",
+      "path": "test/production/pages-dir/production/test/index.test.ts",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 42443,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -5.754722986097004,
+        "y": 4.3895855210612975,
+        "z": -175.81254567786982
+      },
+      "scale": {
+        "x": 0.8874930741498247,
+        "y": 8.779171042122595,
+        "z": 0.9906873082276433
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/test/production/pages-dir/production/test/index.test.ts"
+    },
+    {
+      "id": "file-df8eff42fb724dab",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "index.test.ts",
+      "path": "test/e2e/middleware-rewrites/test/index.test.ts",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 32430,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -14.75535544579754,
+        "y": 4.29642061338181,
+        "z": -176.87785290657288
+      },
+      "scale": {
+        "x": 1.3029354826081543,
+        "y": 8.59284122676362,
+        "z": 1.0811928089009597
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/test/e2e/middleware-rewrites/test/index.test.ts"
+    },
+    {
+      "id": "file-02e62c20932b4bc7",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "index.test.ts",
+      "path": "test/e2e/app-dir/app-css/index.test.ts",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 30827,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -11.836940798767401,
+        "y": 4.278868882149274,
+        "z": -173.80493619230774
+      },
+      "scale": {
+        "x": 1.2170615808106957,
+        "y": 8.557737764298547,
+        "z": 0.8671973106218501
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/test/e2e/app-dir/app-css/index.test.ts"
+    },
+    {
+      "id": "file-3ffa707d8eeaf8c2",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "index.test.ts",
+      "path": "test/e2e/middleware-general/test/index.test.ts",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 29534,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -5.813721064837841,
+        "y": 4.264033117962417,
+        "z": -181.44870609732033
+      },
+      "scale": {
+        "x": 1.3036599499871953,
+        "y": 8.528066235924834,
+        "z": 1.3546590322628616
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/test/e2e/middleware-general/test/index.test.ts"
+    },
+    {
+      "id": "file-0c9b17f8eb2aa26f",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "index.test.ts",
+      "path": "test/e2e/getserversideprops/test/index.test.ts",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 29045,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -2.7497664995254807,
+        "y": 4.258252451099683,
+        "z": -181.04872156417056
+      },
+      "scale": {
+        "x": 1.3754603254608808,
+        "y": 8.516504902199365,
+        "z": 1.2749139304039998
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/test/e2e/getserversideprops/test/index.test.ts"
+    },
+    {
+      "id": "file-733ed04ab25b361b",
+      "provinceId": "province-d7173aeb51b9b254",
+      "label": "index.test.ts",
+      "path": "test/e2e/middleware-matcher/index.test.ts",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 25141,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -5.674603900915333,
+        "y": 4.208274831428304,
+        "z": -172.82960748870155
+      },
+      "scale": {
+        "x": 1.4333298717159777,
+        "y": 8.416549662856609,
+        "z": 1.2872652380960061
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/test/e2e/middleware-matcher/index.test.ts"
+    },
+    {
+      "id": "aggregate-a3149b1c55d8141d",
+      "provinceId": "province-e293eb3bdb5bd198",
+      "label": "31 source files",
+      "path": "apps",
+      "category": "source",
+      "language": "TypeScript",
+      "size": 147599,
+      "representedFiles": 31,
+      "aggregate": true,
+      "position": {
+        "x": -78.93973113170642,
+        "y": 5.59283329895878,
+        "z": -116.35442060516215
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 11.18566659791756,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/apps"
+    },
+    {
+      "id": "aggregate-e87971e36b8b34c6",
+      "provinceId": "province-e293eb3bdb5bd198",
+      "label": "4 config files",
+      "path": "apps",
+      "category": "config",
+      "language": "JSON",
+      "size": 2016,
+      "representedFiles": 4,
+      "aggregate": true,
+      "position": {
+        "x": -81.83681484092128,
+        "y": 4.04449884215324,
+        "z": -113.64540009801622
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 8.08899768430648,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/apps"
+    },
+    {
+      "id": "file-96d0f48ac4baae6f",
+      "provinceId": "province-e293eb3bdb5bd198",
+      "label": "package.json",
+      "path": "apps/bundle-analyzer/package.json",
+      "category": "config",
+      "language": "JSON",
+      "size": 1343,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -81.60449746207402,
+        "y": 3.1941561814669024,
+        "z": -119.22354986322838
+      },
+      "scale": {
+        "x": 1.3053371225018053,
+        "y": 6.388312362933805,
+        "z": 1.1592724888818338
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/apps/bundle-analyzer/package.json"
+    },
+    {
+      "id": "file-2d988327e221e868",
+      "provinceId": "province-e293eb3bdb5bd198",
+      "label": "README.md",
+      "path": "apps/bundle-analyzer/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 906,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -75.62755786002734,
+        "y": 3.0579900977268455,
+        "z": -118.67074363234033
+      },
+      "scale": {
+        "x": 1.1020814014831557,
+        "y": 6.115980195453691,
+        "z": 1.509986673435196
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/apps/bundle-analyzer/README.md"
+    },
+    {
+      "id": "aggregate-8ea765713c81f598",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "2,382 source files",
+      "path": "examples",
+      "category": "source",
+      "language": "TypeScript",
+      "size": 2413094,
+      "representedFiles": 2382,
+      "aggregate": true,
+      "position": {
+        "x": 93.31782560120097,
+        "y": 6.5,
+        "z": -211.03275190387672
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/examples"
+    },
+    {
+      "id": "aggregate-2cb33412ebf9f587",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "818 config files",
+      "path": "examples",
+      "category": "config",
+      "language": "JSON",
+      "size": 1124931,
+      "representedFiles": 818,
+      "aggregate": true,
+      "position": {
+        "x": 83.59611379930305,
+        "y": 6.325351591307666,
+        "z": -209.12207168430334
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 12.650703182615333,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/examples"
+    },
+    {
+      "id": "aggregate-863d2c1c10426b5b",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "397 asset files",
+      "path": "examples",
+      "category": "asset",
+      "language": "Media",
+      "size": 18425109,
+      "representedFiles": 397,
+      "aggregate": true,
+      "position": {
+        "x": 89.94571516494874,
+        "y": 6.5,
+        "z": -208.29432220105082
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 13,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/examples"
+    },
+    {
+      "id": "aggregate-4fd64d3ba4de4292",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "43 docs files",
+      "path": "examples",
+      "category": "docs",
+      "language": "PNG",
+      "size": 1434982,
+      "representedFiles": 43,
+      "aggregate": true,
+      "position": {
+        "x": 86.10396218953618,
+        "y": 6.413150553740784,
+        "z": -206.10549023960988
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 12.826301107481568,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/examples"
+    },
+    {
+      "id": "aggregate-9729fcd0451034a5",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "22 test files",
+      "path": "examples",
+      "category": "test",
+      "language": "TypeScript",
+      "size": 14278,
+      "representedFiles": 22,
+      "aggregate": true,
+      "position": {
+        "x": 88.07228805536757,
+        "y": 4.7504018315785945,
+        "z": -214.3877603607467
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 9.500803663157189,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/examples"
+    },
+    {
+      "id": "aggregate-97e01176e0153ab5",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "6 other files",
+      "path": "examples",
+      "category": "other",
+      "language": "Other",
+      "size": 13065,
+      "representedFiles": 6,
+      "aggregate": true,
+      "position": {
+        "x": 97.01331015593725,
+        "y": 4.718382481100286,
+        "z": -213.29500280286166
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 9.436764962200572,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911/examples"
+    },
+    {
+      "id": "file-09d27dd527092198",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "main.css",
+      "path": "examples/cms-buttercms/css/main.css",
+      "category": "source",
+      "language": "CSS",
+      "size": 48794,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 87.31123467416816,
+        "y": 4.437866968635916,
+        "z": -211.6630062514703
+      },
+      "scale": {
+        "x": 1.3135723005747422,
+        "y": 8.875733937271832,
+        "z": 1.1612150851637124
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/examples/cms-buttercms/css/main.css"
+    },
+    {
+      "id": "file-e908c4f299110725",
+      "provinceId": "province-ef70971c99a67887",
+      "label": "README.md",
+      "path": "examples/cms-wordpress/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 19024,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": 81.13790041539049,
+        "y": 4.111746119986785,
+        "z": -212.3295264558949
+      },
+      "scale": {
+        "x": 1.0883612838108092,
+        "y": 8.22349223997357,
+        "z": 1.063299586554058
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/examples/cms-wordpress/README.md"
+    },
+    {
+      "id": "aggregate-27f55da42dbe1705",
+      "provinceId": "province-f7e41d2eb032e65d",
+      "label": "36 config files",
+      "path": "__frontier__",
+      "category": "config",
+      "language": "YAML",
+      "size": 43044,
+      "representedFiles": 36,
+      "aggregate": true,
+      "position": {
+        "x": -76.1237143801386,
+        "y": 5.1483895117601515,
+        "z": -209.83497550468888
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.296779023520303,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911"
+    },
+    {
+      "id": "aggregate-b516b8576997c4f2",
+      "provinceId": "province-f7e41d2eb032e65d",
+      "label": "21 source files",
+      "path": "__frontier__",
+      "category": "source",
+      "language": "PATCH",
+      "size": 30540,
+      "representedFiles": 21,
+      "aggregate": true,
+      "position": {
+        "x": -79.00629958411675,
+        "y": 5.024614920108526,
+        "z": -206.55870401157512
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.049229840217052,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911"
+    },
+    {
+      "id": "aggregate-e00239a5be3e0820",
+      "provinceId": "province-f7e41d2eb032e65d",
+      "label": "14 docs files",
+      "path": "__frontier__",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 39529,
+      "representedFiles": 14,
+      "aggregate": true,
+      "position": {
+        "x": -72.87649741487085,
+        "y": 5.117665083676744,
+        "z": -206.9083048549855
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 10.235330167353489,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911"
+    },
+    {
+      "id": "aggregate-5952aff807b74053",
+      "provinceId": "province-f7e41d2eb032e65d",
+      "label": "3 other files",
+      "path": "__frontier__",
+      "category": "other",
+      "language": "Other",
+      "size": 1435,
+      "representedFiles": 3,
+      "aggregate": true,
+      "position": {
+        "x": -72.6785355548362,
+        "y": 3.9219600084557626,
+        "z": -212.64344862242743
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 7.843920016911525,
+        "z": 2.6
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/tree/3782922bdd68fef4f8241424bc7372af838bd911"
+    },
+    {
+      "id": "file-5c571d92d8a29fc9",
+      "provinceId": "province-f7e41d2eb032e65d",
+      "label": "README.md",
+      "path": ".conductor/README.md",
+      "category": "docs",
+      "language": "Markdown",
+      "size": 3304,
+      "representedFiles": 1,
+      "aggregate": false,
+      "position": {
+        "x": -81.82249880874976,
+        "y": 3.505704293534813,
+        "z": -209.38637644860736
+      },
+      "scale": {
+        "x": 1.0552163283806295,
+        "y": 7.011408587069626,
+        "z": 1.1444228584179654
+      },
+      "sourceUrl": "https://github.com/vercel/next.js/blob/3782922bdd68fef4f8241424bc7372af838bd911/.conductor/README.md"
+    }
+  ],
+  "routes": [
+    {
+      "id": "route-3171316d15d82cfc",
+      "from": {
+        "x": -68.09671555453899,
+        "y": 0,
+        "z": -160.4364386138506
+      },
+      "to": {
+        "x": -76.1237143801386,
+        "y": 0,
+        "z": -209.83497550468888
+      },
+      "kind": "root-path",
+      "provinceId": "province-f7e41d2eb032e65d"
+    },
+    {
+      "id": "route-f3ab89c793976d4e",
+      "from": {
+        "x": -89.43554668941499,
+        "y": 0,
+        "z": -267.601051765494
+      },
+      "to": {
+        "x": -92.97571504930885,
+        "y": 0,
+        "z": -318.40497873001726
+      },
+      "kind": "root-path",
+      "provinceId": "province-055b4779324889f4"
+    },
+    {
+      "id": "route-25ddf5e80ca1fcad",
+      "from": {
+        "x": 7.280304088668885,
+        "y": 0,
+        "z": -26.386650524660944
+      },
+      "to": {
+        "x": 13.3779844362931,
+        "y": 0,
+        "z": -73.98612882196903
+      },
+      "kind": "root-path",
+      "provinceId": "province-758f5818ddcfc381"
+    },
+    {
+      "id": "route-48835238dbd4ab05",
+      "from": {
+        "x": -93.79794826223046,
+        "y": 0,
+        "z": -52.976809000503266
+      },
+      "to": {
+        "x": -78.93973113170642,
+        "y": 0,
+        "z": -116.35442060516215
+      },
+      "kind": "root-path",
+      "provinceId": "province-e293eb3bdb5bd198"
+    },
+    {
+      "id": "route-95af68fe6115d307",
+      "from": {
+        "x": 75.33866991898554,
+        "y": 0,
+        "z": -30.391713238041845
+      },
+      "to": {
+        "x": 69.62537719164656,
+        "y": 0,
+        "z": -75.55627419040539
+      },
+      "kind": "root-path",
+      "provinceId": "province-61350fabf21ff42e"
+    },
+    {
+      "id": "route-b670695a730133eb",
+      "from": {
+        "x": 69.62537719164656,
+        "y": 0,
+        "z": -75.55627419040539
+      },
+      "to": {
+        "x": 77.98159739050017,
+        "y": 0,
+        "z": -132.78524118103087
+      },
+      "kind": "root-path",
+      "provinceId": "province-37f37e6f1003e6f8"
+    },
+    {
+      "id": "route-615f172efb970fb3",
+      "from": {
+        "x": 0,
+        "y": 0,
+        "z": 24
+      },
+      "to": {
+        "x": 7.280304088668885,
+        "y": 0,
+        "z": -26.386650524660944
+      },
+      "kind": "root-path",
+      "provinceId": "province-42c6a98834e87677"
+    },
+    {
+      "id": "route-38ec53a6d0585d97",
+      "from": {
+        "x": 89.94571516494874,
+        "y": 0,
+        "z": -208.29432220105082
+      },
+      "to": {
+        "x": 92.70624429346485,
+        "y": 0,
+        "z": -277.97995944060386
+      },
+      "kind": "root-path",
+      "provinceId": "province-cae0d054c79a309f"
+    },
+    {
+      "id": "route-1e0fb6c7ab66ab3a",
+      "from": {
+        "x": 0,
+        "y": 0,
+        "z": 24
+      },
+      "to": {
+        "x": 75.33866991898554,
+        "y": 0,
+        "z": -30.391713238041845
+      },
+      "kind": "root-path",
+      "provinceId": "province-cfab47a2e04e618f"
+    },
+    {
+      "id": "route-b760d2ed56827abc",
+      "from": {
+        "x": 77.98159739050017,
+        "y": 0,
+        "z": -132.78524118103087
+      },
+      "to": {
+        "x": 89.94571516494874,
+        "y": 0,
+        "z": -208.29432220105082
+      },
+      "kind": "root-path",
+      "provinceId": "province-ef70971c99a67887"
+    },
+    {
+      "id": "route-fa3467cbc3660b5a",
+      "from": {
+        "x": 0,
+        "y": 0,
+        "z": 24
+      },
+      "to": {
+        "x": -93.79794826223046,
+        "y": 0,
+        "z": -52.976809000503266
+      },
+      "kind": "root-path",
+      "provinceId": "province-705c465263035729"
+    },
+    {
+      "id": "route-5db64857697a3a8e",
+      "from": {
+        "x": -78.93973113170642,
+        "y": 0,
+        "z": -116.35442060516215
+      },
+      "to": {
+        "x": -68.09671555453899,
+        "y": 0,
+        "z": -160.4364386138506
+      },
+      "kind": "root-path",
+      "provinceId": "province-d583f97de6e78e2a"
+    },
+    {
+      "id": "route-a622df41c2c2baa4",
+      "from": {
+        "x": -8.76811128603816,
+        "y": 0,
+        "z": -179.0125565772876
+      },
+      "to": {
+        "x": -12.106381988156237,
+        "y": 0,
+        "z": -235.76959842205977
+      },
+      "kind": "root-path",
+      "provinceId": "province-9ec88c8172681f40"
+    },
+    {
+      "id": "route-63eed903b7594ae6",
+      "from": {
+        "x": 13.3779844362931,
+        "y": 0,
+        "z": -73.98612882196903
+      },
+      "to": {
+        "x": 2.1032239706033287,
+        "y": 0,
+        "z": -120.98373470404185
+      },
+      "kind": "root-path",
+      "provinceId": "province-ae556b45e7ac9a7a"
+    },
+    {
+      "id": "route-88865c1e8345e6cf",
+      "from": {
+        "x": 2.1032239706033287,
+        "y": 0,
+        "z": -120.98373470404185
+      },
+      "to": {
+        "x": -8.76811128603816,
+        "y": 0,
+        "z": -179.0125565772876
+      },
+      "kind": "root-path",
+      "provinceId": "province-d7173aeb51b9b254"
+    },
+    {
+      "id": "route-093cb67d3783a6e4",
+      "from": {
+        "x": -76.1237143801386,
+        "y": 0,
+        "z": -209.83497550468888
+      },
+      "to": {
+        "x": -89.43554668941499,
+        "y": 0,
+        "z": -267.601051765494
+      },
+      "kind": "root-path",
+      "provinceId": "province-ca4e28c03af20abd"
+    }
+  ],
+  "portals": [
+    {
+      "id": "portal-a4c2759a863e35d7",
+      "owner": "vercel",
+      "repository": "vercel",
+      "description": "Develop. Preview. Ship.",
+      "language": "TypeScript",
+      "stars": 16076,
+      "forks": 3737,
+      "updatedAt": "2026-08-12T23:07:49Z",
+      "canonicalUrl": "https://github.com/vercel/vercel",
+      "defaultBranch": "main",
+      "position": {
+        "x": -46.24894255583858,
+        "y": 0,
+        "z": 60.3221030713432
+      }
+    },
+    {
+      "id": "portal-28417694b6e568b3",
+      "owner": "vercel",
+      "repository": "ncc",
+      "description": "Compile a Node.js project into a single file. Supports TypeScript, binary addons, dynamic requires.",
+      "language": "JavaScript",
+      "stars": 9832,
+      "forks": 323,
+      "updatedAt": "2026-08-13T01:24:34Z",
+      "canonicalUrl": "https://github.com/vercel/ncc",
+      "defaultBranch": "main",
+      "position": {
+        "x": -36.03439783378827,
+        "y": 0,
+        "z": 58.98777629049191
+      }
+    },
+    {
+      "id": "portal-fc64310477cb78c3",
+      "owner": "vercel",
+      "repository": "webpack-asset-relocator-loader",
+      "description": "Used in ncc while emitting and relocating any asset references",
+      "language": "JavaScript",
+      "stars": 109,
+      "forks": 39,
+      "updatedAt": "2026-08-13T02:03:01Z",
+      "canonicalUrl": "https://github.com/vercel/webpack-asset-relocator-loader",
+      "defaultBranch": "main",
+      "position": {
+        "x": -20.79352618465241,
+        "y": 0,
+        "z": 58.55374011943713
+      }
+    },
+    {
+      "id": "portal-39a83246e91c4369",
+      "owner": "vercel",
+      "repository": "chatbot",
+      "description": "A full-featured, hackable Next.js AI chatbot built by Vercel",
+      "language": "TypeScript",
+      "stars": 20821,
+      "forks": 6721,
+      "updatedAt": "2026-08-13T01:51:21Z",
+      "canonicalUrl": "https://github.com/vercel/chatbot",
+      "defaultBranch": "main",
+      "position": {
+        "x": -3.8816859585651935,
+        "y": 0,
+        "z": 60.333862083127705
+      }
+    },
+    {
+      "id": "portal-4c6973a9b786b6fa",
+      "owner": "vercel",
+      "repository": "ai",
+      "description": "The AI Toolkit for TypeScript. From the creators of Next.js, the AI SDK is a free open-source library for building AI-powered applications and agents ",
+      "language": "TypeScript",
+      "stars": 26151,
+      "forks": 4952,
+      "updatedAt": "2026-08-13T01:56:24Z",
+      "canonicalUrl": "https://github.com/vercel/ai",
+      "defaultBranch": "main",
+      "position": {
+        "x": 9.340236847591457,
+        "y": 0,
+        "z": 62.550809517988334
+      }
+    },
+    {
+      "id": "portal-3fb494d0694b5303",
+      "owner": "vercel",
+      "repository": "geist-font",
+      "description": null,
+      "language": "HTML",
+      "stars": 3575,
+      "forks": 113,
+      "updatedAt": "2026-08-13T01:35:47Z",
+      "canonicalUrl": "https://github.com/vercel/geist-font",
+      "defaultBranch": "main",
+      "position": {
+        "x": 19.65043897859646,
+        "y": 0,
+        "z": 65.0440234626076
+      }
+    },
+    {
+      "id": "portal-3443ff16fa8cedaf",
+      "owner": "vercel",
+      "repository": "vercel-py",
+      "description": "Develop. Preview. Ship. Python.",
+      "language": "Python",
+      "stars": 23,
+      "forks": 8,
+      "updatedAt": "2026-08-12T23:36:54Z",
+      "canonicalUrl": "https://github.com/vercel/vercel-py",
+      "defaultBranch": "main",
+      "position": {
+        "x": 31.59412863980044,
+        "y": 0,
+        "z": 66.10939365709677
+      }
+    },
+    {
+      "id": "portal-72531f2addfbdc57",
+      "owner": "vercel",
+      "repository": "eve",
+      "description": "The Open Framework for Building Agents",
+      "language": "TypeScript",
+      "stars": 4583,
+      "forks": 441,
+      "updatedAt": "2026-08-13T01:49:40Z",
+      "canonicalUrl": "https://github.com/vercel/eve",
+      "defaultBranch": "main",
+      "position": {
+        "x": 47.23280556754004,
+        "y": 0,
+        "z": 64.23518015304339
+      }
+    }
+  ],
+  "coverage": {
+    "discoveredFiles": 31175,
+    "eligibleFiles": 29719,
+    "representedFiles": 29719,
+    "directEntities": 720,
+    "aggregateEntities": 54,
+    "omittedFiles": 1456,
+    "treeTruncated": false,
+    "treeRecovered": false,
+    "sourceComplete": true,
+    "omissions": [
+      {
+        "reason": "generated",
+        "files": 313,
+        "bytes": 11144611
+      },
+      {
+        "reason": "vendored",
+        "files": 793,
+        "bytes": 86665
+      },
+      {
+        "reason": "lockfile",
+        "files": 14,
+        "bytes": 3035178
+      },
+      {
+        "reason": "minified",
+        "files": 3,
+        "bytes": 619848
+      },
+      {
+        "reason": "source-map",
+        "files": 333,
+        "bytes": 1566327
+      }
+    ]
+  },
+  "statistics": {
+    "files": 29719,
+    "bytes": 141625655,
+    "provinces": 17,
+    "languages": [
+      {
+        "name": "JavaScript",
+        "files": 11018,
+        "bytes": 52170803
+      },
+      {
+        "name": "TypeScript",
+        "files": 11583,
+        "bytes": 24300462
+      },
+      {
+        "name": "Media",
+        "files": 459,
+        "bytes": 22477660
+      },
+      {
+        "name": "Rust",
+        "files": 1011,
+        "bytes": 10507699
+      },
+      {
+        "name": "JSON",
+        "files": 1332,
+        "bytes": 6558473
+      },
+      {
+        "name": "SNAPSHOT",
+        "files": 290,
+        "bytes": 5523010
+      },
+      {
+        "name": "MDX",
+        "files": 731,
+        "bytes": 3737009
+      },
+      {
+        "name": "PNG",
+        "files": 126,
+        "bytes": 3481426
+      },
+      {
+        "name": "WASM",
+        "files": 16,
+        "bytes": 3116160
+      },
+      {
+        "name": "JPG",
+        "files": 59,
+        "bytes": 1898646
+      },
+      {
+        "name": "Markdown",
+        "files": 503,
+        "bytes": 1870096
+      },
+      {
+        "name": "CSS",
+        "files": 688,
+        "bytes": 1419562
+      },
+      {
+        "name": "WOFF2",
+        "files": 32,
+        "bytes": 867514
+      },
+      {
+        "name": "ICO",
+        "files": 49,
+        "bytes": 668061
+      },
+      {
+        "name": "BMP",
+        "files": 7,
+        "bytes": 566006
+      },
+      {
+        "name": "TTF",
+        "files": 4,
+        "bytes": 360000
+      },
+      {
+        "name": "Other",
+        "files": 186,
+        "bytes": 299675
+      },
+      {
+        "name": "YAML",
+        "files": 105,
+        "bytes": 252805
+      },
+      {
+        "name": "ZIP",
+        "files": 3,
+        "bytes": 208100
+      },
+      {
+        "name": "ICNS",
+        "files": 2,
+        "bytes": 185898
+      },
+      {
+        "name": "EOT",
+        "files": 1,
+        "bytes": 139404
+      },
+      {
+        "name": "WEBP",
+        "files": 12,
+        "bytes": 121188
+      },
+      {
+        "name": "GITIGNORE",
+        "files": 349,
+        "bytes": 111807
+      },
+      {
+        "name": "JXL",
+        "files": 2,
+        "bytes": 93786
+      },
+      {
+        "name": "TOML",
+        "files": 79,
+        "bytes": 87935
+      },
+      {
+        "name": "SCSS",
+        "files": 193,
+        "bytes": 76931
+      },
+      {
+        "name": "TXT",
+        "files": 253,
+        "bytes": 67676
+      },
+      {
+        "name": "STDERR",
+        "files": 102,
+        "bytes": 56023
+      },
+      {
+        "name": "SVG",
+        "files": 62,
+        "bytes": 51377
+      },
+      {
+        "name": "GIF",
+        "files": 8,
+        "bytes": 48987
+      },
+      {
+        "name": "AVIF",
+        "files": 10,
+        "bytes": 42743
+      },
+      {
+        "name": "Shell",
+        "files": 29,
+        "bytes": 36225
+      },
+      {
+        "name": "PATCH",
+        "files": 12,
+        "bytes": 20634
+      },
+      {
+        "name": "TIFF",
+        "files": 7,
+        "bytes": 15820
+      },
+      {
+        "name": "PEM",
+        "files": 10,
+        "bytes": 15496
+      },
+      {
+        "name": "TAR",
+        "files": 2,
+        "bytes": 13824
+      },
+      {
+        "name": "MP4",
+        "files": 2,
+        "bytes": 13530
+      },
+      {
+        "name": "DOCKERFILE",
+        "files": 5,
+        "bytes": 13025
+      },
+      {
+        "name": "EXAMPLE",
+        "files": 80,
+        "bytes": 12793
+      },
+      {
+        "name": "PDF",
+        "files": 2,
+        "bytes": 12256
+      },
+      {
+        "name": "Python",
+        "files": 1,
+        "bytes": 9976
+      },
+      {
+        "name": "SQLITE",
+        "files": 1,
+        "bytes": 8192
+      },
+      {
+        "name": "WEBMANIFEST",
+        "files": 21,
+        "bytes": 8045
+      },
+      {
+        "name": "CONFIG",
+        "files": 1,
+        "bytes": 7772
+      },
+      {
+        "name": "SNAP",
+        "files": 5,
+        "bytes": 6992
+      },
+      {
+        "name": "XML",
+        "files": 30,
+        "bytes": 6907
+      },
+      {
+        "name": "HEIC",
+        "files": 2,
+        "bytes": 5128
+      },
+      {
+        "name": "PRETTIERIGNORE",
+        "files": 3,
+        "bytes": 4612
+      },
+      {
+        "name": "DOCKERIGNORE",
+        "files": 4,
+        "bytes": 3959
+      },
+      {
+        "name": "TRS",
+        "files": 5,
+        "bytes": 3766
+      },
+      {
+        "name": "HTML",
+        "files": 15,
+        "bytes": 3571
+      },
+      {
+        "name": "SERVE",
+        "files": 1,
+        "bytes": 3196
+      },
+      {
+        "name": "BUN",
+        "files": 1,
+        "bytes": 2688
+      },
+      {
+        "name": "PIC",
+        "files": 1,
+        "bytes": 2364
+      },
+      {
+        "name": "ENV",
+        "files": 14,
+        "bytes": 2312
+      },
+      {
+        "name": "BABELRC",
+        "files": 21,
+        "bytes": 2228
+      },
+      {
+        "name": "CONF",
+        "files": 1,
+        "bytes": 1683
+      },
+      {
+        "name": "GIT-BLAME-IGNORE-REVS",
+        "files": 1,
+        "bytes": 1667
+      },
+      {
+        "name": "PO",
+        "files": 2,
+        "bytes": 1451
+      },
+      {
+        "name": "PRISMA",
+        "files": 3,
+        "bytes": 1168
+      },
+      {
+        "name": "FLOW",
+        "files": 1,
+        "bytes": 1060
+      },
+      {
+        "name": "BAK",
+        "files": 3,
+        "bytes": 1041
+      },
+      {
+        "name": "SWCRC",
+        "files": 3,
+        "bytes": 876
+      },
+      {
+        "name": "I18N-IMAGES",
+        "files": 1,
+        "bytes": 641
+      },
+      {
+        "name": "GraphQL",
+        "files": 5,
+        "bytes": 637
+      },
+      {
+        "name": "CUSTOM-ROUTES",
+        "files": 1,
+        "bytes": 632
+      },
+      {
+        "name": "EDITORCONFIG",
+        "files": 2,
+        "bytes": 606
+      },
+      {
+        "name": "BAT",
+        "files": 1,
+        "bytes": 579
+      },
+      {
+        "name": "LOCAL",
+        "files": 9,
+        "bytes": 555
+      },
+      {
+        "name": "WAT",
+        "files": 1,
+        "bytes": 497
+      },
+      {
+        "name": "NPMRC",
+        "files": 7,
+        "bytes": 490
+      },
+      {
+        "name": "EDGEQL",
+        "files": 1,
+        "bytes": 490
+      },
+      {
+        "name": "JP2",
+        "files": 2,
+        "bytes": 484
+      },
+      {
+        "name": "CURSORINDEXINGIGNORE",
+        "files": 1,
+        "bytes": 461
+      },
+      {
+        "name": "DEVELOPMENT",
+        "files": 6,
+        "bytes": 449
+      },
+      {
+        "name": "ALEXRC",
+        "files": 1,
+        "bytes": 449
+      },
+      {
+        "name": "USE-CACHE",
+        "files": 1,
+        "bytes": 448
+      },
+      {
+        "name": "GITATTRIBUTES",
+        "files": 1,
+        "bytes": 440
+      },
+      {
+        "name": "SQL",
+        "files": 1,
+        "bytes": 426
+      },
+      {
+        "name": "SWC",
+        "files": 2,
+        "bytes": 345
+      },
+      {
+        "name": "SWC-PLUGINS",
+        "files": 2,
+        "bytes": 325
+      },
+      {
+        "name": "Sass",
+        "files": 10,
+        "bytes": 322
+      },
+      {
+        "name": "IGNORE",
+        "files": 1,
+        "bytes": 293
+      },
+      {
+        "name": "ESDL",
+        "files": 1,
+        "bytes": 289
+      },
+      {
+        "name": "ALT",
+        "files": 1,
+        "bytes": 255
+      },
+      {
+        "name": "DATA",
+        "files": 8,
+        "bytes": 242
+      },
+      {
+        "name": "ESLINTRC",
+        "files": 3,
+        "bytes": 242
+      },
+      {
+        "name": "PRODUCTION",
+        "files": 4,
+        "bytes": 231
+      },
+      {
+        "name": "DEV",
+        "files": 1,
+        "bytes": 212
+      },
+      {
+        "name": "SKIP",
+        "files": 2,
+        "bytes": 185
+      },
+      {
+        "name": "WEBPACK",
+        "files": 1,
+        "bytes": 167
+      },
+      {
+        "name": "GRAPHQLCONFIG",
+        "files": 1,
+        "bytes": 162
+      },
+      {
+        "name": "EMPTY",
+        "files": 2,
+        "bytes": 158
+      },
+      {
+        "name": "SAMPLE",
+        "files": 3,
+        "bytes": 139
+      },
+      {
+        "name": "BABEL",
+        "files": 1,
+        "bytes": 138
+      },
+      {
+        "name": "FILESYSTEM-CACHE",
+        "files": 1,
+        "bytes": 129
+      },
+      {
+        "name": "DDS",
+        "files": 1,
+        "bytes": 128
+      },
+      {
+        "name": "ESLINTIGNORE",
+        "files": 3,
+        "bytes": 125
+      },
+      {
+        "name": "NODE",
+        "files": 7,
+        "bytes": 122
+      },
+      {
+        "name": "REACTCOMPILER-OPTIONS",
+        "files": 1,
+        "bytes": 117
+      },
+      {
+        "name": "ADAPTER-PATH",
+        "files": 1,
+        "bytes": 102
+      },
+      {
+        "name": "TEST",
+        "files": 1,
+        "bytes": 102
+      },
+      {
+        "name": "ALEXIGNORE",
+        "files": 1,
+        "bytes": 99
+      },
+      {
+        "name": "PLUGIN",
+        "files": 1,
+        "bytes": 93
+      },
+      {
+        "name": "MIDDLEWARE-OPTIONS",
+        "files": 1,
+        "bytes": 86
+      },
+      {
+        "name": "KEEP",
+        "files": 1,
+        "bytes": 70
+      },
+      {
+        "name": "NEXT-SCRIPT-WORKERS",
+        "files": 1,
+        "bytes": 70
+      },
+      {
+        "name": "CACHE-COMPONENTS",
+        "files": 1,
+        "bytes": 68
+      },
+      {
+        "name": "BROWSERSLISTRC",
+        "files": 4,
+        "bytes": 67
+      },
+      {
+        "name": "KTX",
+        "files": 1,
+        "bytes": 64
+      },
+      {
+        "name": "OPTIMIZE-CSS",
+        "files": 1,
+        "bytes": 64
+      },
+      {
+        "name": "PAM",
+        "files": 1,
+        "bytes": 62
+      },
+      {
+        "name": "FIREBASERC",
+        "files": 1,
+        "bytes": 61
+      },
+      {
+        "name": "FLOWCONFIG",
+        "files": 1,
+        "bytes": 57
+      },
+      {
+        "name": "PRESET",
+        "files": 1,
+        "bytes": 54
+      },
+      {
+        "name": "APPROVERS",
+        "files": 2,
+        "bytes": 49
+      },
+      {
+        "name": "PUG",
+        "files": 1,
+        "bytes": 49
+      },
+      {
+        "name": "TRANSPILE-PACKAGES",
+        "files": 1,
+        "bytes": 49
+      },
+      {
+        "name": "JSONLIKE2",
+        "files": 1,
+        "bytes": 46
+      },
+      {
+        "name": "HDR",
+        "files": 1,
+        "bytes": 45
+      },
+      {
+        "name": "JSONLIKE",
+        "files": 1,
+        "bytes": 43
+      },
+      {
+        "name": "REACTCOMPILER-BASE",
+        "files": 1,
+        "bytes": 42
+      },
+      {
+        "name": "SYNC-TXT",
+        "files": 1,
+        "bytes": 35
+      },
+      {
+        "name": "DEFAULT",
+        "files": 1,
+        "bytes": 32
+      },
+      {
+        "name": "reStructuredText",
+        "files": 2,
+        "bytes": 30
+      },
+      {
+        "name": "FITS",
+        "files": 1,
+        "bytes": 30
+      },
+      {
+        "name": "STYL",
+        "files": 1,
+        "bytes": 30
+      },
+      {
+        "name": "PSD",
+        "files": 1,
+        "bytes": 26
+      },
+      {
+        "name": "CUSTOM-DATA",
+        "files": 1,
+        "bytes": 24
+      },
+      {
+        "name": "PFM",
+        "files": 1,
+        "bytes": 24
+      },
+      {
+        "name": "XYZ",
+        "files": 1,
+        "bytes": 22
+      },
+      {
+        "name": "BIN",
+        "files": 1,
+        "bytes": 18
+      },
+      {
+        "name": "CUR",
+        "files": 1,
+        "bytes": 18
+      },
+      {
+        "name": "TGA",
+        "files": 1,
+        "bytes": 18
+      },
+      {
+        "name": "EXE",
+        "files": 1,
+        "bytes": 17
+      },
+      {
+        "name": "NPMIGNORE",
+        "files": 1,
+        "bytes": 14
+      },
+      {
+        "name": "PPM",
+        "files": 1,
+        "bytes": 14
+      },
+      {
+        "name": "CSV",
+        "files": 1,
+        "bytes": 12
+      },
+      {
+        "name": "PGM",
+        "files": 1,
+        "bytes": 12
+      },
+      {
+        "name": "VIPS",
+        "files": 1,
+        "bytes": 12
+      },
+      {
+        "name": "EXR",
+        "files": 1,
+        "bytes": 8
+      },
+      {
+        "name": "J2C",
+        "files": 1,
+        "bytes": 8
+      },
+      {
+        "name": "PROBE",
+        "files": 1,
+        "bytes": 8
+      },
+      {
+        "name": "NODE-VERSION",
+        "files": 1,
+        "bytes": 4
+      },
+      {
+        "name": "PID",
+        "files": 1,
+        "bytes": 4
+      },
+      {
+        "name": "NVMRC",
+        "files": 1,
+        "bytes": 3
+      },
+      {
+        "name": "GITKEEP",
+        "files": 7,
+        "bytes": 1
+      }
+    ],
+    "categories": [
+      {
+        "category": "source",
+        "files": 6838,
+        "bytes": 65549030
+      },
+      {
+        "category": "test",
+        "files": 19394,
+        "bytes": 42755777
+      },
+      {
+        "category": "docs",
+        "files": 1305,
+        "bytes": 6671871
+      },
+      {
+        "category": "config",
+        "files": 1690,
+        "bytes": 4145831
+      },
+      {
+        "category": "asset",
+        "files": 459,
+        "bytes": 22477660
+      },
+      {
+        "category": "other",
+        "files": 33,
+        "bytes": 25486
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "code": "FILES_OMITTED",
+      "message": "1,456 generated, vendored, lock, minified, or source-map files were intentionally omitted."
+    }
+  ]
+}

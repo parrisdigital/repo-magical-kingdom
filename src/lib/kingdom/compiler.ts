@@ -3,7 +3,7 @@ import type { RepositorySnapshot, SourceFile } from "@/lib/github";
 import { classifyFile, omissionReason, type ClassifiedFile } from "./classify";
 import { KingdomError } from "./errors";
 import { stableDigest, stableFraction, stableHash, stableId } from "./hash";
-import { kingdomWorldSchema } from "./schemas";
+import { compiledKingdomWorldSchema } from "./schemas";
 import {
   DEFAULT_KINGDOM_SEASON,
   FILE_CATEGORIES,
@@ -836,7 +836,7 @@ export function compileKingdom(
     );
   }
 
-  const parsed = kingdomWorldSchema.safeParse(candidate);
+  const parsed = compiledKingdomWorldSchema.safeParse(candidate);
   if (!parsed.success) {
     throw new KingdomError("WORLD_INVALID", "The generated world package failed validation.", {
       retryable: false,

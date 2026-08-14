@@ -73,6 +73,15 @@ a {
     radial-gradient(circle at 50% 30%, rgba(110, 138, 219, 0.22), transparent 35rem), #090d18;
 }
 
+.loading-shell::before {
+  width: 7rem;
+  height: 7rem;
+  margin: 0 auto 0.85rem;
+  content: "";
+  background: url("/brand/app-logo-v2.png") center / contain no-repeat;
+  filter: drop-shadow(0 0.5rem 1.2rem rgba(0, 0, 0, 0.34));
+}
+
 .loading-shell h1 {
   margin: 0;
   font-family: var(--font-display);

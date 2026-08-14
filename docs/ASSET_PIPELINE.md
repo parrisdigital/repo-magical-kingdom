@@ -22,6 +22,24 @@ upstream license files are preserved under
 project still credits Quaternius and Kenney wherever the visual foundation is
 described.
 
+The terrain surface uses a separate four-material
+[Poly Haven PBR atlas](assets/TERRAIN_PBR.md): Sparse Grass, Dirt Floor, Rocks
+Ground 02, and Coast Sand 01. Poly Haven also declares these assets CC0. Six
+guarded WebP atlases cover desktop and low-memory quality tiers without
+redistributing the twelve source JPEGs or large source archives.
+
+The authored modular homes use a separate four-family
+[Poly Haven architecture detail atlas](assets/ARCHITECTURE_DETAIL_PBR.md):
+White Plaster 02, Brick Wall 005, Wood Table 001, and Roof Tiles. The six
+guarded WebPs stage high/low albedo, OpenGL normal, and roughness channels.
+High-quality Walk loads only the high normal and roughness pair; Orbit and low
+quality retain the authored Quaternius materials with zero extra texture reads.
+
+The optional [neutral daylight environment](assets/ENVIRONMENT_HDRI.md) is Poly
+Haven's official 1K Kloofendal Overcast (Pure Sky) Radiance HDR, distributed
+unchanged for reflections and image-based lighting only. The procedural sky
+remains visible; the HDRI must never become the scene background.
+
 WorldClaw showcase images, videos, meshes, textures, materials, and generated
 results are not present in this bundle.
 
@@ -58,6 +76,23 @@ the license before rebuilding.
 - Static animation tracks: none
 - Wildlife: at least 12 original clips; `Idle`, `Eating`, `Walk`, and `Gallop`
   are runtime-stable names
+- Terrain PBR: opaque RGB WebP atlases; albedo is sRGB, OpenGL tangent-space
+  normal and roughness are linear data, and slot order is grass, soil, rock,
+  shore
+- Terrain memory tiers: 4096 x 1024 desktop atlases (48 MiB base decoded RGBA,
+  64 MiB with runtime mips) and 2048 x 512 low atlases (12 MiB base, 16 MiB
+  with runtime mips)
+- Terrain mip safety: proportional 64-pixel desktop and 32-pixel low copied-edge
+  gutters protect bilinear sampling through a common minimum of LOD 6
+- Architecture detail PBR: opaque RGB WebP atlases in plaster, brick, wood, and
+  roof-tile slots; exact audited material names are required, while authored
+  base colors and maps remain authoritative
+- Architecture detail memory: six WebPs total 2.02 MiB; the high-Walk sampled
+  normal/roughness pair retains approximately 42.67 MiB decoded with mips;
+  Orbit and low quality add no samplers or decoded atlas memory
+- Optional environment IBL: one 1024 x 512 Radiance HDR (1.12 MiB payload,
+  4 MiB half-float decode, 6 MiB retained PMREM, approximately 16 MiB peak GPU
+  during PMREM generation), excluded from `scene.background`
 
 Typed URL, name, animation, variant-slot, and orientation contracts are
 [`src/lib/assets/quaternius.ts`](../src/lib/assets/quaternius.ts) and
@@ -111,6 +146,44 @@ The selection and source hashes are pinned in
 The complete sourcing and generation policy is the
 [seasonal asset playbook](SEASONAL_ASSET_PLAYBOOK.md).
 
+The Poly Haven terrain bundle is rebuilt from only the twelve exact 1K JPEG
+maps recorded in the runtime manifest:
+
+```bash
+pnpm assets:terrain:build -- \
+  --source "/path/to/reviewed-polyhaven-1k-jpegs"
+```
+
+The terrain builder verifies source MD5 and SHA-256 values before creating the
+desktop and low-memory atlases. Full source, channel, gutter, and runtime details
+are in the [terrain PBR documentation](assets/TERRAIN_PBR.md).
+
+The Poly Haven architecture detail bundle is rebuilt from only the twelve exact
+1K JPEG maps recorded in its manifest:
+
+```bash
+pnpm assets:architecture:build -- \
+  --source "/path/to/reviewed-polyhaven-architecture-jpegs"
+```
+
+The architecture builder verifies source MD5 and SHA-256 values before
+creating the high and low atlases. Full source, exact material-role mapping,
+channel, memory, ownership, and tuning contracts are in the
+[architecture detail PBR documentation](assets/ARCHITECTURE_DETAIL_PBR.md).
+
+The optional neutral environment is rebuilt without transformation from the
+exact official 1K HDR recorded in its manifest:
+
+```bash
+pnpm assets:environment:build -- \
+  --source "/path/to/kloofendal_overcast_puresky_1k.hdr"
+```
+
+The environment builder verifies the official byte count and MD5, independent
+SHA-256, filename, Radiance encoding, and 1024 x 512 dimensions before copying
+the bytes unchanged. Full runtime and disposal assumptions are in the
+[environment HDRI documentation](assets/ENVIRONMENT_HDRI.md).
+
 To rebuild both independently licensed collections in one pass, use the
 aggregate command. It requires every reviewed source explicitly:
 
@@ -132,9 +205,12 @@ pnpm assets:verify
 node attribution/validate.mjs
 ```
 
-`assets:verify` aggregates the Quaternius and Kenney verifiers. The named
-`assets:quaternius:verify` and `assets:seasonal:verify` commands remain available
-for focused development, but the aggregate gate is authoritative for CI.
+`assets:verify` aggregates the Quaternius, Kenney, terrain-PBR, environment
+HDRI, and architecture-detail verifiers.
+The named `assets:quaternius:verify`, `assets:seasonal:verify`, and
+`assets:terrain:verify` commands remain available for focused development, as
+do `assets:environment:verify` and `assets:architecture:verify`; the aggregate
+gate is authoritative for CI.
 
 The asset verifier fails on a missing model, an unexpected collection count, a
 non-triangle primitive, a missing required compression extension, a static
@@ -146,6 +222,21 @@ The supplemental Kenney bundle contains 26 GLBs totaling 169.30 KiB, with 5,330
 triangles and 47 source primitives. Its verifier additionally rejects external
 buffers or textures, non-grounded roots, unexpected scene hierarchies, stale
 license texts, and a bundle above 256 KiB or 6,000 triangles.
+
+The Poly Haven terrain bundle contains six guarded WebP atlases totaling 2.82
+MiB. Its focused verifier also rejects altered source provenance, incorrect
+slot/channel contracts, alpha, stale hashes, a copied-edge gutter below the
+documented LOD guarantee, and any terrain payload above 4 MiB.
+
+The Poly Haven architecture detail bundle contains six guarded WebP atlases
+totaling 2.02 MiB. Its focused verifier rejects altered provenance, incorrect
+exact material mapping, missing authored UV/map prerequisites, unsafe atlas
+geometry or mip gutters, alpha, stale hashes, non-grayscale roughness, drifted
+roughness means, unexpected files, or a payload above 5 MiB.
+
+The environment verifier pins the exact 1.12 MiB CC0 source and independently
+rejects provenance, dimensions, encoding, hashes, usage, loader, PMREM budget,
+directory inventory, or the 1.25 MiB payload ceiling if any contract drifts.
 
 The attribution validator independently checks every redistributed file against
 its SHA-256 hash and rejects any unregistered model or image. The
